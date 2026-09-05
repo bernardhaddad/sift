@@ -204,7 +204,7 @@
     const out = [];
     for (const k of CFG.buttons || []) {
       const fn = CFG.links[k]; if (!fn) continue;
-      const url = fn(p, (CFG.referrals || {})[k] || "");
+      const url = fn(p, (CFG.referrals || {})[k] || "", CFG);
       if (url) out.push(`<a href="${esc(url)}" target="_blank" rel="noopener nofollow">${esc(k)}</a>`);
     }
     if (CFG.links.gecko) out.push(`<a href="${esc(CFG.links.gecko(p))}" target="_blank" rel="noopener" title="chart">chart</a>`);
@@ -290,9 +290,16 @@
       const recent = b.recent.length ? `<li>last: ${b.recent.slice(0, 4).map((t) => `${esc(t.name)} <span class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}R</span>`).join(", ")}</li>` : "";
       return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed · win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"} · ${fmtMoney(b.pnl_usd)} at $100 notional</div><ul>${open}${recent}</ul></div>`;
     }).join("");
-    const refs = CFG.referrals || {}; const any = Object.values(refs).some((x) => x);
+    const refs = CFG.referrals || {};
+    const shareRefs = ["gmgn", "axiom", "photon", "trojan"].filter((k) => refs[k]);
+    const jupFee = CFG.jupiterFeeBps > 0 && refs.jupiter ? CFG.jupiterFeeBps : 0;
     const links = Object.keys(CFG.signup || {}).map((k) => `<a href="${esc(CFG.signup[k](refs[k] || ""))}" target="_blank" rel="noopener nofollow">${k}</a>`).join(" · ");
-    $("disclosure").innerHTML = `<b>How Sift stays free.</b> The trade buttons open the token in a trading terminal. ${any ? "Some of those links carry our referral code, and the terminal shares a small part of its own fee with us when you trade through it. You pay the same fee either way, and the referral never changes what the table shows." : "Referral codes are not configured on this deployment yet, so no link here pays anyone."} Terminals: ${links}. Sift does not run a bot, does not take a cut of your trades, and does not sell calls.`;
+    const parts = ["<b>How Sift stays free.</b> The trade buttons open the token in a trading terminal."];
+    if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links and sign-ups carry our referral code, and the terminal shares a part of its own fee with us on trades by accounts that signed up through it. You pay the same fee either way, and the referral never changes what the table shows.`);
+    if (jupFee) parts.push(`Jupiter swaps opened from this page add a ${(jupFee / 100).toFixed(2)}% referral fee that goes to us; use jup.ag directly to avoid it.`);
+    if (!shareRefs.length && !jupFee) parts.push("Referral codes are not configured on this deployment yet, so no link here pays anyone.");
+    parts.push(`Terminals: ${links}. Sift does not run a bot, does not take a cut of your trades, and does not sell calls.`);
+    $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));
 
