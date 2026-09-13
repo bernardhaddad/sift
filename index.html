@@ -297,7 +297,9 @@
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
       const open = b.open.length ? `<li>open: ${b.open.map((o) => `<b>${esc(o.name)}</b> since ${ago(o.opened_at)}`).join(", ")}</li>` : "<li>no open positions</li>";
       const recent = b.recent.length ? `<li>last: ${b.recent.slice(0, 4).map((t) => `${esc(t.name)} <span class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}R</span>`).join(", ")}</li>` : "";
-      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed · win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"} · ${fmtMoney(b.pnl_usd)} at $100 notional</div><ul>${open}${recent}</ul></div>`;
+      const trades = (b.trades || []);
+      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed · win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"} · ${fmtMoney(b.pnl_usd)} at $100 notional</div><ul>${open}${recent}</ul>${all}</div>`;
     }).join("");
     const refs = CFG.referrals || {};
     const shareRefs = ["gmgn", "axiom", "photon", "trojan"].filter((k) => refs[k]);
