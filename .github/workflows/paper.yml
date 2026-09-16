@@ -31,8 +31,8 @@ name: memecoin paper-trading cycle (public host)
 
 on:
   schedule:
-    - cron: "41 * * * *"
-    - cron: "11 * * * *"
+    - cron: "47 * * * *" # minute changed 2026-09-16 16:05 UTC to re-register a schedule that never fired
+    - cron: "17 * * * *"
   workflow_dispatch: {}
 
 permissions:
