@@ -10,9 +10,14 @@ name: memecoin paper-trading cycle (public host)
 # So the cycle runs here, reading the private trading code through a read-only
 # token, and publishes the site in the same job (no deploy token needed).
 #
-# State: the book lives in this repository's Actions cache (cache-as-state, the
-# same pattern as before). On the first run there is no cache, so the job seeds
-# data/ from paper-seed/, which was rebuilt from the last published snapshot
+# State: the book lives in this repository's Actions cache (cache-as-state),
+# held OUTSIDE the source checkout in paper-state/. The private repository
+# ships a stub memecoin-trading/data/ (an empty August state), and the first
+# version of this workflow restored the cache straight into that directory,
+# saw the stub, skipped seeding and ran a cycle on an empty book (run
+# 35104735505). The cache key prefix changed at the same time so that run can
+# never be restored. When paper-state/ has no state.json the job seeds it from
+# paper-seed/, rebuilt from the last snapshot the private host published
 # (seq 198, 2026-09-16 00:48 UTC, M2 at 57 closed and no open positions).
 #
 # Secrets this repository needs (Settings -> Secrets and variables -> Actions):
@@ -68,24 +73,33 @@ jobs:
           token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
           path: src
 
-      # Cache-as-state: unique save key, prefix restore keeps the newest state.
+      # Cache-as-state, outside the checkout: unique save key, prefix restore
+      # keeps the newest state. The prefix is "memecoin-book-" (not the earlier
+      # "memecoin-paper-state-") so the empty-book run can never be restored.
       - name: Restore paper state
         uses: actions/cache@v4
         with:
-          path: src/memecoin-trading/data
-          key: memecoin-paper-state-${{ github.run_id }}
+          path: paper-state
+          key: memecoin-book-${{ github.run_id }}
           restore-keys: |
-            memecoin-paper-state-
+            memecoin-book-
 
-      - name: Seed state on first run
+      - name: Seed the book on first run, then install it over the repo stub
         run: |
-          if [ ! -f src/memecoin-trading/data/state.json ]; then
-            echo "no cached state: seeding from paper-seed/ (rebuilt from the published snapshot)"
-            mkdir -p src/memecoin-trading/data
-            cp site/paper-seed/* src/memecoin-trading/data/
+          mkdir -p paper-state
+          if [ ! -f paper-state/state.json ]; then
+            echo "no cached book: seeding paper-state/ from paper-seed/ (rebuilt from the published snapshot, seq 198)"
+            cp site/paper-seed/state.json site/paper-seed/cycle_meta.json site/paper-seed/flow_log.jsonl paper-state/
           else
-            echo "cached state restored"
+            echo "cached book restored"
           fi
+          rm -rf src/memecoin-trading/data
+          cp -r paper-state src/memecoin-trading/data
+          python3 - <<'PY'
+          import json
+          s = json.load(open("src/memecoin-trading/data/state.json"))["experiments"]
+          print("book installed:", {k: (len(v.get("closed", [])), len(v.get("open", {}))) for k, v in s.items()})
+          PY
 
       - name: Run cycle
         working-directory: src/memecoin-trading
@@ -95,6 +109,12 @@ jobs:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: python3 scripts/run.py cycle
+
+      - name: Save the book back to the cached path
+        if: always()
+        run: |
+          rm -rf paper-state
+          cp -r src/memecoin-trading/data paper-state
 
       - name: Build and publish the site
         run: |
@@ -109,6 +129,7 @@ jobs:
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit --quiet -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
           git push --quiet origin HEAD:main
+          echo "published"
 
       # Public-repository artifacts are not metered: the raw panel is retrievable
       # again for the mining passes.
@@ -118,5 +139,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: paper-data-${{ github.run_id }}
-          path: src/memecoin-trading/data
+          path: paper-state
           retention-days: 7
