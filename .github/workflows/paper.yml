@@ -1,0 +1,122 @@
+name: memecoin paper-trading cycle (public host)
+
+# Relocated here from bernardhaddad/ClaudeAI on 2026-09-16.
+#
+# Why: the account is on GitHub Free, whose 2,000 included Actions minutes per
+# month are consumed by jobs in PRIVATE repositories. They ran out on 09-16 and
+# every scheduled paper cycle was refused ("spending limit needs to be
+# increased") until the reset. Public repositories are not metered, and this
+# repository is public because GitHub Pages serves the Sift screener from it.
+# So the cycle runs here, reading the private trading code through a read-only
+# token, and publishes the site in the same job (no deploy token needed).
+#
+# State: the book lives in this repository's Actions cache (cache-as-state, the
+# same pattern as before). On the first run there is no cache, so the job seeds
+# data/ from paper-seed/, which was rebuilt from the last published snapshot
+# (seq 198, 2026-09-16 00:48 UTC, M2 at 57 closed and no open positions).
+#
+# Secrets this repository needs (Settings -> Secrets and variables -> Actions):
+#   CLAUDEAI_READ_TOKEN  fine-grained PAT, repository access = ClaudeAI only,
+#                        permission Contents = Read. Nothing else.
+#   HELIUS_API_KEY       the Amendment 6 funding-cluster gate; without it the
+#                        gate fails closed and no new M2 trades open.
+#   TELEGRAM_BOT_TOKEN   optional phone alerts.
+#   TELEGRAM_CHAT_ID     optional phone alerts.
+#   SOLANA_RPC_URL       optional override; leave unset to use Helius.
+
+on:
+  schedule:
+    - cron: "41 * * * *"
+    - cron: "11 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: memecoin-paper
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPO: bernardhaddad/ClaudeAI
+  SOURCE_REF: claude/dreamy-curie-3UNnv
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check the read token is present
+        env:
+          T: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+        run: |
+          if [ -z "$T" ]; then
+            echo "::error::CLAUDEAI_READ_TOKEN is not set. Add a fine-grained PAT with Contents: Read on ${SOURCE_REPO} as a secret of this repository."
+            exit 1
+          fi
+
+      - name: Checkout this site repository
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Checkout the private trading code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_REF }}
+          token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          path: src
+
+      # Cache-as-state: unique save key, prefix restore keeps the newest state.
+      - name: Restore paper state
+        uses: actions/cache@v4
+        with:
+          path: src/memecoin-trading/data
+          key: memecoin-paper-state-${{ github.run_id }}
+          restore-keys: |
+            memecoin-paper-state-
+
+      - name: Seed state on first run
+        run: |
+          if [ ! -f src/memecoin-trading/data/state.json ]; then
+            echo "no cached state: seeding from paper-seed/ (rebuilt from the published snapshot)"
+            mkdir -p src/memecoin-trading/data
+            cp site/paper-seed/* src/memecoin-trading/data/
+          else
+            echo "cached state restored"
+          fi
+
+      - name: Run cycle
+        working-directory: src/memecoin-trading
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        run: python3 scripts/run.py cycle
+
+      - name: Build and publish the site
+        run: |
+          (cd src/memecoin-trading && python3 scripts/build_site.py)
+          cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
+             src/memecoin-trading/site/data.json site/
+          touch site/.nojekyll
+          cd site
+          git config user.name "sift-bot"
+          git config user.email "sift-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
+          git commit --quiet -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push --quiet origin HEAD:main
+
+      # Public-repository artifacts are not metered: the raw panel is retrievable
+      # again for the mining passes.
+      - name: Upload data logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-data-${{ github.run_id }}
+          path: src/memecoin-trading/data
+          retention-days: 7
