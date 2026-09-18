@@ -110,6 +110,30 @@ jobs:
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: python3 scripts/run.py cycle
 
+      # §12 live tranche (docs/live.md in the private repository). Fails closed:
+      # without LIVE_ENABLED=1, a LIVE_BOOK at PROMOTE-TO-REVIEW and the wallet
+      # secret it prints one "off" line and exits 0. State lives in data/ with the
+      # paper book and is published with the site as the public record.
+      - name: Live tranche (gated)
+        if: always()
+        continue-on-error: true
+        working-directory: src/memecoin-trading
+        env:
+          LIVE_ENABLED: ${{ secrets.LIVE_ENABLED }}
+          LIVE_BOOK: ${{ secrets.LIVE_BOOK }}
+          LIVE_WALLET_SECRET: ${{ secrets.LIVE_WALLET_SECRET }}
+          LIVE_DRY_RUN: ${{ secrets.LIVE_DRY_RUN }}
+          JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "$LIVE_ENABLED" = "1" ] || [ -f data/live_state.json ]; then
+            python3 -m pip install --quiet solders
+          fi
+          python3 scripts/live.py
+
       - name: Save the book back to the cached path
         if: always()
         run: |
