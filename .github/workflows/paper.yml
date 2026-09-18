@@ -116,7 +116,15 @@ jobs:
           rm -rf paper-state
           cp -r src/memecoin-trading/data paper-state
 
+      # continue-on-error: a failed step fails the job, and a failed job skips
+      # the cache save, which would drop the cycle that just ran (seen 2026-09-18
+      # 05:56 UTC when a scheduled run and a manual dispatch overlapped and the
+      # second push was rejected). Publishing must never be able to lose the book.
+      # On a rejected push the snapshot is rebased onto origin/main; the site files
+      # are regenerated whole each cycle, so the replayed commit ("theirs" under
+      # rebase) is always the right side of any conflict.
       - name: Build and publish the site
+        continue-on-error: true
         run: |
           (cd src/memecoin-trading && python3 scripts/build_site.py)
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
@@ -128,8 +136,19 @@ jobs:
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit --quiet -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push --quiet origin HEAD:main
-          echo "published"
+          for attempt in 1 2 3; do
+            if git push --quiet origin HEAD:main; then echo "published"; exit 0; fi
+            echo "push rejected (attempt $attempt); rebasing onto origin/main"
+            git fetch --quiet origin main
+            if ! git rebase --quiet -X theirs origin/main; then
+              git rebase --abort || true
+              git reset --quiet --hard origin/main
+              echo "rebase failed; site left at origin/main, book unaffected"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "site not published after 3 attempts; book unaffected"
 
       # Public-repository artifacts are not metered: the raw panel is retrievable
       # again for the mining passes.
