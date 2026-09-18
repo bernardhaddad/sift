@@ -127,8 +127,12 @@ jobs:
         continue-on-error: true
         run: |
           (cd src/memecoin-trading && python3 scripts/build_site.py)
+          # The research page is built from the private repository's docs; a build
+          # failure there must not block the snapshot, so it is best-effort.
+          (cd src/memecoin-trading && python3 scripts/build_research.py) || echo "research page not built"
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
              src/memecoin-trading/site/data.json site/
+          [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
           touch site/.nojekyll
           cd site
           git config user.name "sift-bot"
