@@ -126,6 +126,8 @@
     <h2>Our paper record, unedited</h2>
     <p>Sift is built on a pre-registered paper-trading system. These are its books, kill rules and all. Losing books are shown because that is what the data says; the point of this page is that you see the same numbers we do. The <a href="research.html">research page</a> has the re-readings under honest fill conventions, the measured round-trip costs, and the review that decided against funding the first book at its 60-trade gate.</p>
     <div class="cards" id="books"></div>
+    <p id="fastnote" class="sub"></p>
+    <div class="cards" id="fastbooks"></div>
   </section>
 
   <section>
@@ -313,6 +315,24 @@
     $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));
+
+  function renderFast(f) {
+    const stale = f.last_tick_at && (Date.now() - Date.parse(f.last_tick_at)) > 20 * 60 * 1000;
+    $("fastnote").innerHTML = `<b>Minute books.</b> The same rules at one quote per minute instead of one per hour, with the round-trip cost measured through Jupiter at every entry instead of modelled. Last tick <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale, the scanner is down or restarting)" : ""} · ${f.ticks ?? 0} ticks · ${f.universe ?? 0} established pools watched.`;
+    $("fastbooks").innerHTML = (f.books || []).map((b) => {
+      const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : (b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
+      const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
+      const label = b.name === "M5D" ? "M5D · flush on established pools" : b.name === "M5A" ? "M5A · first minutes on the trending list" : b.name;
+      const open = (b.open || []).length ? `<li>open: ${b.open.map((o) => `<b>${esc(o.name)}</b> since ${ago(o.opened_at)}`).join(", ")}</li>` : "<li>no open positions</li>";
+      const cost = b.cost_measured_n ? `<li>measured round trip: median ${(b.cost_median * 100).toFixed(2)}% over ${b.cost_measured_n} entries</li>` : "<li>no measured entries yet</li>";
+      const trades = b.trades || [];
+      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed · win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"} · ${fmtMoney(b.total_pnl_usd)} at $100 notional${b.t == null ? "" : " · t " + b.t}</div><ul>${open}${cost}</ul>${all}</div>`;
+    }).join("");
+  }
+  fetch("fast.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(renderFast).catch(() => {
+    $("fastnote").innerHTML = "<b>Minute books.</b> The minute-cadence scanner has not published a snapshot yet.";
+  });
 
   fetch("data.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     data = d; renderStatic(); applyPreset(initialPreset());
