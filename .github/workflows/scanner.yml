@@ -1,0 +1,117 @@
+name: memecoin minute scanner (M5, public host)
+
+# The always-on scanner for the M5 minute books (STRATEGY.md §13 in the private
+# repository). One job runs the scanner for RUN_MINUTES (under the 6-hour job
+# limit), then hands over: it saves its state to the Actions cache, publishes the
+# snapshot, and dispatches its own successor. Two safety nets keep the chain
+# alive when a hand-over is missed:
+#   - the half-hourly schedule queues a run; under the concurrency group a queued
+#     run waits while one is in progress and starts the moment it ends;
+#   - the published site/fast.json carries the whole book state, so a run that
+#     finds no cache restores the books from it and only re-seeds price series.
+# Public repositories are not metered for Actions minutes.
+#
+# Secrets: CLAUDEAI_READ_TOKEN (Contents: Read on the private repository) and,
+# optionally, TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID for trade alerts.
+
+on:
+  schedule:
+    - cron: "5,35 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: memecoin-scanner
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPO: bernardhaddad/ClaudeAI
+  SOURCE_REF: claude/dreamy-curie-3UNnv
+  RUN_MINUTES: "330"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Check the read token is present
+        env:
+          T: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+        run: |
+          if [ -z "$T" ]; then
+            echo "::error::CLAUDEAI_READ_TOKEN is not set."
+            exit 1
+          fi
+
+      - name: Checkout this site repository
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Checkout the private trading code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_REF }}
+          token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          path: src
+
+      - name: Restore scanner state
+        uses: actions/cache/restore@v4
+        with:
+          path: scanner-state
+          key: memecoin-scanner-${{ github.run_id }}
+          restore-keys: |
+            memecoin-scanner-
+
+      - name: Install the state (cache first, published snapshot as the fallback)
+        run: |
+          mkdir -p scanner-state
+          rm -rf src/memecoin-trading/data/fast
+          cp -r scanner-state src/memecoin-trading/data/fast
+          mkdir -p src/memecoin-trading/site
+          if [ -f site/fast.json ]; then cp site/fast.json src/memecoin-trading/site/fast.json; fi
+          if [ -f scanner-state/state.json ]; then echo "cached state restored"; else echo "no cached state: the scanner restores from the published snapshot if there is one"; fi
+
+      - name: Run the scanner
+        working-directory: src/memecoin-trading
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
+            --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
+
+      - name: Save the state back to the cached path
+        if: always()
+        run: |
+          rm -rf scanner-state
+          cp -r src/memecoin-trading/data/fast scanner-state
+
+      - name: Save scanner state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: scanner-state
+          key: memecoin-scanner-${{ github.run_id }}
+
+      - name: Dispatch the successor
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/scanner.yml/dispatches" \
+            -d '{"ref":"main"}' -o /dev/null -w "dispatch http %{http_code}\n" || echo "dispatch failed; the schedule will start the next run"
+
+      - name: Upload the minute panel
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-data-${{ github.run_id }}
+          path: scanner-state
+          retention-days: 14

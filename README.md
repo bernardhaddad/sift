@@ -13,7 +13,9 @@ Live: **https://bernardhaddad.github.io/sift/** · Research: **https://bernardha
 
 ## How it is built
 
-The screener is a static page served by GitHub Pages. An hourly GitHub Actions job runs the paper-trading cycle, rebuilds `data.json` and the research page, and commits them here. The trading code and the research documents live in a separate repository; this one holds the published site and the workflow that runs it.
+The screener is a static page served by GitHub Pages. An hourly GitHub Actions job runs the paper-trading cycle, rebuilds `data.json` and the research page, and commits them here. The trading code and the research documents live in a separate repository; this one holds the published site and the workflows that run it.
+
+A second workflow runs the **minute books**: an always-on scanner that quotes its universe once a minute, runs two pre-registered paper books on that clock (a flush-and-rebound rule on established pools and a first-minutes rule on the trending list), measures the round-trip cost through Jupiter at every entry, and publishes its whole book state to `fast.json` every fifteen minutes. Each run lasts five and a half hours and dispatches its successor; a half-hourly schedule queues a replacement if a hand-over is missed. The minute panel it records is uploaded as an artifact of every run.
 
 ## How it stays free
 
