@@ -81,6 +81,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}  # the publish hook's paper-cycle watchdog dispatches paper.yml
         run: |
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
