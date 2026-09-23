@@ -96,9 +96,12 @@ jobs:
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: |
           echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
-          if [ "$LIVE_ENABLED" = "1" ] || [ -f data/fast/live_state.json ]; then
+          if [ "$LIVE_ENABLED" = "1" ] || [ -f data/fast/live_state.json ] || [ -f data/fast/lp_live_state.json ]; then
             python3 -m pip install --quiet solders
           fi
+          case "$LIVE_BOOK" in
+            M6E|M6Y) (cd lp_exec && npm install --silent --no-audit --no-fund) ;;  # the Meteora executor
+          esac
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
 
