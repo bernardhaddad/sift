@@ -109,6 +109,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          # Amendment 8: the scanner's published candidates get the funding-cluster trace here
+          SCANNER_SNAPSHOT: ${{ github.workspace }}/site/fast.json
         run: python3 scripts/run.py cycle
 
       # §12 live tranche (docs/live.md in the private repository). Fails closed:
@@ -158,6 +160,8 @@ jobs:
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
              src/memecoin-trading/site/data.json site/
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
+          # Amendment 8: the funding-cluster verdicts the minute scanner reads every 15 minutes
+          [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
           touch site/.nojekyll
           cd site
           git config user.name "sift-bot"

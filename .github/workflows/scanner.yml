@@ -76,6 +76,10 @@ jobs:
           if [ -f site/fast.json ]; then cp site/fast.json src/memecoin-trading/site/fast.json; fi
           if [ -f scanner-state/state.json ]; then echo "cached state restored"; else echo "no cached state: the scanner restores from the published snapshot if there is one"; fi
 
+      # §12 live tranche on a MINUTE book (docs/live.md). Fails closed: without
+      # LIVE_ENABLED=1, LIVE_BOOK set to M5D or M5A at PROMOTE-TO-REVIEW and the wallet
+      # secret, the scanner never touches the tranche code. The wallet secret is never
+      # printed, logged or stored.
       - name: Run the scanner
         id: scan
         working-directory: src/memecoin-trading
@@ -83,8 +87,18 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}  # the publish hook's paper-cycle watchdog dispatches paper.yml
+          LIVE_ENABLED: ${{ secrets.LIVE_ENABLED }}
+          LIVE_BOOK: ${{ secrets.LIVE_BOOK }}
+          LIVE_WALLET_SECRET: ${{ secrets.LIVE_WALLET_SECRET }}
+          LIVE_DRY_RUN: ${{ secrets.LIVE_DRY_RUN }}
+          JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: |
           echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
+          if [ "$LIVE_ENABLED" = "1" ] || [ -f data/fast/live_state.json ]; then
+            python3 -m pip install --quiet solders
+          fi
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
 
