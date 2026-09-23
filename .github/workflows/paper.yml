@@ -37,6 +37,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # the scanner watchdog step dispatches scanner.yml
 
 concurrency:
   group: memecoin-paper
@@ -177,6 +178,32 @@ jobs:
             sleep 5
           done
           echo "site not published after 3 attempts; book unaffected"
+
+      # The minute scanner (scanner.yml) watches this cycle; this cycle watches the
+      # scanner back. If no scanner run is in progress or queued, one is dispatched.
+      # scanner.yml's concurrency group makes a duplicate harmless.
+      - name: Scanner watchdog
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs=$(curl -sS -m 20 -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/scanner.yml/runs?per_page=5")
+          alive=$(printf '%s' "$runs" | python3 -c '
+          import json, sys
+          try:
+              runs = json.load(sys.stdin)["workflow_runs"]
+          except Exception:
+              print("unknown"); raise SystemExit
+          print("alive" if any(r["status"] in ("queued", "in_progress", "waiting", "pending") for r in runs) else "dead")
+          ')
+          echo "scanner watchdog: $alive"
+          if [ "$alive" = "dead" ]; then
+            curl -sS -m 20 -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/scanner.yml/dispatches" \
+              -d '{"ref":"main"}' -o /dev/null -w "scanner watchdog: dispatched (http %{http_code})\n"
+          fi
 
       # Public-repository artifacts are not metered: the raw panel is retrievable
       # again for the mining passes.

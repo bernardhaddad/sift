@@ -77,12 +77,14 @@ jobs:
           if [ -f scanner-state/state.json ]; then echo "cached state restored"; else echo "no cached state: the scanner restores from the published snapshot if there is one"; fi
 
       - name: Run the scanner
+        id: scan
         working-directory: src/memecoin-trading
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}  # the publish hook's paper-cycle watchdog dispatches paper.yml
         run: |
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
 
@@ -91,6 +93,14 @@ jobs:
         run: |
           rm -rf scanner-state
           cp -r src/memecoin-trading/data/fast scanner-state
+
+      # Run artifacts expire after 14 days and the cached logs rotate at three days; the
+      # mining passes need weeks. This run's slice of the minute panel, the ten-minute
+      # leaderboard scan and the liquidity-pool log is gzipped into panel/ (about 2 MB a run).
+      - name: Archive this run's minute panel
+        if: always()
+        continue-on-error: true
+        run: bash site/scripts/archive-run.sh "$GITHUB_WORKSPACE" "${{ steps.scan.outputs.started_at }}" "${{ github.run_id }}"
 
       - name: Save scanner state
         if: always()
