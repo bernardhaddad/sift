@@ -40,7 +40,9 @@ permissions:
   actions: write # the scanner watchdog step dispatches scanner.yml
 
 concurrency:
-  group: memecoin-paper
+  # renamed 2026-10-07: run 513 (37655526160) stuck in 'queued' with no runner, could not be
+  # cancelled or deleted, and held the old group so every later cycle waited behind it
+  group: memecoin-paper-2
   cancel-in-progress: false
 
 env:
