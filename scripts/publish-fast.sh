@@ -25,7 +25,13 @@ try:
 except Exception:
     print("skip"); raise SystemExit
 now = dt.datetime.now(dt.timezone.utc)
-if any(r["status"] in ("queued", "in_progress", "waiting", "pending") for r in runs):
+def created(r):
+    return dt.datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
+# A run GitHub never handed to a runner can sit in "queued" for a day (run 513, 2026-10-07);
+# one queued for over 30 minutes is stuck, not running, and must not silence the watchdog.
+if any(r["status"] == "in_progress" or (r["status"] in ("queued", "waiting", "pending")
+                                        and (now - created(r)).total_seconds() < 30 * 60)
+       for r in runs):
     print("running"); raise SystemExit
 if not runs:
     print("dispatch"); raise SystemExit
