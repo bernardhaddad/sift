@@ -318,11 +318,11 @@
 
   function renderFast(f) {
     const stale = f.last_tick_at && (Date.now() - Date.parse(f.last_tick_at)) > 20 * 60 * 1000;
-    $("fastnote").innerHTML = `<b>Minute books.</b> Two books trade at one quote per minute with the round-trip cost measured through Jupiter at every entry, and two more provide liquidity instead of trading, booking the fee income each Meteora pool actually reported. Last tick <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale, the scanner is down or restarting)" : ""} · ${f.ticks ?? 0} ticks · ${f.universe ?? 0} established pools watched.`;
+    $("fastnote").innerHTML = `<b>Minute books.</b> Three books trade at one quote per minute with the round-trip cost measured through Jupiter at every entry, and two more provide liquidity instead of trading, booking the fee income each Meteora pool actually reported. Last tick <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale, the scanner is down or restarting)" : ""} · ${f.ticks ?? 0} ticks · ${f.universe ?? 0} established pools watched.`;
     $("fastbooks").innerHTML = (f.books || []).map((b) => {
       const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : (b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
-      const labels = { M5D: "M5D · flush on established pools", M5A: "M5A · first minutes on the trending list", M6E: "M6E · liquidity on established pools (fees earned)", M6Y: "M6Y · liquidity on young survivors (fees earned)" };
+      const labels = { M5D: "M5D · flush on established pools", M5A: "M5A · first minutes on the trending list", M5D2: "M5D2 · flush on established pools, 12-hour hold (since 12 Oct)", M6E: "M6E · liquidity on established pools (fees earned)", M6Y: "M6Y · liquidity on young survivors (fees earned)" };
       const label = labels[b.name] || b.name;
       const open = (b.open || []).length ? `<li>open: ${b.open.map((o) => `<b>${esc(o.name)}</b> since ${ago(o.opened_at)}${o.fees_usd != null ? ` (fees ${fmtMoney(o.fees_usd)})` : ""}${o.void ? " (void, not counted)" : ""}`).join(", ")}</li>` : "<li>no open positions</li>";
       const voided = b.void || [];
