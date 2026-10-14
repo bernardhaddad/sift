@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sift · Insider Radar</title>
-<meta name="description" content="Which Solana memecoins are held by wallets that share one funder. Every trace shows its evidence: the holders, the funding wallets, the share of supply. Free, updated hourly.">
+<meta name="description" content="Which Solana memecoins are held by wallets that share one funder. Every trace shows its evidence: the holders, who funded whom, the share of supply. Free, updated hourly.">
 <link rel="canonical" href="https://bernardhaddad.github.io/sift/radar.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sift">
@@ -75,7 +75,20 @@
   .group { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--panel); }
   .group h4 { margin: 0 0 6px; font-size: 13.5px; }
   .group ul { margin: 6px 0 0; padding-left: 18px; columns: 2; column-gap: 28px; }
-  @media (max-width: 640px) { .group ul { columns: 1; } }
+  .group ol { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; }
+  .group ol li { font-family: inherit; }
+  .group .note { color: var(--warn); font-size: 12.5px; margin-top: 6px; }
+  .group h5 { margin: 10px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  @media (max-width: 640px) {
+    .group ul { columns: 1; }
+    table { min-width: 0; }
+    th.opt, td.opt { display: none; }
+    th, td { padding: 7px 6px; }
+    .bar { display: none; }
+    .chip { white-space: normal; }
+    tr.detail td { padding: 12px 10px 14px; }
+    .group li, .group ol li { word-break: break-all; }
+  }
   .group li { font-family: var(--mono); font-size: 12px; break-inside: avoid; }
   .facts { color: var(--muted); font-size: 13px; }
   .empty { padding: 28px; text-align: center; color: var(--muted); }
@@ -98,10 +111,10 @@
   <div class="tablewrap">
     <table>
       <thead><tr>
-        <th class="l">Token</th><th class="l">Verdict</th><th>Largest linked group</th><th>All linked groups</th>
-        <th>Brand-new wallets</th><th>Untraced</th><th>Traced</th>
+        <th class="l">Token</th><th class="l">Verdict</th><th>Largest linked group</th><th class="opt">All linked groups</th>
+        <th class="opt">Untraced</th><th class="opt">Traced</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="7" class="empty">Loading the latest traces…</td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="6" class="empty">Loading the latest traces…</td></tr></tbody>
     </table>
   </div>
 
@@ -109,17 +122,19 @@
     <h2>How a trace works</h2>
     <ol>
       <li>Take the token's 20 largest accounts and their owners, and skip pools and programs.</li>
-      <li>For every holder wallet, find who paid for its very first transaction, up to two hops back, and who sent it its first tokens.</li>
-      <li>Classify each of those funding wallets: exchanges and programs are public and link nobody, while private wallets do.</li>
-      <li>Holders that lead back to the same private wallet form a <b>linked group</b>. Its share of supply is what one actor most likely controls.</li>
+      <li>For every holder wallet with under 1,000 transactions, find who paid for its very first transaction, up to two hops back. For every holder, find who sent its token account its first tokens.</li>
+      <li>Classify each of those wallets. Programs and exchange hot wallets (over 3,000 transactions and 250 SOL) are public and link nobody; every other wallet is private.</li>
+      <li>Holders that lead back to the same private wallet form a <b>linked group</b>. Its share of supply is what one actor most likely controls. Every link is listed, so you can check it on Solscan.</li>
+      <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) still counts for Sift's own trading, but is not enough for a "High insider risk" verdict here. The same goes for a wallet seen behind top holders of several tokens: Sift's trading treats it as a shared service, while this page still shows the group, flagged, because it can also be one deployer behind several tokens.</li>
     </ol>
     <h2>The verdicts</h2>
     <ul id="meanings"></ul>
     <h2>Limits, honestly</h2>
     <ul>
-      <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced. A clean result is not a safety guarantee.</li>
+      <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back to their funder. A clean result is not a safety guarantee.</li>
+      <li>Results are shown while they are current: scanner traces for 24 hours (2 hours if incomplete), requested traces for 7 days, each with its date.</li>
       <li>A linked group is strong on-chain evidence that one actor holds several wallets. It is not proof of what they will do.</li>
-      <li>The same thresholds decide what Sift's own paper books refuse to trade. Results are updated hourly for the tokens the scanner watches; requested traces keep their date.</li>
+      <li>The same thresholds decide what Sift's own paper books refuse to trade. Results are updated hourly for the tokens the scanner watches.</li>
       <li>Nothing here is financial advice. Sift never sells, promotes, or calls tokens.</li>
     </ul>
   </section>
@@ -128,50 +143,76 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const pct = (v) => v == null ? "–" : `${Number(v).toFixed(1)}%`;
+  const num = (v) => (v == null || !Number.isFinite(Number(v))) ? null : Number(v);
+  const pct = (v) => num(v) == null ? "–" : `${num(v).toFixed(1)}%`;
+  const int = (v) => num(v) == null ? "–" : String(Math.round(num(v)));
+  const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
   const ago = (iso) => {
-    if (!iso) return "–";
-    const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    const t = Date.parse(iso || "");
+    if (!Number.isFinite(t)) return "–";
+    const m = Math.max(0, Math.round((Date.now() - t) / 60000));
     return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
   };
-  const short = (a) => `${a.slice(0, 4)}…${a.slice(-4)}`;
-  const acct = (a) => `<a href="https://solscan.io/account/${encodeURIComponent(a)}" target="_blank" rel="noopener">${esc(short(a))}</a>`;
+  const when = (iso) => { const t = Date.parse(iso || ""); return Number.isFinite(t) ? new Date(t).toUTCString().replace(" GMT", " UTC") : ""; };
+  const short = (a) => { a = String(a ?? ""); return `${a.slice(0, 4)}…${a.slice(-4)}`; };
+  const acct = (a) => `<a href="https://solscan.io/account/${encodeURIComponent(a)}" target="_blank" rel="noopener" title="${esc(a)}">${esc(short(a))}</a>`;
+  const GRADE = new Set(["high", "watch", "low", "incomplete"]);
   let doc = null, filter = "all", open = null;
 
   function render() {
-    const q = $("q").value.trim().toLowerCase();
-    const list = doc.tokens.filter((t) => (filter === "all" || t.grade === filter)
-      && (!q || t.name.toLowerCase().includes(q) || t.mint.toLowerCase().startsWith(q) || t.mint.toLowerCase() === q));
+    const raw = $("q").value.trim(), q = raw.toLowerCase();
+    const match = (t) => !q || String(t.name ?? "").toLowerCase().includes(q) || String(t.mint).toLowerCase().startsWith(q);
+    const list = doc.tokens.filter((t) => (filter === "all" || t.grade === filter) && match(t));
     if (!list.length) {
-      $("rows").innerHTML = `<tr><td colspan="7" class="empty">${q && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test($("q").value.trim())
-        ? `Not traced yet. <a href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml&title=${encodeURIComponent("[trace] " + $("q").value.trim())}" target="_blank" rel="noopener">Request a trace of this token →</a>`
-        : "No tokens match."}</td></tr>`;
+      const elsewhere = q && doc.tokens.some(match);
+      $("rows").innerHTML = `<tr><td colspan="6" class="empty">${elsewhere
+        ? `No match under this verdict. <a href="#" id="showall">Show all verdicts</a>`
+        : B58.test(raw)
+          ? `Not traced recently. <a href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml&title=${encodeURIComponent("[trace] " + raw)}" target="_blank" rel="noopener">Request a trace of this token →</a>`
+          : "No tokens match."}</td></tr>`;
+      const sa = $("showall");
+      if (sa) sa.addEventListener("click", (e) => { e.preventDefault(); filter = "all"; strip(); render(); });
       return;
     }
     $("rows").innerHTML = list.map((t) => {
+      const g = GRADE.has(t.grade) ? t.grade : "incomplete";
       const row = `<tr class="row" data-m="${esc(t.mint)}">
         <td class="l"><div class="name">${esc(t.name)}</div><div class="mint">${esc(short(t.mint))}${t.source === "request" ? " · requested" : ""}</div></td>
-        <td class="l"><span class="chip g-${t.grade}">${esc(t.label)}</span></td>
-        <td class="num">${pct(t.cluster_pct)}<span class="bar"><i style="width:${Math.min(100, t.cluster_pct || 0)}%"></i></span></td>
-        <td class="num">${pct(t.clustered_pct)}</td><td class="num">${pct(t.fresh_pct)}</td>
-        <td class="num">${pct(t.unknown_pct)}</td><td class="num">${ago(t.traced_at)}</td></tr>`;
+        <td class="l"><span class="chip g-${g}">${esc(t.label)}</span></td>
+        <td class="num">${pct(t.cluster_pct)}<span class="bar"><i style="width:${Math.min(100, Math.max(0, num(t.cluster_pct) || 0))}%"></i></span></td>
+        <td class="num opt">${pct(t.clustered_pct)}</td>
+        <td class="num opt">${pct(t.unknown_pct)}</td><td class="num opt" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</td></tr>`;
       if (open !== t.mint) return row;
-      const groups = t.clusters.length ? t.clusters.map((c, i) => `<div class="group">
-          <h4>Group ${i + 1}: ${c.holders} holders control ${pct(c.pct)} of supply</h4>
-          <div class="facts">Funded through ${c.funders.map(acct).join(", ") || "–"}</div>
-          <ul>${c.wallets.map((w) => `<li>${acct(w.address)} ${pct(w.pct)}</li>`).join("")}</ul></div>`).join("")
+      const groups = (t.clusters || []).length ? t.clusters.map((c, i) => {
+        const links = (c.links || []).map((k) => `<li>${acct(k.from)} ${k.kind === "tokens" ? "sent the first tokens to" : "paid for the first transaction of"} ${acct(k.to)}</li>`).join("");
+        const via = !links && (c.funders || []).length ? `<div class="facts">Linked through ${c.funders.map(acct).join(", ")}</div>` : "";
+        const more = num(c.links_total) > (c.links || []).length ? `<div class="facts">and ${int(num(c.links_total) - c.links.length)} more links</div>` : "";
+        const known = (c.known || []).length ? `<div class="note">Linked through a wallet seen behind top holders of several tokens (${c.known.map(acct).join(", ")}): a shared service such as a bot, or one deployer behind several tokens.</div>` : "";
+        const busy = (c.busy || []).length ? `<div class="note">Linked through a high-volume wallet (${c.busy.map(acct).join(", ")}), possibly an exchange or a bot: weaker evidence of a single owner.</div>` : "";
+        return `<div class="group">
+          <h4>Group ${i + 1}: ${int(c.holders)} holders control ${pct(c.pct)} of supply</h4>
+          <ul>${(c.wallets || []).map((w) => `<li>${acct(w.address)} ${pct(w.pct)}</li>`).join("")}</ul>
+          ${links ? `<h5>How they are linked</h5><ol>${links}</ol>${more}` : via}${known}${busy}</div>`;
+      }).join("")
         : `<p class="facts">No two top holders lead back to the same private wallet.</p>`;
-      return row + `<tr class="detail"><td colspan="7">
-        <div class="facts">${t.holders ?? "–"} top owners checked, ${t.wallets ?? "–"} of them personal wallets, ${t.fresh ?? 0} brand-new; top-20 accounts hold ${pct(t.top_pct)} of supply.${t.truncated ? " The trace ran out of time, so some holders are untraced." : ""}
+      return row + `<tr class="detail"><td colspan="6">
+        <div class="facts">Traced ${esc(when(t.traced_at))}. ${int(t.holders)} top owners checked, ${int(t.wallets)} of them personal wallets; top-20 accounts hold ${pct(t.top_pct)} of supply; ${pct(t.unknown_pct)} could not be traced.${t.truncated ? " The trace ran out of time, so some holders are untraced." : ""}
         <a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">View token on Solscan</a></div>${groups}</td></tr>`;
     }).join("");
   }
 
   function strip() {
-    const all = doc.tokens.length;
-    const cells = [["all", all, "Tokens traced"], ...["high", "watch", "low", "incomplete"].map((g) => [g, doc.counts[g] || 0, doc.grades[g].label])];
-    $("strip").innerHTML = cells.map(([g, v, l]) => `<button class="stat${filter === g ? " on" : ""}" data-g="${g}"><div class="v">${v}</div><div class="l">${esc(l)}</div></button>`).join("");
+    const cells = [["all", doc.tokens.length, "Tokens traced"], ...["high", "watch", "low", "incomplete"].map((g) => [g, (doc.counts || {})[g] || 0, (doc.grades[g] || {}).label || g])];
+    $("strip").innerHTML = cells.map(([g, v, l]) => `<button class="stat${filter === g ? " on" : ""}" data-g="${g}"><div class="v">${int(v)}</div><div class="l">${esc(l)}</div></button>`).join("");
     $("meanings").innerHTML = Object.values(doc.grades).map((g) => `<li><b>${esc(g.label)}</b>: ${esc(g.meaning)}</li>`).join("");
+  }
+
+  function fromHash() {
+    let h = "";
+    try { h = decodeURIComponent(location.hash.slice(1)); } catch { h = ""; }
+    if (!B58.test(h)) return false;
+    $("q").value = h; open = h;
+    return true;
   }
 
   $("strip").addEventListener("click", (e) => {
@@ -183,17 +224,18 @@
     const r = e.target.closest("tr.row"); if (!r) return;
     open = open === r.dataset.m ? null : r.dataset.m; render();
   });
-  $("q").addEventListener("input", render);
+  $("q").addEventListener("input", () => { if (doc) render(); });
+  window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; strip(); render(); } });
 
   fetch("radar.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+    if (!d || !Array.isArray(d.tokens)) throw new Error("bad data");
     doc = d;
-    $("upd").innerHTML = `updated <b>${ago(d.generated_at)}</b>`;
-    const hash = decodeURIComponent(location.hash.slice(1));
-    if (hash) { $("q").value = hash; open = hash; }
+    $("upd").innerHTML = `updated <b title="${esc(when(d.generated_at))}">${ago(d.generated_at)}</b>`;
+    fromHash();
     strip(); render();
   }).catch(() => {
     $("upd").textContent = "no data yet";
-    $("rows").innerHTML = `<tr><td colspan="7" class="empty">The radar has not published its first traces yet. It updates every hour.</td></tr>`;
+    $("rows").innerHTML = `<tr><td colspan="6" class="empty">The radar could not load its data. It updates every hour; please try again shortly.</td></tr>`;
   });
 })();
 </script>
