@@ -49,12 +49,12 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 142291cbfc28ef1131a23dda00ee31e5a492a92a  # the exact commit of the trading code that runs here
+  SOURCE_REF: 088d44acdbb33781c8de39536d56a4eb816853c9  # the exact commit of the trading code that runs here
 
 jobs:
   cycle:
     runs-on: ubuntu-24.04  # pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19; the jobs use the image python3
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check the read token is present
         env:
@@ -156,6 +156,8 @@ jobs:
       # rebase) is always the right side of any conflict.
       - name: Build and publish the site
         continue-on-error: true
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}  # the radar's trending feed traces with it
         run: |
           (cd src/memecoin-trading && python3 scripts/build_site.py)
           # The research page is built from the private repository's docs; a build
@@ -166,8 +168,12 @@ jobs:
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
           # Insider Radar: the hourly funding-cluster traces plus the on-demand ones (trace.yml) in
           # radar-requests/; best-effort, like the research page
-          (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar not built"
-          [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json site/ || true
+          # A few trending tokens no trace covered in 24 h are traced first (radar-auto/, bounded
+          # at 2 traces and 200 s). The build reads back the track record (radar-ledger.json) and
+          # the funder-wallet registry (radar-wallets.json) from the site and writes them updated.
+          (cd src/memecoin-trading && timeout 260 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
+          (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json") || echo "radar not built"
+          [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json site/ || true
           # Amendment 8: the funding-cluster verdicts the minute scanner reads every 15 minutes
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
           touch site/.nojekyll
