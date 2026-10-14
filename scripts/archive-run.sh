@@ -75,8 +75,8 @@ for name, tag in (("panel.jsonl", "panel"), ("scan_log.jsonl", "scan"), ("lp_log
     print(f"archive: {tag} {kept} new of {len(rows)} cached rows -> {os.path.basename(out) if kept else 'nothing'}")
 PY
 cd "$WS/site" || exit 0
-git config user.name "sift-bot"
-git config user.email "sift-bot@users.noreply.github.com"
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add panel
 if git diff --cached --quiet; then echo "archive: nothing new"; exit 0; fi
 git commit --quiet -m "Panel archive $STAMP (run $RUN_ID)"

@@ -144,8 +144,8 @@ jobs:
           cp "$RUNNER_TEMP/trace.json" "site/radar-requests/${MINT}.json"
           cd site
           git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          git config user.name "sift-bot"
-          git config user.email "sift-bot@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "radar-requests/${MINT}.json"
           git commit --quiet -m "Radar trace ${MINT:0:8}"
           for attempt in 1 2 3 4; do

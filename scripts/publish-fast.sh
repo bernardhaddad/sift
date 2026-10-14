@@ -52,8 +52,8 @@ paper_watchdog
 cd "$WS/site" || { echo "no site checkout"; exit 0; }
 if [ ! -f "$SRC" ]; then echo "no snapshot to publish"; exit 0; fi
 cp "$SRC" fast.json
-git config user.name "sift-bot"
-git config user.email "sift-bot@users.noreply.github.com"
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add fast.json
 if git diff --cached --quiet; then echo "fast.json unchanged"; exit 0; fi
 git commit --quiet -m "Minute books $(date -u +%Y-%m-%dT%H:%MZ)"
