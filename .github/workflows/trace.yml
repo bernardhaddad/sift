@@ -17,6 +17,9 @@ on:
       mint:
         description: Token mint address
         required: true
+      issue:
+        description: Issue number to answer (optional, for re-running a missed request)
+        required: false
 
 permissions:
   contents: write
@@ -36,7 +39,11 @@ env:
 
 jobs:
   trace:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[trace]')
+    # The request form's body always carries its "Token mint address" heading, so a request is
+    # recognised even when the requester rewrites the "[trace]" title.
+    if: >-
+      github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[trace]') ||
+      contains(github.event.issue.body, '### Token mint address')
     runs-on: ubuntu-24.04  # pinned like the other jobs; they use the image python3
     timeout-minutes: 10
     steps:
@@ -92,7 +99,8 @@ jobs:
               # all requesters: trace requests opened in the last 24 hours, including ones still
               # running (saved files would miss a burst of simultaneous requests)
               try:
-                  n = sum(1 for i in issues("sort=created") if i["title"].startswith("[trace]"))
+                  n = sum(1 for i in issues("sort=created")
+                          if i["title"].startswith("[trace]") or "### Token mint address" in (i.get("body") or ""))
                   if n > int(os.environ["DAILY_LIMIT"]):
                       status = "limit"
               except Exception as err:
@@ -156,10 +164,10 @@ jobs:
           echo "::warning::could not save the trace; the reply is still posted"
 
       - name: Reply on the issue
-        if: always() && github.event_name == 'issues'
+        if: always() && (github.event_name == 'issues' || github.event.inputs.issue != '')
         env:
           GH_TOKEN: ${{ github.token }}
-          NUMBER: ${{ github.event.issue.number }}
+          NUMBER: ${{ github.event.issue.number || github.event.inputs.issue }}
           STATUS: ${{ steps.req.outputs.status }}
           MINT: ${{ steps.req.outputs.mint }}
           CODE: ${{ steps.trace.outputs.code }}
