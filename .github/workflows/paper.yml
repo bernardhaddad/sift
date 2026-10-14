@@ -165,7 +165,7 @@ jobs:
           # Insider Radar: the hourly funding-cluster traces plus the on-demand ones (trace.yml) in
           # radar-requests/; best-effort, like the research page
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar not built"
-          [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json site/ || true
+          [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json site/ || true
           # Amendment 8: the funding-cluster verdicts the minute scanner reads every 15 minutes
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
           touch site/.nojekyll

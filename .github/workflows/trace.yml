@@ -22,14 +22,17 @@ permissions:
   contents: write
   issues: write
 
+# One group per request: a shared group keeps only one pending run and silently cancels the rest.
+# Parallel saves are handled by the push retry below; volume is capped by the limits.
 concurrency:
-  group: radar-trace
+  group: radar-trace-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 env:
   SOURCE_REPO: bernardhaddad/ClaudeAI
   SOURCE_REF: claude/dreamy-curie-3UNnv
-  DAILY_LIMIT: "40"
+  DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
+  PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
 jobs:
   trace:
@@ -41,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: site
+          persist-credentials: false  # the token is used only by the save step, not the trace
 
       - name: Read the request
         id: req
@@ -50,9 +54,10 @@ jobs:
           INPUT_MINT: ${{ github.event.inputs.mint }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.issue.user.login }}
         run: |
           python3 - <<'PY'
-          import json, os, re, subprocess, urllib.request
+          import json, os, pathlib, re, urllib.parse, urllib.request
           from datetime import datetime, timedelta, timezone
           rx = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])")
           text = "\n".join(os.environ.get(k, "") for k in ("INPUT_MINT", "ISSUE_TITLE", "ISSUE_BODY"))
@@ -68,18 +73,39 @@ jobs:
                       status = "cached"
               except Exception:
                   pass
-          # daily limit on fresh traces (protects the free RPC quota)
+          # Limits protect the RPC quota the hourly cycle shares; both fail closed. Labels are not
+          # used: GitHub drops labels set by non-collaborators, so they can be dodged.
           if status == "ok" and os.environ.get("ISSUE_TITLE"):
-              since = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-              req = urllib.request.Request(
-                  f"https://api.github.com/repos/{os.environ['REPO']}/issues?labels=trace&state=all&since={since}&per_page=100",
-                  headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"})
+              now = datetime.now(timezone.utc)
+              since = (now - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+              api = f"https://api.github.com/repos/{os.environ['REPO']}/issues"
+              hdrs = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+              def issues(query):
+                  out = []
+                  for page in (1, 2, 3):
+                      req = urllib.request.Request(f"{api}?{query}&state=all&since={since}&per_page=100&page={page}", headers=hdrs)
+                      batch = json.load(urllib.request.urlopen(req, timeout=20))
+                      out += [i for i in batch if "pull_request" not in i and i["created_at"] >= since]
+                      if len(batch) < 100:
+                          break
+                  return out
+              # all requesters: trace requests opened in the last 24 hours, including ones still
+              # running (saved files would miss a burst of simultaneous requests)
               try:
-                  n = len(json.load(urllib.request.urlopen(req, timeout=20)))
-                  if n > int(os.environ.get("DAILY_LIMIT", "40")):
+                  n = sum(1 for i in issues("sort=created") if i["title"].startswith("[trace]"))
+                  if n > int(os.environ["DAILY_LIMIT"]):
                       status = "limit"
               except Exception as err:
-                  print("limit check skipped:", type(err).__name__)
+                  print("daily check failed, refusing:", type(err).__name__)
+                  status = "limit"
+              # per requester: issues this account opened in the last 24 hours (any title or label)
+              try:
+                  author = urllib.parse.quote(os.environ.get("AUTHOR", ""))
+                  if len(issues(f"creator={author}")) > int(os.environ["PER_USER_LIMIT"]):
+                      status = "limit"
+              except Exception as err:
+                  print("per-user check failed, refusing:", type(err).__name__)
+                  status = "limit"
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"mint={mint}\nstatus={status}\n")
           print("request:", status, mint)
@@ -93,6 +119,7 @@ jobs:
           ref: ${{ env.SOURCE_REF }}
           token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
           path: src
+          persist-credentials: false
 
       - name: Trace
         id: trace
@@ -100,6 +127,7 @@ jobs:
         working-directory: src/memecoin-trading
         env:
           TRACE_MINT: ${{ steps.req.outputs.mint }}
+          KNOWN_PUBLIC_FILE: ${{ github.workspace }}/site/radar-known.json  # same infrastructure list as the hourly cycle
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: |
@@ -111,16 +139,18 @@ jobs:
         if: steps.req.outputs.status == 'ok' && steps.trace.outputs.code == '0'
         env:
           MINT: ${{ steps.req.outputs.mint }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           cp "$RUNNER_TEMP/trace.json" "site/radar-requests/${MINT}.json"
           cd site
+          git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git config user.name "sift-bot"
           git config user.email "sift-bot@users.noreply.github.com"
           git add "radar-requests/${MINT}.json"
           git commit --quiet -m "Radar trace ${MINT:0:8}"
           for attempt in 1 2 3 4; do
             if git push --quiet origin HEAD:main; then echo "saved"; exit 0; fi
-            git pull --quiet --rebase -X theirs origin main || git rebase --abort
+            git pull --quiet --rebase -X theirs origin main || git rebase --abort || true
             sleep $((attempt * 5))
           done
           echo "::warning::could not save the trace; the reply is still posted"
@@ -132,14 +162,15 @@ jobs:
           NUMBER: ${{ github.event.issue.number }}
           STATUS: ${{ steps.req.outputs.status }}
           MINT: ${{ steps.req.outputs.mint }}
+          CODE: ${{ steps.trace.outputs.code }}
         run: |
           case "$STATUS" in
             ok)      [ -s "$RUNNER_TEMP/reply.md" ] || echo "The trace failed unexpectedly. Please try again later." > "$RUNNER_TEMP/reply.md" ;;
             cached)  printf 'This token was traced less than 2 hours ago. See it on the [Insider Radar](https://bernardhaddad.github.io/sift/radar.html#%s).\n' "$MINT" > "$RUNNER_TEMP/reply.md" ;;
-            limit)   echo "The free daily trace limit is reached. Please open the request again tomorrow." > "$RUNNER_TEMP/reply.md" ;;
+            limit)   echo "The free daily trace limit is reached (3 requests a day per account, 40 traces a day in total). Please try again tomorrow." > "$RUNNER_TEMP/reply.md" ;;
             *)       echo "No Solana token address found. Open a new request and paste the token's mint address (32 to 44 characters)." > "$RUNNER_TEMP/reply.md" ;;
           esac
-          if [ "$STATUS" = "ok" ] && [ -n "$MINT" ]; then
+          if [ "$STATUS" = "ok" ] && [ "$CODE" = "0" ] && [ -n "$MINT" ]; then
             printf '\n\nOn the radar: https://bernardhaddad.github.io/sift/radar.html#%s (after the next hourly update)\n' "$MINT" >> "$RUNNER_TEMP/reply.md"
           fi
           printf '\n\n---\n_Automated reply by Sift Insider Radar._\n' >> "$RUNNER_TEMP/reply.md"
