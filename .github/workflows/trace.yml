@@ -30,7 +30,7 @@ concurrency:
 
 env:
   SOURCE_REPO: bernardhaddad/ClaudeAI
-  SOURCE_REF: claude/dreamy-curie-3UNnv
+  SOURCE_REF: 142291cbfc28ef1131a23dda00ee31e5a492a92a  # the exact commit of the trading code that runs here
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
