@@ -6,6 +6,7 @@
 <title>Sift · Insider Radar</title>
 <meta name="description" content="Which Solana memecoins are held by wallets that share one funder. Every trace shows its evidence: the holders, who funded whom, the share of supply. Free, updated hourly.">
 <link rel="canonical" href="https://bernardhaddad.github.io/sift/radar.html">
+<link rel="alternate" type="application/rss+xml" title="Sift Insider Radar alerts" href="https://bernardhaddad.github.io/sift/radar-feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sift">
 <meta property="og:title" content="Sift · Insider Radar">
@@ -42,6 +43,8 @@
   .lead { color: var(--muted); max-width: 820px; margin: 6px 0 16px; }
   .cta { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--on-accent); font-weight: 650; border-radius: 999px; padding: 8px 16px; margin: 0 0 18px; }
   .cta:hover { text-decoration: none; filter: brightness(1.08); }
+  .sub2 { display: inline-block; margin: 0 0 18px 14px; font-weight: 600; font-size: 14px; }
+  section.how code { font-family: var(--mono); font-size: 12.5px; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
   .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 16px; }
   .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
   .stat.on { outline: 2px solid var(--accent); }
@@ -117,6 +120,7 @@
   </header>
   <p class="lead">Many memecoins look like they have hundreds of independent holders when a handful of people control most of the supply through wallets they funded themselves. Insider Radar traces where each top holder's money came from and shows you the groups that lead back to the same private wallet, with the evidence.</p>
   <a class="cta" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Trace any token for free →</a>
+  <a class="sub2" href="radar-feed.xml">Alerts (RSS)</a> <a class="sub2" href="#data">Free data</a>
   <div class="strip" id="strip"></div>
   <div class="controls"><input id="q" type="search" placeholder="Search by name or paste a mint address" autocomplete="off" aria-label="Search tokens"></div>
   <div class="tablewrap">
@@ -157,6 +161,14 @@
       <li>Its price is sampled every hour for 7 days: the lowest price, the price 24 to 30 hours after entry and the price 7 days to 7 days 6 hours after entry, each with the hours actually elapsed.</li>
       <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less (−80%), or the price service reported no price for the token for its last 24 hours (it stopped trading).</li>
       <li>A verdict's numbers are shown once 10 of its tokens have finished their 7 days. Verdicts are not assigned at random (scanner tokens are established pools; requests and trending tokens skew to new launches, and trending ones enter at peak attention), so a difference between verdicts is evidence, not proof. Prices are sampled hourly, so a crash and recovery inside one hour is not seen. An entry whose prices could not be checked for over 6 hours in a row is not scored. The full record is public: <a href="radar-ledger.json">radar-ledger.json</a>.</li>
+    </ul>
+    <h2 id="data">Free data</h2>
+    <p>Everything on this page is published as plain files, updated every hour, free to use with no key. Please credit Sift Insider Radar and link back.</p>
+    <ul>
+      <li><a href="radar.json"><code>radar.json</code></a>: every token on the page. Per token: <code>mint</code>, <code>name</code>, <code>grade</code> (<code>high</code>, <code>watch</code>, <code>low</code>, <code>incomplete</code>), <code>cluster_pct</code> and <code>clustered_pct</code> (largest and all linked groups, % of supply), <code>unknown_pct</code>, <code>top_pct</code>, <code>traced_at</code>, <code>source</code>, and <code>clusters</code>: each with its holders (<code>wallets</code>, with % of supply) and <code>links</code> (<code>from</code>, <code>to</code>, <code>kind</code>: <code>funded</code> or <code>tokens</code>, and <code>tx</code>, the proving transaction). Also the <code>scorecard</code> and <code>repeat_wallets</code>.</li>
+      <li><a href="radar-ledger.json"><code>radar-ledger.json</code></a>: the track record. One entry per token: verdict at entry, entry price <code>p0</code>, lowest price, the 24-hour and 7-day samples with hours elapsed, and <code>vanished</code> / <code>void</code> / <code>closed</code>.</li>
+      <li><a href="radar-wallets.json"><code>radar-wallets.json</code></a>: the funder-wallet registry. Per wallet: every token it was seen behind (first and last seen, verdict) and flags (<code>busy</code>, <code>known</code>).</li>
+      <li><a href="radar-feed.xml"><code>radar-feed.xml</code></a>: RSS alerts for new High and Watch verdicts and for wallets seen behind a second token. Works in any feed reader, or in a Telegram or Discord RSS bot.</li>
     </ul>
     <h2>Limits</h2>
     <ul>
