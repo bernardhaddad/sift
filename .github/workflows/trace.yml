@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SOURCE_REPO: bernardhaddad/ClaudeAI
+  SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
   SOURCE_REF: 142291cbfc28ef1131a23dda00ee31e5a492a92a  # the exact commit of the trading code that runs here
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
@@ -117,7 +117,7 @@ jobs:
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ env.SOURCE_REF }}
-          token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          token: ${{ secrets.SOURCE_READ_TOKEN }}
           path: src
           persist-credentials: false
 

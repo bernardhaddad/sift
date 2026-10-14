@@ -11,7 +11,7 @@ name: memecoin minute scanner (M5, public host)
 #     finds no cache restores the books from it and only re-seeds price series.
 # Public repositories are not metered for Actions minutes.
 #
-# Secrets: CLAUDEAI_READ_TOKEN (Contents: Read on the private repository) and,
+# Secrets: SOURCE_REPO and SOURCE_READ_TOKEN (Contents: Read on the private repository) and,
 # optionally, TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID for trade alerts.
 
 on:
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SOURCE_REPO: bernardhaddad/ClaudeAI
+  SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
   SOURCE_REF: 142291cbfc28ef1131a23dda00ee31e5a492a92a  # the exact commit of the trading code that runs here
   RUN_MINUTES: "330"
 
@@ -39,10 +39,10 @@ jobs:
     steps:
       - name: Check the read token is present
         env:
-          T: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          T: ${{ secrets.SOURCE_READ_TOKEN }}
         run: |
-          if [ -z "$T" ]; then
-            echo "::error::CLAUDEAI_READ_TOKEN is not set."
+          if [ -z "$T" ] || [ -z "$SOURCE_REPO" ]; then
+            echo "::error::SOURCE_READ_TOKEN or SOURCE_REPO is not set."
             exit 1
           fi
 
@@ -56,7 +56,7 @@ jobs:
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ env.SOURCE_REF }}
-          token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          token: ${{ secrets.SOURCE_READ_TOKEN }}
           path: src
 
       - name: Restore scanner state
