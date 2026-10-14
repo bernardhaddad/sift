@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sift · Insider Radar</title>
+<meta name="description" content="Which Solana memecoins are held by wallets that share one funder. Every trace shows its evidence: the holders, the funding wallets, the share of supply. Free, updated hourly.">
+<link rel="canonical" href="https://bernardhaddad.github.io/sift/radar.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sift">
+<meta property="og:title" content="Sift · Insider Radar">
+<meta property="og:description" content="Solana memecoins whose top holders share a funder, with the on-chain evidence. Free, hourly, and you can request any token.">
+<meta property="og:url" content="https://bernardhaddad.github.io/sift/radar.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Sift · Insider Radar">
+<meta name="twitter:description" content="Solana memecoins whose top holders share a funder, with the on-chain evidence. Free, hourly, and you can request any token.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='none' stroke='%235ad4c6' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%235ad4c6'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #121722; --panel-2: #171d2a; --line: #232b3a;
+    --text: #e6e9ef; --muted: #8b94a7; --faint: #5d667a;
+    --accent: #5ad4c6; --up: #4cd37e; --down: #ff6b6b; --warn: #f5b942;
+    --chip: #1c2433; --on-accent: #04241f; --radius: 10px; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f7f9; --panel: #ffffff; --panel-2: #eef1f5; --line: #dde2ea;
+      --text: #1a1f2a; --muted: #5b6575; --faint: #8a93a3; --accent: #0f8f82;
+      --up: #18864b; --down: #c53030; --warn: #a86b00; --chip: #eef1f5; --on-accent: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px 60px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; padding: 26px 0 6px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+  header h1 span { color: var(--accent); }
+  header nav { display: flex; gap: 14px; font-size: 14px; }
+  header .upd { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .lead { color: var(--muted); max-width: 820px; margin: 6px 0 16px; }
+  .cta { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--on-accent); font-weight: 650; border-radius: 999px; padding: 8px 16px; margin: 0 0 18px; }
+  .cta:hover { text-decoration: none; filter: brightness(1.08); }
+  .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+  .stat.on { outline: 2px solid var(--accent); }
+  .stat .v { font-size: 22px; font-weight: 650; }
+  .stat .l { color: var(--muted); font-size: 12px; }
+  .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+  .controls input { flex: 1; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--panel-2); color: var(--muted); font-size: 12px; font-weight: 600; }
+  th.l, td.l { text-align: left; }
+  tbody tr.row { cursor: pointer; }
+  tbody tr.row:hover td { background: var(--panel-2); }
+  td.num { font-family: var(--mono); font-size: 12.5px; }
+  .name { font-weight: 600; }
+  .mint { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .g-high { background: #3a1b1b; color: var(--down); }
+  .g-watch { background: #3a2f14; color: var(--warn); }
+  .g-low { background: #143526; color: var(--up); }
+  .g-incomplete { background: var(--chip); color: var(--muted); }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .g-high { background: #fde8e8; }
+    :root:not([data-theme="dark"]) .g-watch { background: #fdf3dc; }
+    :root:not([data-theme="dark"]) .g-low { background: #e3f6ea; }
+  }
+  .bar { display: inline-block; width: 60px; height: 6px; border-radius: 3px; background: var(--chip); vertical-align: middle; margin-left: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--down); }
+  tr.detail td { background: var(--bg); text-align: left; white-space: normal; padding: 14px 16px 18px; }
+  .group { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--panel); }
+  .group h4 { margin: 0 0 6px; font-size: 13.5px; }
+  .group ul { margin: 6px 0 0; padding-left: 18px; columns: 2; column-gap: 28px; }
+  @media (max-width: 640px) { .group ul { columns: 1; } }
+  .group li { font-family: var(--mono); font-size: 12px; break-inside: avoid; }
+  .facts { color: var(--muted); font-size: 13px; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  section.how { margin-top: 28px; color: var(--muted); max-width: 860px; }
+  section.how h2 { color: var(--text); font-size: 17px; margin: 22px 0 6px; }
+  section.how li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Sift · <span>Insider Radar</span></h1>
+    <nav><a href="./">Screener</a><a href="research.html">Research</a></nav>
+    <div class="upd" id="upd">loading…</div>
+  </header>
+  <p class="lead">Many memecoins look like they have hundreds of independent holders when a handful of people control most of the supply through wallets they funded themselves. Insider Radar traces where each top holder's money came from and shows you the groups that lead back to the same private wallet, with the evidence.</p>
+  <a class="cta" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Trace any token for free →</a>
+  <div class="strip" id="strip"></div>
+  <div class="controls"><input id="q" type="search" placeholder="Search by name or paste a mint address" autocomplete="off" aria-label="Search tokens"></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th class="l">Token</th><th class="l">Verdict</th><th>Largest linked group</th><th>All linked groups</th>
+        <th>Brand-new wallets</th><th>Untraced</th><th>Traced</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="7" class="empty">Loading the latest traces…</td></tr></tbody>
+    </table>
+  </div>
+
+  <section class="how">
+    <h2>How a trace works</h2>
+    <ol>
+      <li>Take the token's 20 largest accounts and their owners, and skip pools and programs.</li>
+      <li>For every holder wallet, find who paid for its very first transaction, up to two hops back, and who sent it its first tokens.</li>
+      <li>Classify each of those funding wallets: exchanges and programs are public and link nobody, while private wallets do.</li>
+      <li>Holders that lead back to the same private wallet form a <b>linked group</b>. Its share of supply is what one actor most likely controls.</li>
+    </ol>
+    <h2>The verdicts</h2>
+    <ul id="meanings"></ul>
+    <h2>Limits, honestly</h2>
+    <ul>
+      <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced. A clean result is not a safety guarantee.</li>
+      <li>A linked group is strong on-chain evidence that one actor holds several wallets. It is not proof of what they will do.</li>
+      <li>The same thresholds decide what Sift's own paper books refuse to trade. Results are updated hourly for the tokens the scanner watches; requested traces keep their date.</li>
+      <li>Nothing here is financial advice. Sift never sells, promotes, or calls tokens.</li>
+    </ul>
+  </section>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pct = (v) => v == null ? "–" : `${Number(v).toFixed(1)}%`;
+  const ago = (iso) => {
+    if (!iso) return "–";
+    const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+  };
+  const short = (a) => `${a.slice(0, 4)}…${a.slice(-4)}`;
+  const acct = (a) => `<a href="https://solscan.io/account/${encodeURIComponent(a)}" target="_blank" rel="noopener">${esc(short(a))}</a>`;
+  let doc = null, filter = "all", open = null;
+
+  function render() {
+    const q = $("q").value.trim().toLowerCase();
+    const list = doc.tokens.filter((t) => (filter === "all" || t.grade === filter)
+      && (!q || t.name.toLowerCase().includes(q) || t.mint.toLowerCase().startsWith(q) || t.mint.toLowerCase() === q));
+    if (!list.length) {
+      $("rows").innerHTML = `<tr><td colspan="7" class="empty">${q && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test($("q").value.trim())
+        ? `Not traced yet. <a href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml&title=${encodeURIComponent("[trace] " + $("q").value.trim())}" target="_blank" rel="noopener">Request a trace of this token →</a>`
+        : "No tokens match."}</td></tr>`;
+      return;
+    }
+    $("rows").innerHTML = list.map((t) => {
+      const row = `<tr class="row" data-m="${esc(t.mint)}">
+        <td class="l"><div class="name">${esc(t.name)}</div><div class="mint">${esc(short(t.mint))}${t.source === "request" ? " · requested" : ""}</div></td>
+        <td class="l"><span class="chip g-${t.grade}">${esc(t.label)}</span></td>
+        <td class="num">${pct(t.cluster_pct)}<span class="bar"><i style="width:${Math.min(100, t.cluster_pct || 0)}%"></i></span></td>
+        <td class="num">${pct(t.clustered_pct)}</td><td class="num">${pct(t.fresh_pct)}</td>
+        <td class="num">${pct(t.unknown_pct)}</td><td class="num">${ago(t.traced_at)}</td></tr>`;
+      if (open !== t.mint) return row;
+      const groups = t.clusters.length ? t.clusters.map((c, i) => `<div class="group">
+          <h4>Group ${i + 1}: ${c.holders} holders control ${pct(c.pct)} of supply</h4>
+          <div class="facts">Funded through ${c.funders.map(acct).join(", ") || "–"}</div>
+          <ul>${c.wallets.map((w) => `<li>${acct(w.address)} ${pct(w.pct)}</li>`).join("")}</ul></div>`).join("")
+        : `<p class="facts">No two top holders lead back to the same private wallet.</p>`;
+      return row + `<tr class="detail"><td colspan="7">
+        <div class="facts">${t.holders ?? "–"} top owners checked, ${t.wallets ?? "–"} of them personal wallets, ${t.fresh ?? 0} brand-new; top-20 accounts hold ${pct(t.top_pct)} of supply.${t.truncated ? " The trace ran out of time, so some holders are untraced." : ""}
+        <a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">View token on Solscan</a></div>${groups}</td></tr>`;
+    }).join("");
+  }
+
+  function strip() {
+    const all = doc.tokens.length;
+    const cells = [["all", all, "Tokens traced"], ...["high", "watch", "low", "incomplete"].map((g) => [g, doc.counts[g] || 0, doc.grades[g].label])];
+    $("strip").innerHTML = cells.map(([g, v, l]) => `<button class="stat${filter === g ? " on" : ""}" data-g="${g}"><div class="v">${v}</div><div class="l">${esc(l)}</div></button>`).join("");
+    $("meanings").innerHTML = Object.values(doc.grades).map((g) => `<li><b>${esc(g.label)}</b>: ${esc(g.meaning)}</li>`).join("");
+  }
+
+  $("strip").addEventListener("click", (e) => {
+    const b = e.target.closest(".stat"); if (!b) return;
+    filter = b.dataset.g; strip(); render();
+  });
+  $("rows").addEventListener("click", (e) => {
+    if (e.target.closest("a")) return;
+    const r = e.target.closest("tr.row"); if (!r) return;
+    open = open === r.dataset.m ? null : r.dataset.m; render();
+  });
+  $("q").addEventListener("input", render);
+
+  fetch("radar.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+    doc = d;
+    $("upd").innerHTML = `updated <b>${ago(d.generated_at)}</b>`;
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash) { $("q").value = hash; open = hash; }
+    strip(); render();
+  }).catch(() => {
+    $("upd").textContent = "no data yet";
+    $("rows").innerHTML = `<tr><td colspan="7" class="empty">The radar has not published its first traces yet. It updates every hour.</td></tr>`;
+  });
+})();
+</script>
+</body>
+</html>
