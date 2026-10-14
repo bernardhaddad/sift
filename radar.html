@@ -95,6 +95,17 @@
   section.how { margin-top: 28px; color: var(--muted); max-width: 860px; }
   section.how h2 { color: var(--text); font-size: 17px; margin: 22px 0 6px; }
   section.how li { margin: 4px 0; }
+  section.extra { margin-top: 26px; }
+  section.extra h2 { font-size: 17px; margin: 0 0 4px; }
+  section.extra .sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 860px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .card h3 { margin: 0 0 6px; font-size: 13px; }
+  .card .big { font-size: 20px; font-weight: 650; font-family: var(--mono); }
+  .card .row2 { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .rw { list-style: none; padding: 0; margin: 0; }
+  .rw li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; font-size: 13px; }
+  .rw .flag { color: var(--warn); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -118,19 +129,38 @@
     </table>
   </div>
 
+  <section class="extra" id="track">
+    <h2>Track record</h2>
+    <p class="sub">Does a verdict predict what the price does next? Every token enters this record the first hour it is published, with its verdict frozen, and its price is followed for 7 days. <span id="since"></span></p>
+    <div class="cards" id="cards"></div>
+  </section>
+  <section class="extra" id="repeat">
+    <h2>Wallets behind several tokens</h2>
+    <p class="sub">Wallets that funded or supplied top holders of two or more tokens, remembered across every trace since <span id="regsince">the registry started</span>, including tokens no longer on this page (a wallet seen behind only one token is forgotten after 30 days). Some are shared services (bots, relayers); some are one deployer behind several launches. The full registry is public: <a href="radar-wallets.json">radar-wallets.json</a>.</p>
+    <ul class="rw" id="rw"></ul>
+  </section>
+
   <section class="how">
     <h2>How a trace works</h2>
     <ol>
       <li>Take the token's 20 largest accounts and their owners, and skip pools and programs.</li>
       <li>For every holder wallet with under 1,000 transactions, find who paid for its very first transaction, up to two hops back. For every holder, find who sent its token account its first tokens.</li>
       <li>Classify each of those wallets. Programs and exchange hot wallets (over 3,000 transactions and 250 SOL) are public and link nobody; every other wallet is private.</li>
-      <li>Holders that lead back to the same private wallet form a <b>linked group</b>. Its share of supply is what one actor most likely controls. Every link is listed, so you can check it on Solscan.</li>
+      <li>Holders that lead back to the same private wallet form a <b>linked group</b>. Its share of supply is what one actor most likely controls. Every link is listed with the transaction that proves it, so you can check it yourself on Solscan.</li>
       <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) still counts for Sift's own trading, but is not enough for a "High insider risk" verdict here. The same goes for a wallet seen behind top holders of several tokens: Sift's trading treats it as a shared service, while this page still shows the group, flagged, because it can also be one deployer behind several tokens.</li>
     </ol>
     <h2>The verdicts</h2>
     <ul id="meanings"></ul>
+    <h2>How the track record is kept</h2>
+    <ul>
+      <li>A token enters the first hour it is published with a price on GeckoTerminal. Its verdict is frozen at that moment; a later re-grade never rewrites the record.</li>
+      <li>Its price is sampled every hour for 7 days: the lowest price, the price 24 to 30 hours after entry and the price 7 days to 7 days 6 hours after entry, each with the hours actually elapsed.</li>
+      <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less (−80%), or the price service reported no price for the token for its last 24 hours (it stopped trading).</li>
+      <li>A verdict's numbers are shown once 10 of its tokens have finished their 7 days. Verdicts are not assigned at random (scanner tokens are established pools; requests and trending tokens skew to new launches, and trending ones enter at peak attention), so a difference between verdicts is evidence, not proof. Prices are sampled hourly, so a crash and recovery inside one hour is not seen. An entry whose prices could not be checked for over 6 hours in a row is not scored. The full record is public: <a href="radar-ledger.json">radar-ledger.json</a>.</li>
+    </ul>
     <h2>Limits</h2>
     <ul>
+      <li>Besides the tokens Sift's scanner watches and the ones people request, the radar traces one trending Solana token each half hour that no trace covered in the last day.</li>
       <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back to their funder. A clean result is not a safety guarantee.</li>
       <li>Results are shown while they are current: scanner traces for 24 hours (2 hours if incomplete), requested traces for 7 days, each with its date.</li>
       <li>A linked group is strong on-chain evidence that one actor holds several wallets. It is not proof of what they will do.</li>
@@ -147,6 +177,7 @@
   const pct = (v) => num(v) == null ? "–" : `${num(v).toFixed(1)}%`;
   const int = (v) => num(v) == null ? "–" : String(Math.round(num(v)));
   const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  const SIG = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/;
   const ago = (iso) => {
     const t = Date.parse(iso || "");
     if (!Number.isFinite(t)) return "–";
@@ -177,14 +208,15 @@
     $("rows").innerHTML = list.map((t) => {
       const g = GRADE.has(t.grade) ? t.grade : "incomplete";
       const row = `<tr class="row" data-m="${esc(t.mint)}">
-        <td class="l"><div class="name">${esc(t.name)}</div><div class="mint">${esc(short(t.mint))}${t.source === "request" ? " · requested" : ""}</div></td>
+        <td class="l"><div class="name">${esc(t.name)}</div><div class="mint">${esc(short(t.mint))}${t.source === "request" ? " · requested" : t.source === "trending" ? " · trending" : ""}</div></td>
         <td class="l"><span class="chip g-${g}">${esc(t.label)}</span></td>
         <td class="num">${pct(t.cluster_pct)}<span class="bar"><i style="width:${Math.min(100, Math.max(0, num(t.cluster_pct) || 0))}%"></i></span></td>
         <td class="num opt">${pct(t.clustered_pct)}</td>
         <td class="num opt">${pct(t.unknown_pct)}</td><td class="num opt" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</td></tr>`;
       if (open !== t.mint) return row;
       const groups = (t.clusters || []).length ? t.clusters.map((c, i) => {
-        const links = (c.links || []).map((k) => `<li>${acct(k.from)} ${k.kind === "tokens" ? "sent the first tokens to" : "paid for the first transaction of"} ${acct(k.to)}</li>`).join("");
+        const proof = (k) => SIG.test(String(k.tx || "")) ? ` · <a href="https://solscan.io/tx/${encodeURIComponent(k.tx)}" target="_blank" rel="noopener">proof</a>` : "";
+        const links = (c.links || []).map((k) => `<li>${acct(k.from)} ${k.kind === "tokens" ? "sent the first tokens to" : "paid for the first transaction of"} ${acct(k.to)}${proof(k)}</li>`).join("");
         const via = !links && (c.funders || []).length ? `<div class="facts">Linked through ${c.funders.map(acct).join(", ")}</div>` : "";
         const more = num(c.links_total) > (c.links || []).length ? `<div class="facts">and ${int(num(c.links_total) - c.links.length)} more links</div>` : "";
         const known = (c.known || []).length ? `<div class="note">Linked through a wallet seen behind top holders of several tokens (${c.known.map(acct).join(", ")}): a shared service such as a bot, or one deployer behind several tokens.</div>` : "";
@@ -205,6 +237,29 @@
     const cells = [["all", doc.tokens.length, "Tokens traced"], ...["high", "watch", "low", "incomplete"].map((g) => [g, (doc.counts || {})[g] || 0, (doc.grades[g] || {}).label || g])];
     $("strip").innerHTML = cells.map(([g, v, l]) => `<button class="stat${filter === g ? " on" : ""}" data-g="${g}"><div class="v">${int(v)}</div><div class="l">${esc(l)}</div></button>`).join("");
     $("meanings").innerHTML = Object.values(doc.grades).map((g) => `<li><b>${esc(g.label)}</b>: ${esc(g.meaning)}</li>`).join("");
+  }
+
+  function track() {
+    const sc = doc.scorecard || {};
+    $("since").textContent = doc.ledger_since ? `Recording since ${when(doc.ledger_since)}.` : "";
+    const sign = (v) => num(v) == null ? "–" : `${num(v) >= 0 ? "+" : ""}${(num(v) * 100).toFixed(0)}%`;
+    $("cards").innerHTML = ["high", "watch", "low", "incomplete"].map((g) => {
+      const c = sc[g] || {}, label = esc((doc.grades[g] || {}).label || g);
+      if (!c.ready) return `<div class="card"><h3><span class="chip g-${g}">${label}</span></h3>
+        <div class="row2">Collecting: ${int(c.closed || 0)} of 10 tokens have finished their 7 days (${int(c.entries || 0)} entered).</div>
+        ${num(c.median_24h) != null ? `<div class="row2">Median after 24 hours so far: ${sign(c.median_24h)} (${int(c.n_24h)} tokens)</div>` : ""}</div>`;
+      return `<div class="card"><h3><span class="chip g-${g}">${label}</span></h3>
+        <div class="big">${pct(num(c.collapse_rate) * 100)}</div><div class="row2">collapsed within 7 days: ${int(c.collapsed)} of ${int(c.closed)} tokens</div>
+        <div class="row2">Median price change: ${sign(c.median_24h)} after 24 hours (${int(c.n_24h)} tokens), ${sign(c.median_7d)} after 7 days (${int(c.n_7d)} tokens, vanished ones as −100%)</div>
+        ${num(c.void) ? `<div class="row2">${int(c.void)} not scored: prices could not be checked for over 6 hours</div>` : ""}</div>`;
+    }).join("");
+    if (doc.registry_since) $("regsince").textContent = when(doc.registry_since);
+    const rw = doc.repeat_wallets || [];
+    const onPage = new Set(doc.tokens.map((t) => t.mint));
+    const tok = (t) => onPage.has(t.mint) ? `<a href="#${encodeURIComponent(t.mint)}">${esc(t.name)}</a>`
+      : `<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener" title="seen ${esc(when(t.last_seen))}">${esc(t.name)}</a>`;
+    $("rw").innerHTML = rw.length ? rw.map((r) => `<li>${acct(r.address)} linked top holders of ${int((r.tokens || []).length)} tokens: ${(r.tokens || []).slice(0, 12).map(tok).join(", ")}${(r.tokens || []).length > 12 ? " …" : ""}${(r.flags || []).length ? ` <span class="flag">(${r.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : ""}</li>`).join("")
+      : `<li>None yet: no wallet has linked top holders of two different tokens so far.</li>`;
   }
 
   function fromHash() {
@@ -232,7 +287,7 @@
     doc = d;
     $("upd").innerHTML = `updated <b title="${esc(when(d.generated_at))}">${ago(d.generated_at)}</b>`;
     fromHash();
-    strip(); render();
+    strip(); render(); track();
   }).catch(() => {
     $("upd").textContent = "no data yet";
     $("rows").innerHTML = `<tr><td colspan="6" class="empty">The radar could not load its data. It updates every hour; please try again shortly.</td></tr>`;
