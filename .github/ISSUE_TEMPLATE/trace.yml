@@ -1,0 +1,18 @@
+name: Trace a token (Insider Radar)
+description: Check whether a Solana token's top holders share a funder. Free; the answer is posted here in a few minutes.
+title: "[trace] "
+labels: ["trace"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paste the token's **mint address** (the contract address, 32 to 44 characters). A bot traces where the 20 largest holders got their SOL and replies on this issue with the result and the evidence, usually within 5 minutes. It also appears on the [Insider Radar](https://bernardhaddad.github.io/sift/radar.html).
+
+        Not financial advice. A clean result is not a safety guarantee.
+  - type: input
+    id: mint
+    attributes:
+      label: Token mint address
+      placeholder: e.g. 7M3gDRgozcumFsiTeXwjB8cYxpg7Q9R7rH7rkw2Fpump
+    validations:
+      required: true

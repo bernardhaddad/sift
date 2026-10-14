@@ -1,0 +1,150 @@
+name: insider radar trace
+
+# Answers "[trace] <mint>" issues (the Trace a token issue form) with a funding-cluster trace of
+# the token's top holders, using the private trading code (scripts/trace_token.py) and the same
+# Helius secret as the hourly cycle. The result is posted on the issue, saved to radar-requests/
+# and shown on radar.html. workflow_dispatch runs the same trace without an issue (testing).
+#
+# Untrusted input: the issue title and body reach the job only through environment variables and
+# are parsed in Python; the mint is validated as base58 before anything uses it. Nothing from the
+# issue is ever interpolated into a shell command.
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      mint:
+        description: Token mint address
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: radar-trace
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPO: bernardhaddad/ClaudeAI
+  SOURCE_REF: claude/dreamy-curie-3UNnv
+  DAILY_LIMIT: "40"
+
+jobs:
+  trace:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[trace]')
+    runs-on: ubuntu-24.04  # pinned like the other jobs; they use the image python3
+    timeout-minutes: 10
+    steps:
+      - name: Checkout this site repository
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Read the request
+        id: req
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          INPUT_MINT: ${{ github.event.inputs.mint }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, urllib.request
+          from datetime import datetime, timedelta, timezone
+          rx = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])")
+          text = "\n".join(os.environ.get(k, "") for k in ("INPUT_MINT", "ISSUE_TITLE", "ISSUE_BODY"))
+          m = rx.search(text)
+          mint = m.group(0) if m else ""
+          status = "ok" if mint else "invalid"
+          # cached: a trace of this mint in the last 2 hours is reused
+          p = f"site/radar-requests/{mint}.json"
+          if mint and os.path.exists(p):
+              try:
+                  at = datetime.fromisoformat(json.load(open(p))["at"])
+                  if datetime.now(timezone.utc) - at < timedelta(hours=2):
+                      status = "cached"
+              except Exception:
+                  pass
+          # daily limit on fresh traces (protects the free RPC quota)
+          if status == "ok" and os.environ.get("ISSUE_TITLE"):
+              since = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+              req = urllib.request.Request(
+                  f"https://api.github.com/repos/{os.environ['REPO']}/issues?labels=trace&state=all&since={since}&per_page=100",
+                  headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"})
+              try:
+                  n = len(json.load(urllib.request.urlopen(req, timeout=20)))
+                  if n > int(os.environ.get("DAILY_LIMIT", "40")):
+                      status = "limit"
+              except Exception as err:
+                  print("limit check skipped:", type(err).__name__)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"mint={mint}\nstatus={status}\n")
+          print("request:", status, mint)
+          PY
+
+      - name: Checkout the private trading code
+        if: steps.req.outputs.status == 'ok'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_REF }}
+          token: ${{ secrets.CLAUDEAI_READ_TOKEN }}
+          path: src
+
+      - name: Trace
+        id: trace
+        if: steps.req.outputs.status == 'ok'
+        working-directory: src/memecoin-trading
+        env:
+          TRACE_MINT: ${{ steps.req.outputs.mint }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          set +e
+          python3 scripts/trace_token.py "$RUNNER_TEMP/trace.json" "$RUNNER_TEMP/reply.md"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Save the result to the radar
+        if: steps.req.outputs.status == 'ok' && steps.trace.outputs.code == '0'
+        env:
+          MINT: ${{ steps.req.outputs.mint }}
+        run: |
+          cp "$RUNNER_TEMP/trace.json" "site/radar-requests/${MINT}.json"
+          cd site
+          git config user.name "sift-bot"
+          git config user.email "sift-bot@users.noreply.github.com"
+          git add "radar-requests/${MINT}.json"
+          git commit --quiet -m "Radar trace ${MINT:0:8}"
+          for attempt in 1 2 3 4; do
+            if git push --quiet origin HEAD:main; then echo "saved"; exit 0; fi
+            git pull --quiet --rebase -X theirs origin main || git rebase --abort
+            sleep $((attempt * 5))
+          done
+          echo "::warning::could not save the trace; the reply is still posted"
+
+      - name: Reply on the issue
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          STATUS: ${{ steps.req.outputs.status }}
+          MINT: ${{ steps.req.outputs.mint }}
+        run: |
+          case "$STATUS" in
+            ok)      [ -s "$RUNNER_TEMP/reply.md" ] || echo "The trace failed unexpectedly. Please try again later." > "$RUNNER_TEMP/reply.md" ;;
+            cached)  printf 'This token was traced less than 2 hours ago. See it on the [Insider Radar](https://bernardhaddad.github.io/sift/radar.html#%s).\n' "$MINT" > "$RUNNER_TEMP/reply.md" ;;
+            limit)   echo "The free daily trace limit is reached. Please open the request again tomorrow." > "$RUNNER_TEMP/reply.md" ;;
+            *)       echo "No Solana token address found. Open a new request and paste the token's mint address (32 to 44 characters)." > "$RUNNER_TEMP/reply.md" ;;
+          esac
+          if [ "$STATUS" = "ok" ] && [ -n "$MINT" ]; then
+            printf '\n\nOn the radar: https://bernardhaddad.github.io/sift/radar.html#%s (after the next hourly update)\n' "$MINT" >> "$RUNNER_TEMP/reply.md"
+          fi
+          printf '\n\n---\n_Automated reply by Sift Insider Radar._\n' >> "$RUNNER_TEMP/reply.md"
+          curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${NUMBER}/comments" \
+            -d "$(python3 -c 'import json,os,sys; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/reply.md").read()}))')" -o /dev/null -w "comment %{http_code}\n"
+          curl -sS -X PATCH -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${NUMBER}" -d '{"state":"closed","state_reason":"completed"}' -o /dev/null -w "close %{http_code}\n"
