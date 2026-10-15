@@ -4,19 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sift - Solana memecoin screener</title>
-<meta name="description" content="A free hourly screener for Solana memecoins: who is really buying, which top holders share a funder, and a public paper record.">
+<meta name="description" content="Solana memecoin screener. Net buy flow, top holders funded by the same wallet, and the paper-trading record, losers included. Rescanned hourly.">
 <link rel="canonical" href="https://bernardhaddad.github.io/sift/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sift">
 <meta property="og:title" content="Sift - Solana memecoin screener">
-<meta property="og:description" content="Who is really buying, which top holders share a funder, and an unedited paper record. Updated hourly, free.">
+<meta property="og:description" content="Solana memecoin screener. Net buy flow, top holders funded by the same wallet, and the paper-trading record, losers included. Rescanned hourly.">
 <meta property="og:url" content="https://bernardhaddad.github.io/sift/">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://bernardhaddad.github.io/sift/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:title" content="Sift - Solana memecoin screener">
-<meta name="twitter:description" content="Who is really buying, which top holders share a funder, and an unedited paper record. Updated hourly, free.">
+<meta name="twitter:description" content="Solana memecoin screener. Net buy flow, top holders funded by the same wallet, and the paper-trading record, losers included. Rescanned hourly.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
@@ -156,7 +156,7 @@
       <thead><tr id="head"></tr></thead>
       <tbody id="rows"></tbody>
     </table>
-    <div class="empty" id="empty" hidden>Nothing passes these filters right now. That is usually the right answer: most of the leaderboard is under 24 hours old or already sold off.</div>
+    <div class="empty" id="empty" hidden>Nothing passes these filters right now, which is normal: most of the leaderboard is under 24 hours old or already sold off.</div>
   </div>
 
   <section id="refused-sec">
@@ -176,9 +176,9 @@
   <section>
     <details class="howto"><summary>How to read the table</summary>
     <dl>
-      <dt>Quiet dips</dt><dd>Pools 7 – 30 days old with at least $250K liquidity, 24h volume $100K – $1.7M, down 2 – 15% on the day, with a buy ratio between 45% and 62%. The only band in our panel mining whose forward returns cleared a 3% round-trip cost.</dd>
+      <dt>Quiet dips</dt><dd>Pools 7 – 30 days old with at least $250K liquidity, 24h volume $100K – $1.7M, down 2 – 15% on the day, with a buy ratio between 45% and 62%. The only band in the panel mining whose forward returns cleared a 3% round-trip cost.</dd>
       <dt>Buy ratio</dt><dd>Buys ÷ (buys + sells) by transaction count over 24 hours. Counts are what manufactured demand inflates, so read it next to flow.</dd>
-      <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent trades we sampled, with the hours that sample covers. Sampled for the pools our paper books watch, not for every row.</dd>
+      <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent sampled trades, with the hours that sample covers. Sampled for the pools the paper books watch, not for every row.</dd>
       <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget and the paper system treats that as a refusal, not a pass.</dd>
     </dl></details>
   </section>
@@ -208,7 +208,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const PRESETS = [
-    { key: "calm", label: "Quiet dips", test: (p) => p.calm, hint: "Older pools with deep liquidity that dipped today without heavy selling. Rare by design." },
+    { key: "calm", label: "Quiet dips", test: (p) => p.calm, hint: "Older pools with deep liquidity that dipped today without heavy selling. Often empty." },
     { key: "m4", label: "Deep survivors", test: (p) => p.m4, hint: "7 – 30 days old, ≥ $250K liquidity, volume capped so the row is not a manufactured spike." },
     { key: "m3", label: "Aged 1 – 14 d", test: (p) => p.m3, hint: "Past the sniper window with real liquidity and volume; before the long tail." },
     { key: "all", label: "Everything scanned", test: () => true, hint: "Every pool in the last hourly scan. Use the filters." },
@@ -309,7 +309,7 @@
   function initialPreset() {
     const wanted = location.hash.replace(/^#/, "");
     if (PRESETS.some((p) => p.key === wanted)) return wanted;
-    // Open on the first band that has rows: an empty table is a bad first page.
+    // start on the first preset that has rows
     return (PRESETS.find((p) => data.pools.some((x) => p.test(x) && x.meme)) || PRESETS[PRESETS.length - 1]).key;
   }
   function renderStatic() {
@@ -341,7 +341,7 @@
     if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`);
     if (jupFee) parts.push(`Jupiter swaps opened here add a ${(jupFee / 100).toFixed(2)}% referral fee; use jup.ag directly to avoid it.`);
     if (!shareRefs.length && !jupFee) parts.push("None of them pays Sift anything.");
-    parts.push("Sift does not run a bot, take a cut of your trades, or sell calls.");
+    parts.push("Sift doesn't take a cut of your trades. No bot, no paid calls either.");
     $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));

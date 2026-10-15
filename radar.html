@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Insider Radar - Sift</title>
-<meta name="description" content="See who really holds a Solana token. Sift traces the top holders of Solana memecoins back to the wallets that funded them and publishes every link with its on-chain proof. Free, updated hourly.">
+<meta name="description" content="Traces a Solana token's top 20 holders back to the wallets that funded them. Each link has its tx so you can check it. Refreshed hourly.">
 <link rel="canonical" href="https://bernardhaddad.github.io/sift/radar.html">
 <link rel="alternate" type="application/rss+xml" title="Sift Insider Radar alerts" href="https://bernardhaddad.github.io/sift/radar-feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sift">
 <meta property="og:title" content="Insider Radar - Sift">
-<meta property="og:description" content="See who really holds a Solana token: top holders traced to the wallets that funded them, every link with its on-chain proof. Free, hourly.">
+<meta property="og:description" content="Traces a Solana token's top 20 holders back to the wallets that funded them. Each link has its tx so you can check it. Refreshed hourly.">
 <meta property="og:url" content="https://bernardhaddad.github.io/sift/radar.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://bernardhaddad.github.io/sift/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:title" content="Insider Radar - Sift">
-<meta name="twitter:description" content="See who really holds a Solana token: top holders traced to the wallets that funded them, every link with its on-chain proof. Free, hourly.">
+<meta name="twitter:description" content="Traces a Solana token's top 20 holders back to the wallets that funded them. Each link has its tx so you can check it. Refreshed hourly.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
@@ -81,7 +81,6 @@
   .tname { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tmeta { font: 12px var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .badge { display: inline-block; font-weight: 600; font-size: 12.5px; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
-  .badge i { display: none; }
   .b-high { color: var(--red); background: var(--red-bg); } .b-watch { color: var(--amber); background: var(--amber-bg); }
   .b-low { color: var(--green); background: var(--green-bg); } .b-incomplete { color: var(--muted); background: var(--soft); }
   .meter { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -194,7 +193,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>Insider Radar</h1>
-      <p class="lede">Shows whether a Solana token's top holders were funded by the same wallet. Every link comes with its on-chain proof.</p>
+      <p class="lede">Shows whether a Solana token's top holders were funded by the same wallet. Each link shows the transaction behind it.</p>
       <div class="search">
         <input id="q" type="search" placeholder="Token name or mint address" autocomplete="off" aria-label="Search tokens">
         <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Request a trace</a>
@@ -244,7 +243,7 @@
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
         <h4>Limits</h4><ul>
-          <li>Covers the tokens Sift's scanner watches, requested tokens, and up to two trending tokens an hour.</li>
+          <li>Covers the tokens Sift's scanner watches, requested tokens, and up to four trending tokens an hour.</li>
           <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
           <li>Scanner traces are shown for 24 hours (2 if incomplete), requested ones for 7 days.</li>
           <li>A linked group is evidence that one actor holds several wallets, not proof of what they will do. Not financial advice.</li>
@@ -282,7 +281,7 @@
   const SHORT = { high: "High risk", watch: "Watch", low: "Low risk", incomplete: "Incomplete" };
   let doc = null, filter = "all", open = null, shown = 30;
 
-  const badge = (g, label, compact) => `<span class="badge b-${g}" title="${esc(label)}"><i></i>${esc(compact || window.innerWidth < 560 ? SHORT[g] : label)}</span>`;
+  const badge = (g, label, compact) => `<span class="badge b-${g}" title="${esc(label)}">${esc(compact || window.innerWidth < 560 ? SHORT[g] : label)}</span>`;
 
   function meter(t, g) {
     const a = Math.max(0, num(t.cluster_pct) || 0), all = Math.max(a, num(t.clustered_pct) || 0), u = Math.max(0, num(t.unknown_pct) || 0);
