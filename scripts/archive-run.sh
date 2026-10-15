@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# Archive one scanner run's minute panel into this repository so the mining passes can
-# read weeks of it. Run artifacts expire after 14 days and the cached logs rotate at
-# three days; a gzipped slice of this run's rows (panel, leaderboard scan, liquidity
-# pools) is about 2 MB and lives in panel/ forever. Each run archives every cached row
-# not already in panel/ (the run's start time is only the floor when nothing is archived
-# yet), so consecutive runs never duplicate a row and any slice a failed push left out is
-# filled by a later run while the cached logs still hold it (three days). Never fails the
-# caller.
+# copy cached panel rows that aren't in panel/ yet into a gzipped file there.
+# best effort, always exits 0.
 #   usage: archive-run.sh <workspace> <run-started-at ISO> <run id>
 set -u
 WS="${1:-${GITHUB_WORKSPACE:-.}}"
@@ -41,7 +35,7 @@ def archived_since(tag, oldest):
         except (OSError, EOFError):
             continue
         if newest_in_file is not None and newest_in_file < oldest:
-            break  # files are named by start time: everything older is out of the cache window
+            break  # older files are outside the cache window
     return seen
 
 

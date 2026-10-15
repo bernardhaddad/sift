@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
-# Publish the minute books' snapshot (site/fast.json, written by scripts/fast.py in the
-# private repository) to this site. The scanner calls this every 15 minutes and at the end
-# of a run. A rejected push (the hourly paper job publishes to the same branch) is rebased
-# onto origin/main and retried; the snapshot is regenerated whole, so "theirs" is always
-# the right side of a conflict. Never fails the caller.
+# push site/fast.json; on a rejected push rebase (-X theirs) and retry. always exits 0.
 set -u
 WS="${1:-${GITHUB_WORKSPACE:-.}}"
 SRC="$WS/src/memecoin-trading/site/fast.json"
 
-# Watchdog for the hourly paper cycle. GitHub's cron skips most of paper.yml's slots;
-# the scanner is the one job that is always running, so every time it publishes it
-# checks when the last paper cycle started and dispatches one if that was over 65
-# minutes ago and nothing is queued. paper.yml's concurrency group makes a duplicate
-# dispatch harmless. Needs GH_TOKEN (the job's GITHUB_TOKEN) and actions: write.
+# paper-cycle watchdog: dispatch paper.yml if its last run started over 65 min ago
 paper_watchdog() {
   local repo="${GITHUB_REPOSITORY:-bernardhaddad/sift}"
   local runs
@@ -27,8 +19,7 @@ except Exception:
 now = dt.datetime.now(dt.timezone.utc)
 def created(r):
     return dt.datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
-# A run GitHub never handed to a runner can sit in "queued" for a day (run 513, 2026-10-07);
-# one queued for over 30 minutes is stuck, not running, and must not silence the watchdog.
+# a run queued for over 30 min is stuck, ignore it
 if any(r["status"] == "in_progress" or (r["status"] in ("queued", "waiting", "pending")
                                         and (now - created(r)).total_seconds() < 30 * 60)
        for r in runs):

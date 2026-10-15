@@ -1,6 +1,6 @@
 # Sift
 
-Hourly Solana memecoin screener. It shows net buy flow and which top holders were funded by the same wallet (terminals don't show either), plus the full paper-trading record.
+Hourly Solana memecoin screener. It shows net buy flow and which top holders were funded by the same wallet, plus the paper-trading record.
 
 - Site: https://bernardhaddad.github.io/sift/
 - Insider Radar: https://bernardhaddad.github.io/sift/radar.html
@@ -10,8 +10,8 @@ Hourly Solana memecoin screener. It shows net buy flow and which top holders wer
 
 - Buy flow over the last few hours: net dollars in or out, buyers against sellers, and a warning when one address is most of the buying.
 - Holder tracing. The top 20 holders of each token the paper system looks at are traced back to whoever funded them. If one funder's wallets hold more than 10% of supply (or all such groups more than 20%), the token is refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) shows every trace with the transactions behind it. To get any token traced, open an issue with the trace template.
-- The presets (quiet dips, deep survivors, aged pools) are bands measured on a 14-day panel of forward returns. When a band is empty the page says so instead of padding it.
-- The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far, and the site says that.
+- The presets (quiet dips, deep survivors, aged pools) are bands measured on a 14-day panel of forward returns.
+- The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far.
 
 ## How it runs
 
@@ -21,6 +21,6 @@ A second workflow runs the minute books: a scanner that quotes its pools once a 
 
 ## Money
 
-Trade buttons open the token in a trading terminal. If referral codes are set, the terminal shares part of its own fee with Sift; you pay the same either way, and the page says which links carry a code. Sift doesn't take a cut of your trades. No bot, no paid calls either.
+Trade buttons open the token in a trading terminal. If referral codes are set, the terminal shares part of its own fee with Sift; you pay the same either way, and the page says which links carry a code. Sift takes no cut.
 
 [Privacy](https://bernardhaddad.github.io/sift/privacy.html) | [Terms](https://bernardhaddad.github.io/sift/terms.html)
