@@ -24,7 +24,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 8b366a0a118c1398574284f851c106af2f4abf6a  # private code commit
+  SOURCE_REF: 4bf50208e95214dfaa9d6d4370fe6b9b245a5b93  # private code commit
 
 jobs:
   cycle:
@@ -141,6 +141,7 @@ jobs:
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml src/memecoin-trading/site/radar-lp.json site/ || true
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
           touch site/.nojekyll
+          bash site/scripts/anchor.sh site || true  # daily OpenTimestamps proof of the track record
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
