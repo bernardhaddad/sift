@@ -60,6 +60,8 @@
   .btn.primary:hover { background: #1d3a66; }
   #counts { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
   .ok { color: var(--green); } .bad { color: var(--red); }
+  .flag-bad { font-size: 11.5px; font-weight: 600; color: var(--red); margin-left: 8px; }
+  .facts.auth { margin-top: 6px; }
 
   section { padding: 28px 0 4px; }
   .seg { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); }
@@ -239,6 +241,8 @@
           <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
           <li>Verdicts are not assigned at random, so read differences between them with care. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
         </ul>
+        <h4>Mint and freeze authority</h4>
+        <p>Read from the token's mint account every hour. A wallet holding the mint authority can create new tokens; one holding the freeze authority can freeze holders' tokens. Bridged and tokenized assets keep these with a program, which is normal. "Revoked" includes authorities set to the System Program, which nobody can use.</p>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
         <h4>Limits</h4><ul>
@@ -336,9 +340,26 @@
       <div class="gsub">Evidence</div><ul class="ev">${links || fallback}${more}</ul>${notes}</div></div>`;
   }
 
+  function authority(t) {
+    const a = t.authority;
+    if (!a) return "";
+    const one = (key, power) => {
+      const by = a[key + "_by"];
+      if (by === "none") return "revoked";
+      if (by === "program") return `held by a program ${acct(a[key])}`;
+      return `<span class="bad">held by wallet ${acct(a[key])}, which ${power}</span>`;
+    };
+    return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span><span style="color:var(--faint)">checked ${ago(a.at)}</span></div>`;
+  }
+  const flags = (t) => {
+    const a = t.authority || {};
+    return (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
+  };
+
   function detail(t) {
     const groups = (t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`;
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
+      ${authority(t)}
       ${groups}
       <div class="share"><a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
   }
@@ -360,7 +381,7 @@
     $("rows").innerHTML = page.map((t) => {
       const g = GRADE.has(t.grade) ? t.grade : "incomplete";
       const row = `<div class="tok${open === t.mint ? " open" : ""}" data-m="${esc(t.mint)}" role="button" tabindex="0" aria-expanded="${open === t.mint}">
-        <div class="id"><div class="tname">${esc(t.name)}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
+        <div class="id"><div class="tname">${esc(t.name)}${flags(t)}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
         <div>${badge(g, t.label, true)}</div>${meter(t, g)}<div class="when" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</div>
         <span class="chev"></span></div>`;
       return open === t.mint ? row + detail(t) : row;
