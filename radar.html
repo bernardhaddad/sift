@@ -109,6 +109,13 @@
   .rw { list-style: none; padding: 0; margin: 0; }
   .rw li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; font-size: 13px; }
   .rw .flag { color: var(--warn); font-size: 12px; }
+  #wres { margin: 0 0 8px; font-size: 13px; }
+  #wres .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .audit { color: var(--muted); font-size: 13px; margin: -8px 0 16px; }
+  .audit b { color: var(--up); }
+  .audit b.bad { color: var(--down); }
+  .bar2 { height: 6px; border-radius: 3px; background: var(--chip); margin-top: 6px; overflow: hidden; }
+  .bar2 i { display: block; height: 100%; background: var(--down); }
 </style>
 </head>
 <body>
@@ -121,6 +128,7 @@
   <p class="lead">Many memecoins look like they have hundreds of independent holders when a handful of people control most of the supply through wallets they funded themselves. Insider Radar traces where each top holder's money came from and shows you the groups that lead back to the same private wallet, with the evidence.</p>
   <a class="cta" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Trace any token for free →</a>
   <a class="sub2" href="radar-feed.xml">Alerts (RSS)</a> <a class="sub2" href="#data">Free data</a>
+  <div class="audit" id="audit"></div>
   <div class="strip" id="strip"></div>
   <div class="controls"><input id="q" type="search" placeholder="Search by name or paste a mint address" autocomplete="off" aria-label="Search tokens"></div>
   <div class="tablewrap">
@@ -141,6 +149,8 @@
   <section class="extra" id="repeat">
     <h2>Wallets behind several tokens</h2>
     <p class="sub">Wallets that funded or supplied top holders of two or more tokens, remembered across every trace since <span id="regsince">the registry started</span>, including tokens no longer on this page (a wallet seen behind only one token is forgotten after 30 days). Some are shared services (bots, relayers); some are one deployer behind several launches. The full registry is public: <a href="radar-wallets.json">radar-wallets.json</a>.</p>
+    <div class="controls"><input id="wq" type="search" placeholder="Check a wallet: paste its address" autocomplete="off" aria-label="Check a wallet"></div>
+    <div id="wres"></div>
     <ul class="rw" id="rw"></ul>
   </section>
 
@@ -168,11 +178,12 @@
       <li><a href="radar.json"><code>radar.json</code></a>: every token on the page. Per token: <code>mint</code>, <code>name</code>, <code>grade</code> (<code>high</code>, <code>watch</code>, <code>low</code>, <code>incomplete</code>), <code>cluster_pct</code> and <code>clustered_pct</code> (largest and all linked groups, % of supply), <code>unknown_pct</code>, <code>top_pct</code>, <code>traced_at</code>, <code>source</code>, and <code>clusters</code>: each with its holders (<code>wallets</code>, with % of supply) and <code>links</code> (<code>from</code>, <code>to</code>, <code>kind</code>: <code>funded</code> or <code>tokens</code>, and <code>tx</code>, the proving transaction). Also the <code>scorecard</code> and <code>repeat_wallets</code>.</li>
       <li><a href="radar-ledger.json"><code>radar-ledger.json</code></a>: the track record. One entry per token: verdict at entry, entry price <code>p0</code>, lowest price, the 24-hour and 7-day samples with hours elapsed, and <code>vanished</code> / <code>void</code> / <code>closed</code>.</li>
       <li><a href="radar-wallets.json"><code>radar-wallets.json</code></a>: the funder-wallet registry. Per wallet: every token it was seen behind (first and last seen, verdict) and flags (<code>busy</code>, <code>known</code>).</li>
+      <li><a href="radar-audit.json"><code>radar-audit.json</code></a>: the self-audit. Each hour a sample of published links is re-checked against a separate Solana node with independent code: for "funded", that the proof transaction's fee payer is the funder and it is the wallet's first transaction; for "tokens", that the transaction moved tokens under the sender's authority to the holder. Every check is listed with its result.</li>
       <li><a href="radar-feed.xml"><code>radar-feed.xml</code></a>: RSS alerts for new High and Watch verdicts and for wallets seen behind a second token. Works in any feed reader, or in a Telegram or Discord RSS bot.</li>
     </ul>
     <h2>Limits</h2>
     <ul>
-      <li>Besides the tokens Sift's scanner watches and the ones people request, the radar traces one trending Solana token each half hour that no trace covered in the last day.</li>
+      <li>Besides the tokens Sift's scanner watches and the ones people request, the radar traces up to two trending Solana tokens each hour that no trace covered in the last day.</li>
       <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back to their funder. A clean result is not a safety guarantee.</li>
       <li>Results are shown while they are current: scanner traces for 24 hours (2 hours if incomplete), requested traces for 7 days, each with its date.</li>
       <li>A linked group is strong on-chain evidence that one actor holds several wallets. It is not proof of what they will do.</li>
@@ -241,7 +252,7 @@
         : `<p class="facts">No two top holders lead back to the same private wallet.</p>`;
       return row + `<tr class="detail"><td colspan="6">
         <div class="facts">Traced ${esc(when(t.traced_at))}. ${int(t.holders)} top owners checked, ${int(t.wallets)} of them personal wallets; top-20 accounts hold ${pct(t.top_pct)} of supply; ${pct(t.unknown_pct)} could not be traced.${t.truncated ? " The trace ran out of time, so some holders are untraced." : ""}
-        <a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">View token on Solscan</a></div>${groups}</td></tr>`;
+        <a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">View token on Solscan</a> · <a href="t/${encodeURIComponent(t.mint)}.html">Share link</a></div>${groups}</td></tr>`;
     }).join("");
   }
 
@@ -261,7 +272,7 @@
         <div class="row2">Collecting: ${int(c.closed || 0)} of 10 tokens have finished their 7 days (${int(c.entries || 0)} entered).</div>
         ${num(c.median_24h) != null ? `<div class="row2">Median after 24 hours so far: ${sign(c.median_24h)} (${int(c.n_24h)} tokens)</div>` : ""}</div>`;
       return `<div class="card"><h3><span class="chip g-${g}">${label}</span></h3>
-        <div class="big">${pct(num(c.collapse_rate) * 100)}</div><div class="row2">collapsed within 7 days: ${int(c.collapsed)} of ${int(c.closed)} tokens</div>
+        <div class="big">${pct(num(c.collapse_rate) * 100)}</div><div class="bar2"><i style="width:${Math.min(100, Math.max(0, num(c.collapse_rate) * 100 || 0))}%"></i></div><div class="row2">collapsed within 7 days: ${int(c.collapsed)} of ${int(c.closed)} tokens</div>
         <div class="row2">Median price change: ${sign(c.median_24h)} after 24 hours (${int(c.n_24h)} tokens), ${sign(c.median_7d)} after 7 days (${int(c.n_7d)} tokens, vanished ones as −100%)</div>
         ${num(c.void) ? `<div class="row2">${int(c.void)} not scored: prices could not be checked for over 6 hours</div>` : ""}</div>`;
     }).join("");
@@ -272,6 +283,33 @@
       : `<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener" title="seen ${esc(when(t.last_seen))}">${esc(t.name)}</a>`;
     $("rw").innerHTML = rw.length ? rw.map((r) => `<li>${acct(r.address)} linked top holders of ${int((r.tokens || []).length)} tokens: ${(r.tokens || []).slice(0, 12).map(tok).join(", ")}${(r.tokens || []).length > 12 ? " …" : ""}${(r.flags || []).length ? ` <span class="flag">(${r.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : ""}</li>`).join("")
       : `<li>None yet: no wallet has linked top holders of two different tokens so far.</li>`;
+  }
+
+  let registry = null;
+  async function checkWallet() {
+    const a = $("wq").value.trim();
+    if (!a) { $("wres").innerHTML = ""; return; }
+    if (!B58.test(a)) { $("wres").innerHTML = `<div class="box">That is not a Solana address.</div>`; return; }
+    if (!registry) {
+      try { registry = await (await fetch("radar-wallets.json", { cache: "no-store" })).json(); }
+      catch { $("wres").innerHTML = `<div class="box">The wallet registry could not be loaded. Please try again shortly.</div>`; return; }
+    }
+    const w = (registry.wallets || {})[a];
+    if (!w) {
+      $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. That is not a clean bill of health: only traced tokens are covered.</div>`;
+      return;
+    }
+    const toks = Object.entries(w.tokens || {}).sort((x, y) => String(y[1].last_seen).localeCompare(String(x[1].last_seen)));
+    const flag = (w.flags || []).length ? ` <span class="flag">(${w.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : "";
+    $("wres").innerHTML = `<div class="box">${acct(a)} funded or supplied top holders of ${int(toks.length)} traced token${toks.length === 1 ? "" : "s"}${flag}:<ul>${toks.map(([m, r]) => `<li><a href="https://solscan.io/token/${encodeURIComponent(m)}" target="_blank" rel="noopener">${esc(r.name || short(m))}</a>, verdict ${esc(((doc.grades || {})[r.grade] || {}).label || r.grade || "–")}, last seen ${esc(when(r.last_seen))}</li>`).join("")}</ul></div>`;
+  }
+
+  function audit() {
+    const a = doc.audit;
+    if (!a || !a.totals) return;
+    const t = a.totals, checked = (t.verified || 0) + (t.failed || 0);
+    if (!checked) return;
+    $("audit").innerHTML = `Self-audit: <b class="${t.failed ? "bad" : ""}">${int(t.verified)} of ${int(checked)}</b> published links re-verified against a separate Solana node since ${esc(when(a.since))}${t.failed ? `, ${int(t.failed)} failed (see <a href="radar-audit.json">radar-audit.json</a>)` : ""}. Last check ${ago(a.last_at)}.`;
   }
 
   function fromHash() {
@@ -292,6 +330,7 @@
     open = open === r.dataset.m ? null : r.dataset.m; render();
   });
   $("q").addEventListener("input", () => { if (doc) render(); });
+  $("wq").addEventListener("input", () => { if (doc) checkWallet(); });
   window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; strip(); render(); } });
 
   fetch("radar.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
@@ -299,7 +338,7 @@
     doc = d;
     $("upd").innerHTML = `updated <b title="${esc(when(d.generated_at))}">${ago(d.generated_at)}</b>`;
     fromHash();
-    strip(); render(); track();
+    strip(); render(); track(); audit();
   }).catch(() => {
     $("upd").textContent = "no data yet";
     $("rows").innerHTML = `<tr><td colspan="6" class="empty">The radar could not load its data. It updates every hour; please try again shortly.</td></tr>`;
