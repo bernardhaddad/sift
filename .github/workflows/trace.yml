@@ -27,7 +27,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: e407fa21281fb0cbd6357a0001d70e531cc7e668  # private code commit
+  SOURCE_REF: b711b1e7575157bc311ee57aac75d9db8411da44  # private code commit
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
