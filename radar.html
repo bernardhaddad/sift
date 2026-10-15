@@ -244,6 +244,8 @@
         </ul>
         <h4>Mint and freeze authority</h4>
         <p>Read from the token's mint account every hour. A wallet holding the mint authority can create new tokens; one holding the freeze authority can freeze holders' tokens. Bridged and tokenized assets keep these with a program, which is normal. "Revoked" includes authorities set to the System Program, which nobody can use.</p>
+        <h4>LP burn</h4>
+        <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This works for Raydium AMM and PumpSwap pools. Concentrated pools have no LP token, and other pool types are marked as not checked. Lockers are not read, so LP that is locked rather than burned counts as not burned.</p>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
         <h4>Limits</h4><ul>
@@ -341,16 +343,25 @@
       <div class="gsub">Evidence</div><ul class="ev">${links || fallback}${more}</ul>${notes}</div></div>`;
   }
 
+  function lpLine(t) {
+    const l = t.lp;
+    if (!l) return "";
+    const pool = `<a href="https://solscan.io/account/${encodeURIComponent(l.pool)}" target="_blank" rel="noopener">${esc(l.dex)} pool</a>`;
+    if (l.no_lp_token) return `<span>LP: ${pool}, concentrated liquidity, no LP token</span>`;
+    if (l.not_checked) return `<span>LP: ${pool}, burn not checked</span>`;
+    return `<span>LP: <b>${num(l.burned_pct).toFixed(1)}%</b> burned in the main ${pool}</span>`;
+  }
+
   function authority(t) {
     const a = t.authority;
-    if (!a) return "";
+    if (!a) return t.lp ? `<div class="facts auth">${lpLine(t)}</div>` : "";
     const one = (key, power) => {
       const by = a[key + "_by"];
       if (by === "none") return "revoked";
       if (by === "program") return `held by a program ${acct(a[key])}`;
       return `<span class="bad">held by wallet ${acct(a[key])}, which ${power}</span>`;
     };
-    return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span><span style="color:var(--faint)">checked ${ago(a.at)}</span></div>`;
+    return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span>${lpLine(t)}<span style="color:var(--faint)">checked ${ago(a.at)}</span></div>`;
   }
   const flags = (t) => {
     const a = t.authority || {};
