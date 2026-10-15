@@ -16,25 +16,23 @@
 <meta name="twitter:title" content="Insider Radar · Sift">
 <meta name="twitter:description" content="See who really holds a Solana token: top holders traced to the wallets that funded them, every link with its on-chain proof. Free, hourly.">
 <meta name="theme-color" content="#09090b">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2309090b'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23c6f35c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23c6f35c'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2318181b'/%3E%3Ccircle cx='16' cy='16' r='8.5' fill='none' stroke='%23e7e7ea' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23e7e7ea'/%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #09090b; --bg-2: #0d0d10; --surface: #121215; --surface-2: #18181c; --surface-3: #202026;
     --border: #232329; --border-2: #2e2e36; --text: #f5f5f6; --muted: #a3a3ad; --faint: #6e6e78;
-    --accent: #c6f35c; --accent-ink: #0b0f02; --accent-soft: rgba(198, 243, 92, .12);
+    --accent: #e7e7ea; --accent-ink: #0b0b0d; --accent-soft: rgba(255, 255, 255, .06);
     --red: #ff5f56; --red-soft: rgba(255, 95, 86, .13); --amber: #ffb340; --amber-soft: rgba(255, 179, 64, .13);
     --green: #4fd68a; --green-soft: rgba(79, 214, 138, .12); --blue: #7aa8ff;
-    --font: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
     --r: 14px; --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -12px rgba(0,0,0,.6);
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
       --bg: #f7f7f5; --bg-2: #f1f1ee; --surface: #ffffff; --surface-2: #f6f6f3; --surface-3: #ececea;
       --border: #e6e6e1; --border-2: #d9d9d3; --text: #0c0c0e; --muted: #55555e; --faint: #8b8b93;
-      --accent: #5d8a00; --accent-ink: #ffffff; --accent-soft: rgba(93, 138, 0, .1);
+      --accent: #18181b; --accent-ink: #ffffff; --accent-soft: rgba(0, 0, 0, .05);
       --red: #d93a2f; --red-soft: rgba(217, 58, 47, .1); --amber: #b26b00; --amber-soft: rgba(178, 107, 0, .1);
       --green: #1f8a4c; --green-soft: rgba(31, 138, 76, .1); --blue: #2f63d6;
       --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px -14px rgba(0,0,0,.18);
@@ -58,20 +56,11 @@
   .bar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
   .bar .right a { color: var(--muted); }
   .bar .right a:hover { color: var(--text); }
-  .live { display: inline-flex; align-items: center; gap: 7px; }
-  .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2.4s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
 
-  .hero { position: relative; padding: 64px 0 34px; }
-  .hero::before { content: ""; position: absolute; inset: -60px -40px auto -40px; height: 440px; z-index: -1; background:
-      radial-gradient(600px 260px at 15% 25%, var(--accent-soft), transparent 70%),
-      radial-gradient(520px 240px at 85% 0%, rgba(122,168,255,.08), transparent 70%); }
-  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); border: 1px solid var(--border); background: var(--surface); padding: 5px 12px; border-radius: 999px; }
-  .eyebrow b { color: var(--text); font-weight: 500; }
-  h1 { font-size: clamp(36px, 5.6vw, 60px); line-height: 1.04; letter-spacing: -.035em; font-weight: 650; margin: 18px 0 14px; max-width: 820px; }
-  h1 em { font-style: normal; color: var(--accent); }
-  .lede { font-size: 18px; color: var(--muted); max-width: 640px; margin: 0 0 28px; }
-  .search { display: flex; gap: 10px; max-width: 720px; padding: 8px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .hero { padding: 28px 0 8px; }
+  h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-weight: 650; margin: 0 0 4px; }
+  .lede { font-size: 14.5px; color: var(--muted); max-width: 760px; margin: 0 0 18px; }
+  .search { display: flex; gap: 8px; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
   .search:focus-within { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
   .search svg { width: 20px; height: 20px; margin: 0 2px 0 8px; align-self: center; color: var(--faint); flex: none; }
   .search input { flex: 1; min-width: 0; background: none; border: 0; color: var(--text); font: 16px var(--font); outline: none; }
@@ -82,11 +71,8 @@
   .btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; font-size: 13px; }
   .btn.ghost:hover { border-color: var(--border-2); color: var(--text); }
   .hint { font-size: 13px; color: var(--faint); margin: 10px 2px 0; }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 40px; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
-  .kpi .k { font-size: 13px; color: var(--muted); }
-  .kpi .v { font-size: 30px; font-weight: 650; letter-spacing: -.03em; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .kpi .s { font-size: 12.5px; color: var(--faint); margin-top: 2px; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .kpis b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .ok { color: var(--green); } .bad { color: var(--red); }
 
   section { padding: 36px 0; }
@@ -110,8 +96,8 @@
   .tname { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tmeta { font: 12px var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag { display: inline-block; font: 500 11px var(--font); color: var(--muted); border: 1px solid var(--border); padding: 0 6px; border-radius: 6px; margin-left: 6px; vertical-align: 2px; }
-  .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; padding: 4px 10px 4px 9px; border-radius: 999px; white-space: nowrap; }
-  .badge i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .badge { display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .badge i { display: none; }
   .b-high { color: var(--red); background: var(--red-soft); }
   .b-watch { color: var(--amber); background: var(--amber-soft); }
   .b-low { color: var(--green); background: var(--green-soft); }
@@ -175,11 +161,9 @@
   #wres .box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
   #wres ul { margin: 8px 0 0; padding-left: 18px; }
 
-  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
-  .step .n { font: 600 12px var(--mono); color: var(--accent); }
-  .step h3 { margin: 6px 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-  .step p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .steps { margin: 0 0 4px; padding-left: 20px; color: var(--muted); max-width: 820px; }
+  .steps li { margin: 6px 0; }
+  .steps b { color: var(--text); }
   details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
   summary { cursor: pointer; padding: 14px 16px; font-weight: 600; font-size: 14.5px; list-style: none; display: flex; justify-content: space-between; }
   summary::-webkit-details-marker { display: none; }
@@ -198,7 +182,7 @@
 
   @media (max-width: 900px) {
     .kpis, .grid4 { grid-template-columns: repeat(2, 1fr); }
-    .cols, .two, .group { grid-template-columns: 1fr; }
+    .two, .group { grid-template-columns: 1fr; }
     .lh { display: none; }
     .tok { grid-template-columns: minmax(0, 1fr) auto 16px; gap: 10px 12px; }
     .tok .meter { grid-column: 1 / -1; order: 4; }
@@ -206,14 +190,12 @@
   }
   @media (max-width: 560px) {
     .wrap { padding: 0 16px; }
-    .links a:not(.on) { display: none; }
+    .links a { padding: 6px 8px; font-size: 13.5px; white-space: nowrap; }
+    .bar .wrap { gap: 12px; }
+    #upd { display: none; }
     .hide-s { display: none; }
-    .hero { padding-top: 40px; }
-    .lede { font-size: 16px; }
     .search { flex-wrap: wrap; }
     .search .btn { flex: 1; }
-    .kpi { padding: 14px; }
-    .kpi .v { font-size: 24px; }
     .badge { font-size: 11.5px; padding: 3px 8px; }
     .ev li { flex-wrap: wrap; }
     .proof { margin-left: 0; }
@@ -227,26 +209,24 @@
 <header class="bar">
   <div class="wrap">
     <a class="brand" href="./" aria-label="Sift home">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--surface-3)"/><circle cx="16" cy="16" r="9" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M16 16 L22.5 9.5" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.6" fill="var(--accent)"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--surface-3)"/><circle cx="16" cy="16" r="9" fill="none" stroke="var(--text)" stroke-width="2"/><path d="M16 16 L22.5 9.5" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.6" fill="var(--text)"/></svg>
       sift
     </a>
     <nav class="links"><a href="./">Screener</a><a class="on" href="radar.html">Insider Radar</a><a href="research.html">Research</a></nav>
-    <div class="right"><span class="live"><i></i><span id="upd">Live</span></span><a class="hide-s" href="radar-feed.xml">RSS</a><a class="hide-s" href="#data">API</a></div>
+    <div class="right"><span id="upd"></span><a class="hide-s" href="radar-feed.xml">RSS</a><a class="hide-s" href="#data">Data</a></div>
   </div>
 </header>
 
 <main>
   <div class="wrap">
     <div class="hero">
-      <span class="eyebrow"><b>Insider Radar</b> · free, on-chain, updated hourly</span>
-      <h1>See who <em>really</em> holds a Solana token.</h1>
-      <p class="lede">We trace the 20 largest holders of a token back to the wallets that funded them, group the ones that lead to the same source, and show every link with the transaction that proves it.</p>
+      <h1>Insider Radar</h1>
+      <p class="lede">Traces the 20 largest holders of Solana tokens back to the wallets that funded them and groups the ones that lead to the same source. Every link comes with the transaction that shows it.</p>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Search a token or paste its mint address" autocomplete="off" aria-label="Search tokens">
-        <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Trace a token</a>
+        <input id="q" type="search" placeholder="Name or mint address" autocomplete="off" aria-label="Search tokens">
+        <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Request a trace</a>
       </div>
-      <p class="hint">Not listed? Request any token and the answer, with evidence, arrives in about five minutes.</p>
       <div class="kpis" id="kpis"></div>
     </div>
   </div>
@@ -254,7 +234,7 @@
   <section id="tokens">
     <div class="wrap">
       <div class="head">
-        <div><h2>Latest traces</h2><p class="sub">Open a token to see its holder groups, the funding graph and the proof for every link.</p></div>
+        <div><h2>Traces</h2><p class="sub">Click a token for its holder groups, funding graph and proof transactions.</p></div>
         <div class="seg" id="strip" role="tablist"></div>
       </div>
       <div class="list">
@@ -266,14 +246,14 @@
 
   <section id="track">
     <div class="wrap">
-      <div class="head"><div><h2>Track record</h2><p class="sub">Does a verdict predict what happens next? Every token enters this record the hour it is published, with its verdict frozen, and its price is followed for 7 days. <span id="since"></span></p></div></div>
+      <div class="head"><div><h2>Track record</h2><p class="sub">Each token's verdict is frozen when it is first published and its price is followed for 7 days. <span id="since"></span></p></div></div>
       <div class="grid4" id="cards"></div>
     </div>
   </section>
 
   <section id="repeat">
     <div class="wrap">
-      <div class="head"><div><h2>Wallet memory</h2><p class="sub">Every wallet that funded or supplied top holders is remembered, so a wallet that turns up behind a new launch is matched with everything it was behind before. Tracking since <span id="regsince">launch</span>.</p></div></div>
+      <div class="head"><div><h2>Wallets</h2><p class="sub">Wallets that funded or supplied top holders, kept across traces since <span id="regsince">launch</span>. Paste one to see which tokens it was behind.</p></div></div>
       <div class="two">
         <div>
           <div class="field"><input id="wq" type="search" placeholder="Check a wallet address" autocomplete="off" aria-label="Check a wallet"></div>
@@ -286,12 +266,12 @@
 
   <section id="how">
     <div class="wrap">
-      <div class="head"><div><h2>How a trace works</h2><p class="sub">Plain on-chain reads, no black box. The full method and its limits are below.</p></div></div>
-      <div class="cols">
-        <div class="step"><div class="n">01</div><h3>Read the top holders</h3><p>The token's 20 largest accounts and their owners. Pools, programs and program addresses are set aside: they are not people.</p></div>
-        <div class="step"><div class="n">02</div><h3>Follow the money</h3><p>For each holder: who paid for its first transaction, two hops back, and who sent it its first tokens. Exchanges link nobody.</p></div>
-        <div class="step"><div class="n">03</div><h3>Group and prove</h3><p>Holders that lead to the same private wallet form a linked group. Every link is published with the transaction that proves it.</p></div>
-      </div>
+      <div class="head"><div><h2>Method</h2></div></div>
+      <ol class="steps">
+        <li><b>Top holders.</b> The token's 20 largest accounts and their owners. Pools, programs and program addresses are set aside; they are not people.</li>
+        <li><b>Funding.</b> For each holder, who paid for its first transaction (two hops back) and who sent it its first tokens. Exchanges link nobody.</li>
+        <li><b>Groups.</b> Holders that lead to the same private wallet form a linked group, and each link is listed with its transaction.</li>
+      </ol>
       <div style="margin-top:16px">
         <details><summary>The verdicts</summary><div class="body"><ul id="meanings"></ul></div></details>
         <details><summary>Weaker evidence and how it is flagged</summary><div class="body"><ul>
@@ -318,7 +298,7 @@
 
   <section id="data">
     <div class="wrap">
-      <div class="head"><div><h2>Free data</h2><p class="sub">Everything on this page is published as plain files, updated hourly, free to use with no key. Please credit Sift Insider Radar and link back.</p></div></div>
+      <div class="head"><div><h2>Data</h2><p class="sub">The page is built from these files, updated hourly. Free to use; please link back.</p></div></div>
       <div class="files">
         <a class="file" href="radar.json"><div class="fn">radar.json</div><div class="fd">Every token: verdict, linked supply, holders, and every link with its proof transaction.</div></a>
         <a class="file" href="radar-ledger.json"><div class="fn">radar-ledger.json</div><div class="fd">The track record: verdict at entry, entry price, lowest price, 24-hour and 7-day samples.</div></a>
@@ -353,7 +333,7 @@
   const GRADE = new Set(["high", "watch", "low", "incomplete"]);
   const SHORT = { high: "High risk", watch: "Watch", low: "Low risk", incomplete: "Incomplete" };
   const hue = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
-  const avatar = (t) => { const h = hue(t.mint); return `<div class="ava" style="background:linear-gradient(135deg,hsl(${h} 85% 68%),hsl(${(h + 40) % 360} 80% 52%))">${esc(String(t.name || "?").replace(/^\$/, "").slice(0, 1).toUpperCase())}</div>`; };
+  const avatar = (t) => { const h = hue(t.mint); return `<div class="ava" style="background:hsl(${h} 45% 62%)">${esc(String(t.name || "?").replace(/^\$/, "").slice(0, 1).toUpperCase())}</div>`; };
   let doc = null, filter = "all", open = null, shown = 30;
 
   const badge = (g, label, compact) => `<span class="badge b-${g}" title="${esc(label)}"><i></i>${esc(compact || window.innerWidth < 560 ? SHORT[g] : label)}</span>`;
@@ -389,7 +369,7 @@
     }).join("");
     const dots = [...nodes].filter((n) => pos[n]).map((n) => {
       const [x, y] = pos[n], h = holders.has(n), r = h ? 4.5 + Math.sqrt(share[n] || 0) * 2.2 : 5;
-      const shape = h ? `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="var(--text)"/>` : `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" rx="2.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/>`;
+      const shape = h ? `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="var(--text)"/>` : `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" rx="2.5" fill="var(--surface)" stroke="var(--text)" stroke-width="1.6"/>`;
       const label = h
         ? `<text x="${x + r + 7}" y="${y + 4}" font-family="Geist Mono, ui-monospace, monospace" font-size="10.5" fill="var(--muted)">${esc(short(n))}${share[n] ? " · " + share[n].toFixed(1) + "%" : ""}</text>`
         : `<text x="${x}" y="${y - 11}" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10.5" fill="var(--muted)" paint-order="stroke" stroke="var(--bg-2)" stroke-width="4">${esc(short(n))}</text>`;
@@ -400,7 +380,7 @@
   }
 
   function groupHtml(c, i) {
-    const links = (c.links || []).map((k) => `<li><span class="kind k-${k.kind === "tokens" ? "tokens" : "funded"}">${k.kind === "tokens" ? "tokens" : "funded"}</span><span>${acct(k.from)} ${k.kind === "tokens" ? "sent the first tokens to" : "paid the first transaction of"} ${acct(k.to)}</span>${SIG.test(String(k.tx || "")) ? `<a class="proof" href="https://solscan.io/tx/${encodeURIComponent(k.tx)}" target="_blank" rel="noopener">proof ↗</a>` : ""}</li>`).join("");
+    const links = (c.links || []).map((k) => `<li><span class="kind k-${k.kind === "tokens" ? "tokens" : "funded"}">${k.kind === "tokens" ? "tokens" : "funded"}</span><span>${acct(k.from)} ${k.kind === "tokens" ? "sent the first tokens to" : "paid the first transaction of"} ${acct(k.to)}</span>${SIG.test(String(k.tx || "")) ? `<a class="proof" href="https://solscan.io/tx/${encodeURIComponent(k.tx)}" target="_blank" rel="noopener">proof</a>` : ""}</li>`).join("");
     const more = num(c.links_total) > (c.links || []).length ? `<li style="color:var(--muted)">and ${int(num(c.links_total) - c.links.length)} more links</li>` : "";
     const notes = [
       (c.busy || []).length ? `Linked through a high-volume wallet (${c.busy.map(acct).join(", ")}), possibly an exchange or a bot: weaker evidence of a single owner.` : "",
@@ -414,7 +394,7 @@
 
   function detail(t) {
     const groups = (t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`;
-    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan ↗</a></div>
+    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${groups}
       <div class="share"><a class="btn ghost" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn ghost" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
   }
@@ -459,17 +439,17 @@
     const c = doc.counts || {};
     const followed = Object.values(doc.scorecard || {}).reduce((s, g) => s + (g.entries || 0), 0);
     const cells = [
-      ["Tokens traced", int(doc.tokens.length), `${int(c.watch || 0)} watch · ${int(c.high || 0)} high risk`],
-      ["Links proven on-chain", int(proved), "each with its transaction"],
-      ["Self-audit", checked ? `<span class="${a.failed ? "bad" : "ok"}">${int(a.verified)}/${int(checked)}</span>` : "–", checked ? `re-verified on a separate node${a.failed ? `, ${int(a.failed)} failed` : ""}` : "first check pending"],
-      ["Track record", int(followed), "tokens followed for 7 days"],
+      ["tokens traced", int(doc.tokens.length), ""],
+      ["links with a proof transaction", int(proved), ""],
+      ["links re-checked on a second node", checked ? `${int(a.verified)}/${int(checked)}` : "0", a.failed ? `${int(a.failed)} failed` : ""],
+      ["tokens in the 7-day track record", int(followed), ""],
     ];
-    $("kpis").innerHTML = cells.map(([k, v, s]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+    $("kpis").innerHTML = cells.map(([k, v, s]) => `<span><b>${v}</b> ${esc(k.toLowerCase())}${s ? ` <span style="color:var(--faint)">(${esc(s)})</span>` : ""}</span>`).join("");
   }
 
   function ring(done, total) {
     const r = 22, circ = 2 * Math.PI * r, f = Math.min(1, total ? done / total : 0);
-    return `<svg class="ring" viewBox="0 0 54 54" aria-label="${done} of ${total}"><circle cx="27" cy="27" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="5"/><circle cx="27" cy="27" r="${r}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(circ * f).toFixed(1)} ${circ.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="var(--text)">${Math.min(done, total)}/${total}</text></svg>`;
+    return `<svg class="ring" viewBox="0 0 54 54" aria-label="${done} of ${total}"><circle cx="27" cy="27" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="5"/><circle cx="27" cy="27" r="${r}" fill="none" stroke="var(--text)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(circ * f).toFixed(1)} ${circ.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="var(--text)">${Math.min(done, total)}/${total}</text></svg>`;
   }
 
   function track() {
