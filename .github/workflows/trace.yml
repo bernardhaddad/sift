@@ -33,7 +33,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: d9930eab695bf610528a4f7c3b5059b893c76f93  # the exact commit of the trading code that runs here
+  SOURCE_REF: e5be28304724966c53dec7893291893361865d72  # the exact commit of the trading code that runs here
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
