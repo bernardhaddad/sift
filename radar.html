@@ -22,9 +22,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
   :root {
-    --ink: #111827; --muted: #4b5563; --faint: #8b93a1; --line: #e3e6eb; --line-2: #eef0f3;
-    --soft: #f6f7f9; --bar: #13294b; --gold: #f2b632; --link: #1d5fd1;
-    --red: #b42318; --red-bg: #fdecea; --amber: #93530a; --amber-bg: #fff3df; --green: #18794e; --green-bg: #e7f6ee; --blue: #1d5fd1;
+    --ink: #1c1e21; --muted: #575d66; --faint: #8c929a; --line: #dfe2e6; --line-2: #ecedef;
+    --soft: #f5f6f7; --bar: #13294b; --gold: #f2b632; --link: #1f5bb8;
+    --red: #a8321f; --red-bg: #fbeae6; --amber: #8a5a0b; --amber-bg: #fcf1db; --green: #2a7a3e; --green-bg: #e6f3e8; --blue: #1f5bb8;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
@@ -52,11 +52,11 @@
   h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
   .lede { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0 0 20px; }
   .search { display: flex; gap: 10px; max-width: 760px; }
-  .search input { flex: 1; min-width: 0; border: 1px solid #cfd5dd; border-radius: 10px; padding: 12px 14px; font: 15.5px var(--sans); color: var(--ink); background: #fff; }
-  .search input:focus { outline: 3px solid #d6e4fb; border-color: var(--link); }
-  .btn { display: inline-block; border: 1px solid #cfd5dd; background: #fff; color: var(--ink); font: 500 13.5px var(--sans); border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+  .search input { flex: 1; min-width: 0; border: 1px solid #c9ced4; border-radius: 6px; padding: 12px 14px; font: 15.5px var(--sans); color: var(--ink); background: #fff; }
+  .search input:focus { outline: 3px solid #d3e0f5; border-color: var(--link); }
+  .btn { display: inline-block; border: 1px solid #c9ced4; background: #fff; color: var(--ink); font: 500 13.5px var(--sans); border-radius: 5px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
   .btn:hover { background: var(--soft); text-decoration: none; }
-  .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 15px; padding: 12px 20px; border-radius: 10px; }
+  .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 15px; padding: 12px 20px; border-radius: 6px; }
   .btn.primary:hover { background: #1d3a66; }
   .kpis { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
   .ok { color: var(--green); } .bad { color: var(--red); }
@@ -69,14 +69,14 @@
   .seg .n { color: var(--faint); font-weight: 400; margin-left: 3px; }
   .hint { font-size: 13.5px; color: var(--faint); margin: 12px 0 10px; }
 
-  .list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .list { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .lh, .tok { display: grid; grid-template-columns: minmax(0, 2.2fr) 120px minmax(0, 2fr) 90px 52px; gap: 16px; align-items: center; padding: 13px 18px; }
   .lh { font-size: 12.5px; font-weight: 600; color: var(--faint); background: var(--soft); border-bottom: 1px solid var(--line); }
   .tok { border-bottom: 1px solid var(--line-2); cursor: pointer; }
   .tok:last-child { border-bottom: 0; }
-  .tok:hover { background: #f9fafb; }
-  .tok.open { background: #f4f7fc; }
-  .tok:focus-visible { outline: 3px solid #d6e4fb; outline-offset: -3px; }
+  .tok:hover { background: #f8f8f9; }
+  .tok.open { background: #f3f6fa; }
+  .tok:focus-visible { outline: 3px solid #d3e0f5; outline-offset: -3px; }
   .id { min-width: 0; }
   .tname { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tmeta { font: 12px var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -89,7 +89,7 @@
   .seg-a { background: var(--red); } .seg-b { background: #e8a29c; }
   .w .seg-a { background: #d9881b; } .w .seg-b { background: #efcd94; }
   .l .seg-a { background: #2f9461; } .l .seg-b { background: #a8d8bd; }
-  .seg-u { background: repeating-linear-gradient(-45deg, #cfd5dd 0 2px, transparent 2px 5px); }
+  .seg-u { background: repeating-linear-gradient(-45deg, #c9ced4 0 2px, transparent 2px 5px); }
   .mval { font: 13px var(--mono); min-width: 48px; text-align: right; }
   .when { font-size: 13px; color: var(--faint); text-align: right; white-space: nowrap; }
   .chev { font-size: 13.5px; color: var(--link); text-align: right; }
@@ -97,13 +97,13 @@
   .empty { padding: 30px 16px; color: var(--muted); text-align: center; }
   .more { padding: 12px; text-align: center; border-top: 1px solid var(--line-2); }
 
-  .detail { border-bottom: 1px solid var(--line-2); background: #fafbfc; padding: 16px 18px 20px; }
+  .detail { border-bottom: 1px solid var(--line-2); background: #fafafa; padding: 16px 18px 20px; }
   .facts { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13.5px; color: var(--muted); }
   .facts b { color: var(--ink); font-weight: 600; }
-  .group { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 14px; }
+  .group { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 16px; margin-top: 14px; }
   .group h4 { margin: 0 0 10px; font-size: 15px; }
   .gsub { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
-  .graph { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line-2); border-radius: 8px; }
+  .graph { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line-2); border-radius: 5px; }
   .graph a:hover text { fill: var(--link); }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -111,30 +111,30 @@
   .ev { list-style: none; padding: 0; margin: 0 0 4px; font-size: 13.5px; }
   .ev li { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line-2); }
   .ev li:last-child { border-bottom: 0; }
-  .kind { flex: none; font: 600 11px var(--sans); color: #8a6100; background: #fff3df; border-radius: 4px; padding: 1px 6px; }
-  .k-tokens { color: var(--blue); background: #e8f0fd; }
+  .kind { flex: none; font: 600 11px var(--sans); color: #8a6100; background: #fcf1db; border-radius: 4px; padding: 1px 6px; }
+  .k-tokens { color: var(--blue); background: #e5edf8; }
   a.addr { font-family: var(--mono); font-size: 12.5px; }
   .proof { margin-left: auto; font-size: 13px; white-space: nowrap; }
   .holders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 13px; }
   .holders b { font: 12px var(--mono); color: var(--muted); margin-left: 4px; font-weight: 400; }
-  .note { font-size: 13px; color: #6b4a00; background: #fff6e0; border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+  .note { font-size: 13px; color: #6b4a00; background: #fff6e0; border-radius: 5px; padding: 8px 10px; margin-top: 10px; }
   .share { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
-  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
   table.rec { border-collapse: collapse; width: 100%; font-size: 14px; }
   table.rec th, table.rec td { border-bottom: 1px solid var(--line-2); padding: 10px 14px; text-align: right; }
   table.rec tr:last-child td { border-bottom: 0; }
   table.rec th { background: var(--soft); font-size: 12.5px; font-weight: 600; color: var(--faint); border-bottom-color: var(--line); }
   table.rec th:first-child, table.rec td:first-child { text-align: left; }
-  .rw { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 10px; }
+  .rw { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 6px; }
   .rw li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 14px; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
   .rw li:last-child { border-bottom: 0; }
   .flag { font-size: 12.5px; color: var(--amber); }
   .pill { font-size: 13px; }
-  .field input { width: 100%; max-width: 560px; border: 1px solid #cfd5dd; border-radius: 10px; padding: 11px 14px; font: 14px var(--mono); color: var(--ink); }
-  .field input:focus { outline: 3px solid #d6e4fb; border-color: var(--link); }
+  .field input { width: 100%; max-width: 560px; border: 1px solid #c9ced4; border-radius: 6px; padding: 11px 14px; font: 14px var(--mono); color: var(--ink); }
+  .field input:focus { outline: 3px solid #d3e0f5; border-color: var(--link); }
   #wres { margin-top: 12px; font-size: 14px; max-width: 760px; }
-  #wres .box { border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  #wres .box { border: 1px solid var(--line); background: var(--soft); border-radius: 6px; padding: 12px 14px; }
   #wres ul { margin: 6px 0 0; padding-left: 18px; }
 
   .extra { padding-top: 30px; }
@@ -309,7 +309,7 @@
     });
     const edges = links.filter((k) => pos[k.from] && pos[k.to]).map((k) => {
       const [x1, y1] = pos[k.from], [x2, y2] = pos[k.to], mx = (x1 + x2) / 2;
-      const col = k.kind === "tokens" ? "#1d5fd1" : "#c98a12";
+      const col = k.kind === "tokens" ? "#1f5bb8" : "#c98a12";
       return `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${col}" stroke-opacity=".75" stroke-width="1.6"${k.kind === "tokens" ? ' stroke-dasharray="4 3"' : ""}/>`;
     }).join("");
     const dots = [...nodes].filter((n) => pos[n]).map((n) => {
@@ -321,7 +321,7 @@
       return `<a href="https://solscan.io/account/${encodeURIComponent(n)}" target="_blank" rel="noopener"><title>${esc(n)}</title>${shape}${label}</a>`;
     }).join("");
     return `<svg class="graph" viewBox="0 0 ${W} ${H}" role="img" aria-label="Funding graph of this group">${edges}${dots}</svg>
-      <div class="legend"><span><i style="background:#c98a12"></i>paid first transaction</span><span><i style="background:#1d5fd1"></i>sent first tokens (dashed)</span><span>circle: holder, square: funder</span></div>`;
+      <div class="legend"><span><i style="background:#c98a12"></i>paid first transaction</span><span><i style="background:#1f5bb8"></i>sent first tokens (dashed)</span><span>circle: holder, square: funder</span></div>`;
   }
 
   function groupHtml(c, i) {
