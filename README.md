@@ -1,26 +1,26 @@
 # Sift
 
-**A free hourly screener for Solana memecoins, with two things the trading terminals do not show you, and a public record of what a rules-based system actually earns.**
+Hourly Solana memecoin screener. It shows net buy flow and which top holders were funded by the same wallet (terminals don't show either), plus the full paper-trading record.
 
-Live: **https://bernardhaddad.github.io/sift/** · Insider Radar: **https://bernardhaddad.github.io/sift/radar.html** · Research: **https://bernardhaddad.github.io/sift/research.html**
+- Site: https://bernardhaddad.github.io/sift/
+- Insider Radar: https://bernardhaddad.github.io/sift/radar.html
+- Research notes: https://bernardhaddad.github.io/sift/research.html
 
-## What it shows
+## What's on it
 
-- **Who is really buying.** Value-weighted flow over the last hours: net dollars in or out, distinct buyers against sellers, and a warning when one address is most of the buy volume.
-- **Which top holders share a funder.** For every token the paper system considers, the top 20 holders are traced back through who funded them. Wallets that share a private funder are one cluster. Tokens where one cluster holds more than 10% of supply, or all clusters more than 20%, are refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) publishes every trace with its evidence (who funded whom), and anyone can request a trace of any token by opening an issue here.
-- **Bands that mean something.** Quiet dips, deep survivors, aged pools: each preset is a band that was measured on a 14-day panel of true forward returns, and the page tells you when a band is empty rather than filling it.
-- **The paper record, unedited.** Every closed trade of the pre-registered strategies, the verdict rules, and the reviews that re-derive the book under realistic fill conventions. As of September 2026 no strategy has shown an edge, and the site says so.
+- Buy flow over the last few hours: net dollars in or out, buyers against sellers, and a warning when one address is most of the buying.
+- Holder tracing. The top 20 holders of each token the paper system looks at are traced back to whoever funded them. If one funder's wallets hold more than 10% of supply (or all such groups more than 20%), the token is refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) shows every trace with the transactions behind it. To get any token traced, open an issue with the trace template.
+- The presets (quiet dips, deep survivors, aged pools) are bands measured on a 14-day panel of forward returns. When a band is empty the page says so instead of padding it.
+- The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far, and the site says that.
 
-## How it is built
+## How it runs
 
-The screener is a static page served by GitHub Pages. An hourly GitHub Actions job runs the paper-trading cycle, rebuilds `data.json` and the research page, and commits them here. The trading code and the research documents live in a separate repository; this one holds the published site and the workflows that run it.
+Static site on GitHub Pages. An hourly Actions job runs the paper-trading cycle, rebuilds `data.json`, the radar and the research page, and commits them here. The trading code and the research notes are in a separate private repo; this one has the site and the workflows.
 
-A second workflow runs the **minute books**: an always-on scanner that quotes its universe once a minute, runs two pre-registered paper books on that clock (a flush-and-rebound rule on established pools and a first-minutes rule on the trending list), measures the round-trip cost through Jupiter at every entry, and publishes its whole book state to `fast.json` every fifteen minutes. Each run lasts five and a half hours and dispatches its successor; a half-hourly schedule queues a replacement if a hand-over is missed. The minute panel it records is uploaded as an artifact of every run.
+A second workflow runs the minute books: a scanner that quotes its pools once a minute, runs the minute-scale paper books, measures the Jupiter round-trip cost at every entry and writes the book to `fast.json` every 15 minutes. Each run lasts about 5.5 hours and starts the next one; a half-hourly schedule restarts it if a hand-over is missed.
 
-## How it stays free
+## Money
 
-The trade buttons open the token in a trading terminal. When referral codes are configured, the terminal shares a part of its own fee with Sift on accounts that signed up through it; you pay the same fee either way. Sift does not run a bot, does not take a cut of your trades, and does not sell calls. The disclosure at the bottom of the page states exactly which links carry a referral.
+Trade buttons open the token in a trading terminal. If referral codes are set, the terminal shares part of its own fee with Sift; you pay the same either way, and the page says which links carry a code. Sift doesn't take a cut of your trades. No bot, no paid calls either.
 
-## Research
-
-The research page publishes what was measured: fill-convention re-readings of the book, the measured round-trip cost of trading each age band, the mining passes over the panel, the verified ledger of who actually makes money in memecoins, and the review that decided against funding the first strategy at its 60-trade gate.
+[Privacy](https://bernardhaddad.github.io/sift/privacy.html) | [Terms](https://bernardhaddad.github.io/sift/terms.html)

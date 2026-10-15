@@ -1,13 +1,8 @@
 name: insider radar trace
 
-# Answers "[trace] <mint>" issues (the Trace a token issue form) with a funding-cluster trace of
-# the token's top holders, using the private trading code (scripts/trace_token.py) and the same
-# Helius secret as the hourly cycle. The result is posted on the issue, saved to radar-requests/
-# and shown on radar.html. workflow_dispatch runs the same trace without an issue (testing).
-#
-# Untrusted input: the issue title and body reach the job only through environment variables and
-# are parsed in Python; the mint is validated as base58 before anything uses it. Nothing from the
-# issue is ever interpolated into a shell command.
+# answers "[trace] <mint>" issues with a holder trace (scripts/trace_token.py in the private repo),
+# saves it to radar-requests/ and replies on the issue. workflow_dispatch = same thing by hand.
+# issue text only reaches the job through env vars; the mint is checked as base58 before use.
 
 on:
   issues:
@@ -33,7 +28,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: a74d0a41fdeffcca230fd778ec9695d9ebb5046d  # the exact commit of the trading code that runs here
+  SOURCE_REF: b69c694963656d08af5090e57c2cfdb7da1bcca9  # the exact commit of the trading code that runs here
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
