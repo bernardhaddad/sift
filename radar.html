@@ -24,7 +24,7 @@
   :root {
     --ink: #1c1e21; --muted: #575d66; --faint: #8c929a; --line: #dfe2e6; --line-2: #ecedef;
     --soft: #f5f6f7; --bar: #13294b; --gold: #f2b632; --link: #1f5bb8;
-    --red: #a8321f; --red-bg: #fbeae6; --amber: #8a5a0b; --amber-bg: #fcf1db; --green: #2a7a3e; --green-bg: #e6f3e8; --blue: #1f5bb8;
+    --red: #a8321f; --red-bg: #fbeae6; --amber: #8a5a0b; --amber-bg: #fcf1db; --green: #2a7a3e; --green-bg: #e6f3e8;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
@@ -48,9 +48,9 @@
   .bar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--faint); }
   .bar .right a { color: var(--muted); }
 
-  .hero { padding: 36px 0 8px; }
+  .intro { padding: 36px 0 8px; }
   h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
-  .lede { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0 0 20px; }
+  .intro p { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0 0 20px; }
   .search { display: flex; gap: 10px; max-width: 760px; }
   .search input { flex: 1; min-width: 0; border: 1px solid #c9ced4; border-radius: 6px; padding: 12px 14px; font: 15.5px var(--sans); color: var(--ink); background: #fff; }
   .search input:focus { outline: 3px solid #d3e0f5; border-color: var(--link); }
@@ -58,7 +58,7 @@
   .btn:hover { background: var(--soft); text-decoration: none; }
   .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 15px; padding: 12px 20px; border-radius: 6px; }
   .btn.primary:hover { background: #1d3a66; }
-  .kpis { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
+  #counts { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
   .ok { color: var(--green); } .bad { color: var(--red); }
 
   section { padding: 28px 0 4px; }
@@ -92,8 +92,8 @@
   .seg-u { background: repeating-linear-gradient(-45deg, #c9ced4 0 2px, transparent 2px 5px); }
   .mval { font: 13px var(--mono); min-width: 48px; text-align: right; }
   .when { font-size: 13px; color: var(--faint); text-align: right; white-space: nowrap; }
-  .chev { font-size: 13.5px; color: var(--link); text-align: right; }
-  .chev::after { content: "View"; } .tok.open .chev::after { content: "Hide"; }
+  .chev { font-size: 14px; color: var(--faint); text-align: right; }
+  .chev::after { content: "\25B8"; } .tok.open .chev::after { content: "\25BE"; }
   .empty { padding: 30px 16px; color: var(--muted); text-align: center; }
   .more { padding: 12px; text-align: center; border-top: 1px solid var(--line-2); }
 
@@ -112,7 +112,7 @@
   .ev li { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line-2); }
   .ev li:last-child { border-bottom: 0; }
   .kind { flex: none; font: 600 11px var(--sans); color: #8a6100; background: #fcf1db; border-radius: 4px; padding: 1px 6px; }
-  .k-tokens { color: var(--blue); background: #e5edf8; }
+  .k-tokens { color: var(--link); background: #e5edf8; }
   a.addr { font-family: var(--mono); font-size: 12.5px; }
   .proof { margin-left: auto; font-size: 13px; white-space: nowrap; }
   .holders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 13px; }
@@ -166,7 +166,7 @@
     .brand { margin-right: 12px; }
     .links a { padding: 0 7px; font-size: 14px; white-space: nowrap; }
     .bar .right { display: none; }
-    .hero { padding-top: 24px; }
+    .intro { padding-top: 24px; }
     h1 { font-size: 26px; }
     .search { flex-wrap: wrap; }
     .search input { flex: 1 1 100%; }
@@ -191,21 +191,20 @@
 
 <main>
   <div class="wrap">
-    <div class="hero">
+    <div class="intro">
       <h1>Insider Radar</h1>
-      <p class="lede">Shows whether a Solana token's top holders were funded by the same wallet. Each link shows the transaction behind it.</p>
+      <p>Shows whether a Solana token's top holders were funded by the same wallet. Each link shows the transaction behind it.</p>
       <div class="search">
         <input id="q" type="search" placeholder="Token name or mint address" autocomplete="off" aria-label="Search tokens">
         <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Request a trace</a>
       </div>
-      <p class="kpis" id="kpis"></p>
+      <p id="counts"></p>
     </div>
   </div>
 
   <section id="tokens">
     <div class="wrap">
-      <div class="seg" id="strip" role="tablist"></div>
-      <p class="hint">Tap a token to see which wallets funded its top holders, with the proof for each link.</p>
+      <div class="seg" id="tabs" role="tablist"></div>
       <div class="list">
         <div class="lh"><span>Token</span><span>Verdict</span><span>Linked supply</span><span style="text-align:right">Traced</span><span></span></div>
         <div id="rows"><div class="empty">Loading the latest traces</div></div>
@@ -217,7 +216,7 @@
     <div class="wrap">
       <details id="track"><summary>Track record</summary><div class="body">
         <p>Each verdict is frozen when the token is first published, then its price is followed for 7 days. <span id="since"></span> Scores appear once 10 tokens of a verdict have finished.</p>
-        <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished</th><th>Collapsed</th><th>After 24 h</th><th>After 7 days</th></tr></thead><tbody id="cards"></tbody></table></div>
+        <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished</th><th>Collapsed</th><th>After 24 h</th><th>After 7 days</th></tr></thead><tbody id="scores"></tbody></table></div>
       </div></details>
 
       <details id="repeat"><summary>Check a wallet</summary><div class="body">
@@ -232,13 +231,13 @@
         <p>For the 20 largest holders of a token, Sift finds who paid for each holder's first transaction (two hops back) and who sent it its first tokens. Holders that lead to the same private wallet form a linked group. Exchanges, pools and programs link nobody.</p>
         <h4>Verdicts</h4><ul id="meanings"></ul>
         <h4>Weaker evidence</h4><ul>
-          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) is not enough for a "High insider risk" verdict.</li>
+          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) is not enough for a "High risk" verdict.</li>
           <li>A wallet seen behind top holders of several tokens is flagged: it can be a shared service, or one deployer behind several tokens.</li>
         </ul>
         <h4>Track record rules</h4><ul>
           <li>A token enters the first hour it is published with a price on GeckoTerminal; its verdict is frozen then. Its price is sampled hourly for 7 days.</li>
           <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
-          <li>Verdicts are not assigned at random, so a difference between them is evidence, not proof. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
+          <li>Verdicts are not assigned at random, so read differences between them with care. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
         </ul>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
@@ -246,7 +245,7 @@
           <li>Covers the tokens Sift's scanner watches, requested tokens, and up to four trending tokens an hour.</li>
           <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
           <li>Scanner traces are shown for 24 hours (2 if incomplete), requested ones for 7 days.</li>
-          <li>A linked group is evidence that one actor holds several wallets, not proof of what they will do. Not financial advice.</li>
+          <li>A linked group suggests one actor holds several wallets. It says nothing about what they will do. Not financial advice.</li>
         </ul>
       </div></details>
 
@@ -341,7 +340,7 @@
     const groups = (t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`;
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${groups}
-      <div class="share"><a class="btn ghost" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn ghost" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
+      <div class="share"><a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
   }
 
   function render() {
@@ -354,41 +353,40 @@
         : B58.test(raw) ? `This token has not been traced recently. <a href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml&title=${encodeURIComponent("[trace] " + raw)}" target="_blank" rel="noopener">Request a trace</a>`
         : "No tokens match."}</div>`;
       const sa = $("showall");
-      if (sa) sa.addEventListener("click", (e) => { e.preventDefault(); filter = "all"; strip(); render(); });
+      if (sa) sa.addEventListener("click", (e) => { e.preventDefault(); filter = "all"; tabs(); render(); });
       return;
     }
     const page = list.slice(0, Math.max(shown, list.findIndex((t) => t.mint === open) + 1));
     $("rows").innerHTML = page.map((t) => {
       const g = GRADE.has(t.grade) ? t.grade : "incomplete";
-      const tag = "";
       const row = `<div class="tok${open === t.mint ? " open" : ""}" data-m="${esc(t.mint)}" role="button" tabindex="0" aria-expanded="${open === t.mint}">
-        <div class="id"><div class="tname">${esc(t.name)}${tag}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
+        <div class="id"><div class="tname">${esc(t.name)}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
         <div>${badge(g, t.label, true)}</div>${meter(t, g)}<div class="when" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</div>
         <span class="chev"></span></div>`;
       return open === t.mint ? row + detail(t) : row;
-    }).join("") + (list.length > page.length ? `<div class="more"><button class="btn ghost" id="more">Show ${list.length - page.length} more</button></div>` : "");
+    }).join("") + (list.length > page.length ? `<div class="more"><button class="btn" id="more">Show ${list.length - page.length} more</button></div>` : "");
     const m = $("more"); if (m) m.addEventListener("click", () => { shown += 30; render(); });
   }
 
-  function strip() {
+  function tabs() {
     const c = doc.counts || {};
     const items = [["all", doc.tokens.length, "All"], ["high", c.high || 0, "High risk"], ["watch", c.watch || 0, "Watch"], ["low", c.low || 0, "Low risk"], ["incomplete", c.incomplete || 0, "Incomplete"]];
-    $("strip").innerHTML = items.map(([g, v, l]) => `<button class="${filter === g ? "on" : ""}" data-g="${g}" role="tab" aria-selected="${filter === g}">${esc(l)} <span class="n">${int(v)}</span></button>`).join("");
+    $("tabs").innerHTML = items.map(([g, v, l]) => `<button class="${filter === g ? "on" : ""}" data-g="${g}" role="tab" aria-selected="${filter === g}">${esc(l)} <span class="n">${int(v)}</span></button>`).join("");
     $("meanings").innerHTML = Object.values(doc.grades).map((g) => `<li><b>${esc(g.label)}</b>: ${esc(g.meaning)}</li>`).join("");
   }
 
-  function kpis() {
+  function counts() {
     const a = (doc.audit || {}).totals || {}, checked = (a.verified || 0) + (a.failed || 0);
     const line = [`${int(doc.tokens.length)} tokens on the radar`];
     if (checked) line.push(`${int(a.verified)} of ${int(checked)} links re-checked on a second node${a.failed ? ` (${int(a.failed)} failed)` : ""}`);
-    $("kpis").textContent = line.join(". ") + ".";
+    $("counts").textContent = line.join(". ") + ".";
   }
 
   function track() {
     const sc = doc.scorecard || {};
     $("since").textContent = doc.ledger_since ? `Recording since ${when(doc.ledger_since)}.` : "";
     const sign = (v) => num(v) == null ? "–" : `${num(v) >= 0 ? "+" : ""}${(num(v) * 100).toFixed(0)}%`;
-    $("cards").innerHTML = ["high", "watch", "low", "incomplete"].map((g) => {
+    $("scores").innerHTML = ["high", "watch", "low", "incomplete"].map((g) => {
       const c = sc[g] || {}, label = (doc.grades[g] || {}).label || g;
       const n24 = num(c.median_24h) != null ? `${sign(c.median_24h)} <span style="color:var(--faint)">(${int(c.n_24h)})</span>` : "–";
       if (!c.ready) return `<tr><td>${badge(g, label)}</td><td>${int(c.entries || 0)}</td><td>${int(c.closed || 0)} of 10</td><td>–</td><td>${n24}</td><td>–</td></tr>`;
@@ -412,7 +410,7 @@
       catch { $("wres").innerHTML = `<div class="box">The wallet memory could not be loaded. Please try again shortly.</div>`; return; }
     }
     const w = (registry.wallets || {})[a];
-    if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered, so this is not a clean bill of health.</div>`; return; }
+    if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered.</div>`; return; }
     const toks = Object.entries(w.tokens || {}).sort((x, y) => String(y[1].last_seen).localeCompare(String(x[1].last_seen)));
     const flag = (w.flags || []).length ? ` <span class="flag">(${w.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : "";
     $("wres").innerHTML = `<div class="box">${acct(a)} funded or supplied top holders of <b>${int(toks.length)}</b> traced token${toks.length === 1 ? "" : "s"}${flag}<ul>${toks.map(([m, r]) => `<li><a href="https://solscan.io/token/${encodeURIComponent(m)}" target="_blank" rel="noopener" >${esc(r.name || short(m))}</a>, ${esc(((doc.grades || {})[r.grade] || {}).label || r.grade || "–")}, last seen ${esc(when(r.last_seen))}</li>`).join("")}</ul></div>`;
@@ -426,7 +424,7 @@
     return true;
   }
 
-  $("strip").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.g; strip(); render(); });
+  $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.g; tabs(); render(); });
   $("rows").addEventListener("click", (e) => {
     const cp = e.target.closest("[data-copy]");
     if (cp) { if (navigator.clipboard) navigator.clipboard.writeText(cp.dataset.copy).then(() => { cp.textContent = "Copied"; setTimeout(() => { cp.textContent = "Copy mint"; }, 1400); }); return; }
@@ -437,7 +435,7 @@
   $("rows").addEventListener("keydown", (e) => { const r = e.target.closest(".tok"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); r.click(); } });
   $("q").addEventListener("input", () => { if (doc) render(); });
   $("wq").addEventListener("input", () => { if (doc) checkWallet(); });
-  window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; strip(); render(); $("tokens").scrollIntoView({ behavior: "smooth" }); } });
+  window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; tabs(); render(); $("tokens").scrollIntoView({ behavior: "smooth" }); } });
 
   fetch("radar.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     if (!d || !Array.isArray(d.tokens)) throw new Error("bad data");
@@ -445,7 +443,7 @@
     $("upd").textContent = `Updated ${ago(d.generated_at)}`;
     $("upd").title = when(d.generated_at);
     if (fromHash()) setTimeout(() => $("tokens").scrollIntoView(), 50);
-    kpis(); strip(); render(); track();
+    counts(); tabs(); render(); track();
   }).catch(() => {
     $("upd").textContent = "Offline";
     $("rows").innerHTML = `<div class="empty">The radar could not load its data. It updates every hour; please try again shortly.</div>`;
