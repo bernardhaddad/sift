@@ -8,6 +8,9 @@
 <link rel="icon"
   href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16'
   height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
+<meta property="og:title" content="Research notes - Sift">
+<meta property="og:image" content="https://bernardhaddad.github.io/sift/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#ffffff">
 <style>
 :root{--ink:#111827;--muted:#4b5563;--faint:#8b93a1;--line:#e3e6eb;--line-2:#eef0f3;--soft:#f6f7f9;
@@ -51,6 +54,9 @@ th{background:var(--soft);font-weight:600;color:var(--muted);border-bottom-color
 tr:last-child td{border-bottom:0}
 hr{border:0;border-top:1px solid var(--line);margin:26px 0}
 .top{font-size:13.5px}
+.foot{border-top:1px solid var(--line);padding:22px 20px 40px;text-align:center;font-size:13px;
+  color:var(--faint)}
+.foot a{color:var(--muted)}
 @media (max-width:640px){nav.toc ol{columns:1}body{font-size:16px}article h2{font-size:22px}
   .hero h1{font-size:26px}.bar .in{padding:0 16px}.brand{margin-right:12px}
   .links a{padding:0 7px;font-size:14px;white-space:nowrap}}
@@ -691,4 +697,6 @@ F3    20  15  +0.09  -0.02   0.5   +1.78   +1.78  +0.33  -4.59   -1.84       SI 
 <p><b>State continuity.</b> The private repository's cache could not be read from outside and is evicted after seven idle days, so the book was <b>rebuilt from the published record</b>: the last <code>data.json</code> this host produced (seq 198, 00:48 UTC) carries every closed trade of every book with entry, exit, high, reason and R, and the open list was empty at that moment. <code>sift/paper-seed/</code> holds that rebuild and is copied into <code>data/</code> on the first run only. Totals, win counts and verdicts match the published figures for all four books. Two things did not survive: <code>entry_liq</code> on historical trades (null), and the raw 45-day <code>market_log</code> panel, which restarts on 09-16. The 14-day gate-passing and flow lists live on in the published snapshot.</p>
 <p><b>Secrets on <code>sift</code>:</b> a read token for the private repository (fine-grained PAT, repository access = that repository only, Contents = Read), <code>HELIUS_API_KEY</code>, and optionally <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>, <code>SOLANA_RPC_URL</code>.</p>
 <p><b>Cadence is unchanged</b> (the same two cron slots), so M2's sampling grid for its last three trades is the same as before the move.</p><p class="top"><a href="#top">Back to contents</a></p></article>
-</div></main></body></html>
+</div></main>
+<footer class="foot"><a href="./">Screener</a> | <a href="radar.html">Insider Radar</a> |
+  <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer></body></html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy - Sift</title>
+<meta name="description" content="What Sift collects about visitors: nothing. No accounts, no cookies, no analytics.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
+<style>
+  :root { --ink: #111827; --muted: #4b5563; --faint: #8b93a1; --line: #e3e6eb; --bar: #13294b; --gold: #f2b632; --link: #1d5fd1;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 16px/1.65 var(--sans); }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .bar { border-bottom: 1px solid var(--line); }
+  .bar .in { max-width: 1120px; margin: 0 auto; padding: 0 20px; display: flex; align-items: stretch; height: 56px; }
+  .brand { color: var(--bar); font-weight: 800; font-size: 21px; display: flex; align-items: center; margin-right: 26px; }
+  .brand:hover { text-decoration: none; }
+  .brand span { border-bottom: 3px solid var(--gold); line-height: 1; padding-bottom: 1px; }
+  .links { display: flex; gap: 4px; }
+  .links a { color: var(--muted); display: flex; align-items: center; padding: 0 10px; font-size: 14.5px; white-space: nowrap; }
+  .links a:hover { color: var(--ink); text-decoration: none; }
+  main { max-width: 720px; margin: 0 auto; padding: 36px 20px 60px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; }
+  h2 { font-size: 18px; margin: 28px 0 6px; }
+  .date { color: var(--faint); font-size: 14px; margin: 0 0 20px; }
+  p, li { color: var(--muted); }
+  ul { padding-left: 20px; }
+  footer { border-top: 1px solid var(--line); padding: 22px 20px 40px; color: var(--faint); font-size: 13px; text-align: center; }
+  footer a { color: var(--muted); }
+  @media (max-width: 560px) { .bar .in { padding: 0 16px; } .brand { margin-right: 12px; } .links a { padding: 0 7px; font-size: 14px; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="in"><a class="brand" href=""><span>sift</span></a>
+<nav class="links"><a href="">Screener</a><a href="radar.html">Insider Radar</a><a href="research.html">Research</a></nav></div></header>
+<main>
+<h1>Privacy</h1>
+<p class="date">Last updated 15 October 2026</p>
+<p>Sift is a free, static website. It has no accounts, no sign-up, no cookies, no analytics and no advertising trackers, and it does not collect, store or sell personal data.</p>
+<h2>What the pages do</h2>
+<ul>
+  <li>The pages load only Sift's own files (the page and its public data files, such as <a href="radar.json">radar.json</a>). They do not load fonts, scripts or images from other companies.</li>
+  <li>Searching the token list and checking a wallet happen in your browser. The wallet you paste is looked up in the public file <a href="radar-wallets.json">radar-wallets.json</a> and is never sent anywhere.</li>
+  <li>Nothing is saved in your browser between visits.</li>
+</ul>
+<h2>Hosting</h2>
+<p>The site is hosted on GitHub Pages. GitHub may log technical data such as visitors' IP addresses to run and secure the service; see the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>. Sift has no access to those logs.</p>
+<h2>Trace requests</h2>
+<p>A trace is requested by opening an issue on the public <a href="https://github.com/bernardhaddad/sift">GitHub repository</a>. Issues are public and are handled under GitHub's terms, so only post the token address.</p>
+<h2>Links to other sites</h2>
+<p>Trade and chart links open other services (trading terminals, Solscan, GeckoTerminal), which have their own privacy policies. Where a referral code is used, the screener page says so.</p>
+<h2>Contact</h2>
+<p>Questions about this page: open an issue on the <a href="https://github.com/bernardhaddad/sift/issues">GitHub repository</a>.</p>
+</main>
+<footer><a href="">Screener</a> | <a href="radar.html">Insider Radar</a> | <a href="research.html">Research</a> | <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer>
+</body>
+</html>
