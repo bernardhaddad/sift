@@ -179,7 +179,7 @@
       <dt>Quiet dips</dt><dd>Pools 7–30 days old with at least $250K liquidity, 24h volume $100K–$1.7M, down 2–15% on the day, with a buy ratio between 45% and 62%. The only band in the panel mining whose forward returns cleared a 3% round-trip cost.</dd>
       <dt>Buy ratio</dt><dd>Buys ÷ (buys + sells) by transaction count over 24 hours. Counts are what manufactured demand inflates, so read it next to flow.</dd>
       <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent sampled trades, with the hours that sample covers. Sampled for the pools the paper books watch, not for every row.</dd>
-      <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget. The paper system treats that as a refusal.</dd>
+      <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget. The paper system treats that as a refusal. "wallet authority" means a wallet can still mint or freeze the token, which is also a refusal.</dd>
     </dl></details>
   </section>
 
@@ -240,6 +240,7 @@
   function clusterChip(c) {
     if (!c) return '<span class="chip na" title="Not traced in the last two weeks. The paper system only traces tokens that reach its entry gates.">not traced</span>';
     if (c.verdict === "admitted") return `<span class="chip ok" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, unknown ${c.unknown_pct}%, ${c.wallets}/${c.holders} top holders resolved">clean ${c.cluster_pct}%</span>`;
+    if (c.reason === "wallet_authority") return `<span class="chip bad" title="A wallet can still mint or freeze this token, ${ago(c.at)}">wallet authority</span>`;
     if (c.verdict === "refused") return `<span class="chip bad" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, ${ago(c.at)}">cluster ${c.cluster_pct}%</span>`;
     return `<span class="chip warn" title="${esc(c.reason)}, ${ago(c.at)}">no data</span>`;
   }
