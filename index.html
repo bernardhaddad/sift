@@ -14,96 +14,102 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Sift - Solana memecoin screener">
 <meta name="twitter:description" content="Who is really buying, which top holders share a funder, and an unedited paper record. Updated hourly, free.">
-<meta name="theme-color" content="#13294b">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
   :root {
-    --ink: #1b1f24; --muted: #5d6673; --faint: #8a929e; --line: #d6dbe1; --line-2: #e7eaee;
-    --soft: #f4f6f8; --bar: #13294b; --gold: #f2b632; --link: #1a5bb5;
-    --red: #c0261d; --amber: #9a5b00; --green: #1d7a3b;
-    --up: #1d7a3b; --down: #c0261d;
-    --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    --mono: Menlo, Consolas, "Liberation Mono", monospace;
+    --ink: #111827; --muted: #4b5563; --faint: #8b93a1; --line: #e3e6eb; --line-2: #eef0f3;
+    --soft: #f6f7f9; --bar: #13294b; --gold: #f2b632; --link: #1d5fd1;
+    --red: #b42318; --red-bg: #fdecea; --amber: #93530a; --amber-bg: #fff3df; --green: #18794e; --green-bg: #e7f6ee;
+    --up: #18794e; --down: #b42318;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #fff; color: var(--ink); font: 14px/1.5 var(--sans); }
+  body { margin: 0; background: #fff; color: var(--ink); font: 15px/1.55 var(--sans); }
   a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px 40px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; }
   main { overflow-x: clip; }
-  .bar { background: var(--bar); color: #fff; }
-  .bar .in { max-width: 1400px; margin: 0 auto; padding: 0 16px; display: flex; align-items: stretch; height: 46px; }
-  .brand { color: #fff; font-weight: bold; font-size: 19px; display: flex; align-items: center; margin-right: 22px; }
+  .bar { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, .96); border-bottom: 1px solid var(--line); }
+  .bar .in { max-width: 1280px; margin: 0 auto; padding: 0 20px; display: flex; align-items: stretch; height: 56px; }
+  .brand { color: var(--bar); font-weight: 800; font-size: 21px; display: flex; align-items: center; margin-right: 26px; }
   .brand:hover { text-decoration: none; }
   .brand span { border-bottom: 3px solid var(--gold); line-height: 1; padding-bottom: 1px; }
-  .links { display: flex; }
-  .links a { color: #c3cfdf; display: flex; align-items: center; padding: 0 12px; font-size: 14px; }
-  .links a:hover { color: #fff; text-decoration: none; }
-  .links a.on { color: #fff; box-shadow: inset 0 -3px 0 var(--gold); }
-  .bar .right { margin-left: auto; display: flex; align-items: center; font-size: 12px; color: #9fb0c7; }
-  .upd b { color: #fff; font-weight: normal; }
-  .stale { color: #ffcf6b; }
-  .hero { padding: 20px 0 4px; }
-  .hero h1 { font-size: 22px; margin: 0 0 4px; }
-  .hero p { color: var(--muted); max-width: 800px; margin: 0; }
-  .strip { display: flex; flex-wrap: wrap; margin: 14px 0 16px; border: 1px solid var(--line); background: var(--soft); font-size: 13px; color: var(--muted); }
-  .stat { padding: 7px 14px; border-right: 1px solid var(--line); }
-  .stat:last-child { border-right: 0; }
-  .stat .v { display: inline; font-weight: bold; color: var(--ink); margin-right: 4px; }
-  .stat .l { display: inline; }
-  .controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; }
-  .presets { display: flex; flex-wrap: wrap; width: 100%; border-bottom: 1px solid var(--line); }
-  button.preset { background: none; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; color: var(--link); font: 13.5px var(--sans); padding: 7px 12px; cursor: pointer; }
-  button.preset:hover { text-decoration: underline; }
-  button.preset.on { background: #fff; border-color: var(--line); color: var(--ink); font-weight: bold; text-decoration: none; }
-  .controls input, .controls select { border: 1px solid #b9c1cb; border-radius: 3px; padding: 5px 8px; font: 13px var(--sans); color: var(--ink); background: #fff; }
-  .controls input:focus, .controls select:focus { outline: 2px solid #9cc0ef; border-color: var(--link); }
-  .controls label { color: var(--muted); font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
-  .hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
-  .tablewrap { overflow-x: auto; border: 1px solid var(--line); }
-  table { border-collapse: collapse; width: 100%; min-width: 1000px; }
-  th, td { padding: 7px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
-  th { position: sticky; top: 0; background: var(--soft); color: var(--muted); font-size: 12.5px; font-weight: bold; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); }
+  .links { display: flex; gap: 4px; }
+  .links a { color: var(--muted); display: flex; align-items: center; padding: 0 10px; font-size: 14.5px; }
+  .links a:hover { color: var(--ink); text-decoration: none; }
+  .links a.on { color: var(--bar); font-weight: 600; box-shadow: inset 0 -2px 0 var(--bar); }
+  .bar .right { margin-left: auto; display: flex; align-items: center; font-size: 13px; color: var(--faint); }
+  .upd b { color: var(--muted); font-weight: 500; }
+  .stale { color: var(--amber); }
+  .hero { padding: 36px 0 4px; }
+  .hero h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0; }
+  .strip { margin: 10px 0 24px; font-size: 13.5px; color: var(--faint); }
+  .presets { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  button.preset { background: none; border: 0; color: var(--muted); font: 500 14.5px var(--sans); padding: 10px 0; cursor: pointer; }
+  button.preset:hover { color: var(--ink); }
+  button.preset.on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--bar); }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; margin-bottom: 10px; }
+  .controls input, .controls select { border: 1px solid #cfd5dd; border-radius: 8px; padding: 8px 11px; font: 14px var(--sans); color: var(--ink); background: #fff; }
+  .controls input:focus, .controls select:focus { outline: 3px solid #d6e4fb; border-color: var(--link); }
+  .controls label { color: var(--muted); font-size: 13.5px; display: inline-flex; gap: 6px; align-items: center; }
+  .filters { font-size: 14px; }
+  .filters summary { cursor: pointer; color: var(--link); padding: 8px 0; }
+  .fbody { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 6px 0 0; }
+  .hint { color: var(--faint); font-size: 13.5px; margin: 0 0 10px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { padding: 11px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  th { position: sticky; top: 0; background: var(--soft); color: var(--faint); font-size: 12.5px; font-weight: 600; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); }
   th.l, td.l { text-align: left; }
   th.on { color: var(--ink); }
-  tbody tr:hover td { background: #f8fafc; }
+  tbody tr:hover td { background: #f9fafb; }
   tbody tr:last-child td { border-bottom: 0; }
-  td.num { font: 12.5px var(--mono); }
-  .name { font-weight: bold; color: var(--link); }
-  .sub { color: var(--faint); font-size: 12px; }
+  td.num { font: 13px var(--mono); }
+  .name { font-weight: 600; }
+  .sub { color: var(--faint); font-size: 12.5px; }
   .up { color: var(--green); } .down { color: var(--red); } .warn { color: var(--amber); }
-  .chip { font-size: 12.5px; color: var(--muted); }
-  .chip.ok { color: var(--green); } .chip.bad { color: var(--red); font-weight: bold; }
-  .chip.na { color: var(--faint); } .chip.hot { color: var(--amber); font-weight: bold; }
-  .btns { display: inline-flex; gap: 10px; font-size: 12.5px; }
+  .chip { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: var(--muted); background: var(--soft); }
+  .chip.ok { color: var(--green); background: var(--green-bg); } .chip.bad { color: var(--red); background: var(--red-bg); }
+  .chip.na { color: var(--faint); font-weight: 500; } .chip.warn { color: var(--amber); background: var(--amber-bg); }
+  .btns { display: inline-flex; gap: 12px; font-size: 13px; }
   svg.spark { width: 90px; height: 26px; display: block; }
-  .empty { padding: 26px; text-align: center; color: var(--muted); }
-  section { margin-top: 30px; }
-  section h2 { font-size: 17px; margin: 0 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
-  section > p { color: var(--muted); max-width: 900px; font-size: 13.5px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
-  .card { border: 1px solid var(--line); padding: 10px 12px; min-width: 0; overflow-wrap: anywhere; }
-  .card h3 { margin: 0 0 4px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
-  .card .big { font-size: 20px; font-weight: bold; }
-  .card ul { margin: 6px 0 0; padding-left: 16px; color: var(--muted); font-size: 13px; }
-  .card li b { color: var(--ink); }
-  .card details { margin-top: 6px; font-size: 13px; }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+  section { margin-top: 44px; }
+  section h2 { font-size: 20px; margin: 0 0 6px; }
+  section > p { color: var(--muted); max-width: 760px; font-size: 14.5px; margin: 0 0 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }
+  .card h3 { margin: 0 0 6px; font-size: 14.5px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .card .big { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .card details { margin-top: 8px; font-size: 13px; }
   .card summary { color: var(--link); cursor: pointer; }
-  .card table { min-width: 0; font-size: 12.5px; }
-  .card th, .card td { padding: 4px 6px; }
-  .refused-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
-  .disc { border: 1px solid #f0d58a; background: #fff8e3; padding: 10px 12px; color: #4d3a0c; font-size: 13.5px; }
-  footer { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 12.5px; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; max-width: 920px; font-size: 13.5px; margin: 0; }
-  dt { font-weight: bold; }
+  .card .tablewrap { margin-top: 6px; border-radius: 8px; }
+  .card table, table.small { min-width: 0; }
+  .card table { font-size: 12.5px; }
+  .card th, .card td { padding: 5px 7px; }
+  .more-ref summary { cursor: pointer; color: var(--link); font-size: 14px; padding: 10px 0; }
+  .howto { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .howto summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; }
+  .howto summary::-webkit-details-marker { display: none; }
+  .howto summary::after { content: "+"; color: var(--faint); font-weight: 400; font-size: 20px; line-height: 1; }
+  .howto[open] summary::after { content: "\2212"; }
+  .howto dl { padding-bottom: 16px; }
+  .disc { color: var(--faint); font-size: 13px; max-width: 900px; }
+  footer { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--faint); font-size: 13px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; max-width: 900px; font-size: 14.5px; margin: 0; }
+  dt { font-weight: 600; }
   dd { margin: 0; color: var(--muted); }
   @media (max-width: 700px) {
-    .wrap, .bar .in { padding-left: 12px; padding-right: 12px; }
-    .brand { margin-right: 10px; }
-    .links a { padding: 0 8px; font-size: 13.5px; white-space: nowrap; }
+    .wrap, .bar .in { padding-left: 16px; padding-right: 16px; }
+    .brand { margin-right: 12px; }
+    .links a { padding: 0 7px; font-size: 14px; white-space: nowrap; }
     .bar .right { display: none; }
-    .stat { width: 50%; border-right: 0; padding: 5px 10px; }
-    button.preset { padding: 6px 8px; font-size: 13px; }
+    .hero { padding-top: 24px; }
+    .hero h1 { font-size: 26px; }
+    .presets { gap: 0 16px; }
     dl { grid-template-columns: 1fr; gap: 2px; }
     dd { margin-bottom: 8px; }
   }
@@ -118,14 +124,15 @@
 <main><div class="wrap">
   <div class="hero">
     <h1>Screener</h1>
-    <p>Solana memecoin pools, rescanned every hour: buy and sell flow, holder clusters, and the paper record of every rule tested on them.</p>
+    <p>Solana memecoin pools worth a look right now, rescanned every hour. Pick a tab, then click a column to sort.</p>
   </div>
 
-  <div class="strip" id="strip"></div>
+  <p class="strip" id="strip"></p>
 
+  <div class="presets" id="presets"></div>
   <div class="controls">
-    <div class="presets" id="presets"></div>
-    <input id="q" type="search" placeholder="search token" size="16">
+    <input id="q" type="search" placeholder="Search token" size="18">
+    <details class="filters"><summary>Filters</summary><div class="fbody">
     <label>min liq
       <select id="minliq">
         <option value="0">any</option><option value="30000">$30K</option><option value="100000">$100K</option>
@@ -137,6 +144,7 @@
         <option value="1-14" selected>1 – 14 d</option><option value="7-30">7 – 30 d</option><option value="gt30">&gt; 30 d</option>
       </select></label>
     <label><input id="memeonly" type="checkbox" checked> memecoins only</label>
+    </div></details>
   </div>
   <p class="hint" id="hint"></p>
 
@@ -149,30 +157,27 @@
   </div>
 
   <section id="refused-sec">
-    <h2>Refused by the funding-cluster gate</h2>
-    <p>For each token our paper system considers, the top 20 holders are traced back through who funded them and who sent them tokens. Wallets that share a private funder are one cluster. Tokens where one cluster holds more than <span id="cap1"></span> of supply, or all clusters together more than <span id="cap2"></span>, are refused. Public rug-checkers pass most of these.</p>
-    <div class="refused-list" id="refused"></div>
+    <h2>Refused for shared funding</h2>
+    <p>Tokens refused because one funder's wallets hold more than <span id="cap1"></span> of supply (or all such groups more than <span id="cap2"></span>). <a href="radar.html">How the tracing works</a>.</p>
+    <div id="refused"></div>
   </section>
 
   <section>
-    <h2>Our paper record, unedited</h2>
-    <p>Sift is built on a pre-registered paper-trading system. These are its books, kill rules and all. Losing books are shown because that is what the data says; the point of this page is that you see the same numbers we do. The <a href="research.html">research page</a> has the re-readings under realistic fill conventions, the measured round-trip costs, and the review that decided against funding the first book at its 60-trade gate.</p>
+    <h2>Paper trading record</h2>
+    <p>Every rule Sift tests is traded on paper with fixed rules, and losing books stay up. Details on the <a href="research.html">research page</a>.</p>
     <div class="cards" id="books"></div>
-    <p id="fastnote" class="sub"></p>
+    <p id="fastnote" class="sub" style="margin:22px 0 10px"></p>
     <div class="cards" id="fastbooks"></div>
   </section>
 
   <section>
-    <h2>How to read the table</h2>
+    <details class="howto"><summary>How to read the table</summary>
     <dl>
       <dt>Quiet dips</dt><dd>Pools 7 – 30 days old with at least $250K liquidity, 24h volume $100K – $1.7M, down 2 – 15% on the day, with a buy ratio between 45% and 62%. The only band in our panel mining whose forward returns cleared a 3% round-trip cost.</dd>
       <dt>Buy ratio</dt><dd>Buys ÷ (buys + sells) by transaction count over 24 hours. Counts are what manufactured demand inflates, so read it next to flow.</dd>
       <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent trades we sampled, with the hours that sample covers. Sampled for the pools our paper books watch, not for every row.</dd>
-      <dt>Buyers / sellers</dt><dd>Unique addresses on each side over 24 hours. A high buy ratio with few unique buyers is one wallet, not demand.</dd>
       <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget and the paper system treats that as a refusal, not a pass.</dd>
-      <dt>Heat</dt><dd>Mentions across the Telegram call channels we watch in the last cycle. Our paper books exit on heat; called tokens lost 19% at three months in the studies we verified.</dd>
-      <dt>In panel</dt><dd>Days since the pool first appeared in our hourly scan. Survival is a signal in a market where most launches are gone within a day.</dd>
-    </dl>
+    </dl></details>
   </section>
 
   <section>
@@ -180,7 +185,7 @@
   </section>
 
   <footer>
-    Data: GeckoTerminal public API (hourly), Solana JSON-RPC for holder tracing, public Telegram channels. Not financial advice. Nothing here is an offer to buy or sell anything; memecoins routinely go to zero. Sift never holds your funds and never sees your keys.
+    Data from GeckoTerminal and Solana JSON-RPC. Not financial advice; memecoins often go to zero. Sift never holds your funds or sees your keys.
   </footer>
 </div></main>
 
@@ -199,7 +204,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const PRESETS = [
-    { key: "calm", label: "Quiet dips", test: (p) => p.calm, hint: "The M4 band: aged, deep, dipping, not being dumped. Scarce by design." },
+    { key: "calm", label: "Quiet dips", test: (p) => p.calm, hint: "Older pools with deep liquidity that dipped today without heavy selling. Rare by design." },
     { key: "m4", label: "Deep survivors", test: (p) => p.m4, hint: "7 – 30 days old, ≥ $250K liquidity, volume capped so the row is not a manufactured spike." },
     { key: "m3", label: "Aged 1 – 14 d", test: (p) => p.m3, hint: "Past the sniper window with real liquidity and volume; before the long tail." },
     { key: "all", label: "Everything scanned", test: () => true, hint: "Every pool in the last hourly scan. Use the filters." },
@@ -208,13 +213,10 @@
     { key: "name", label: "Token", left: true, sort: (p) => (p.name || "").toLowerCase() },
     { key: "liq", label: "Liquidity", sort: (p) => p.liq || 0 },
     { key: "vol24", label: "Vol 24h", sort: (p) => p.vol24 || 0 },
-    { key: "vol_liq", label: "V/L", sort: (p) => p.vol_liq || 0 },
     { key: "chg24", label: "24h", sort: (p) => p.chg24 ?? -1e9 },
     { key: "buy_ratio", label: "Buy ratio", sort: (p) => p.buy_ratio ?? -1 },
-    { key: "buyers24", label: "Buyers / sellers", sort: (p) => p.buyers24 || 0 },
     { key: "flow", label: "Flow", sort: (p) => p.flow ? p.flow.net_usd : -1e12 },
     { key: "cluster", label: "Cluster", sort: (p) => p.cluster ? (p.cluster.verdict === "admitted" ? 2 : p.cluster.verdict === "refused" ? 0 : 1) : -1 },
-    { key: "heat", label: "Heat", sort: (p) => p.heat ? p.heat.mentions || 0 : 0 },
     { key: "spark", label: "48h", sort: (p) => p.spark && p.spark.length > 1 ? p.spark[p.spark.length - 1] / p.spark[0] : 0 },
     { key: "trade", label: "Trade", sort: null },
   ];
@@ -255,19 +257,14 @@
   }
   function row(p) {
     const chg = p.chg24 == null ? "" : p.chg24 >= 0 ? "up" : "down";
-    const inPanel = p.first_seen ? Math.max(0, (Date.parse(data.snapshot_at) - Date.parse(p.first_seen)) / 86400000) : null;
-    const heat = p.heat && p.heat.mentions ? `<span class="chip hot" title="${p.heat.channels} channel(s)">${p.heat.mentions}</span>` : '<span class="sub">0</span>';
     return `<tr>
-      <td class="l"><div class="name">${esc(p.name)}</div><div class="sub">${fmtAge(p.age_h)} old${inPanel != null ? ", in panel " + inPanel.toFixed(1) + "d" : ""}, ${fmtPrice(p.price)}</div></td>
+      <td class="l"><div class="name">${esc(p.name)}</div><div class="sub">${fmtAge(p.age_h)} old</div></td>
       <td class="num">${fmtUsd(p.liq)}</td>
       <td class="num">${fmtUsd(p.vol24)}</td>
-      <td class="num">${p.vol_liq == null ? "–" : p.vol_liq.toFixed(1)}</td>
       <td class="num ${chg}">${fmtPct(p.chg24)}</td>
-      <td class="num">${p.buy_ratio == null ? "–" : (p.buy_ratio * 100).toFixed(0) + "%"}<div class="sub">${p.buys24} / ${p.sells24}</div></td>
-      <td class="num">${p.buyers24 || 0} / ${p.sellers24 || 0}</td>
+      <td class="num">${p.buy_ratio == null ? "–" : (p.buy_ratio * 100).toFixed(0) + "%"}</td>
       <td class="num">${flowCell(p.flow)}</td>
       <td>${clusterChip(p.cluster)}</td>
-      <td>${heat}</td>
       <td>${spark(p.spark)}</td>
       <td>${tradeButtons(p)}</td>
     </tr>`;
@@ -315,57 +312,49 @@
     const c = data.counts || {};
     const stale = data.snapshot_at && (Date.now() - Date.parse(data.snapshot_at)) > 3 * 3600 * 1000;
     $("updated").innerHTML = `snapshot <b class="${stale ? "stale" : ""}">${ago(data.snapshot_at)}</b>${stale ? " (stale, the hourly job is behind)" : ""}, cycle ${data.seq ?? "?"}`;
-    $("strip").innerHTML = [
-      [c.pools, "pools scanned this hour"], [c.meme, "memecoin / SOL pairs"], [c.m4, "deep survivors"], [c.calm, "quiet dips right now"],
-      [c.cluster_checked, "holder traces this fortnight"], [c.cluster_refused, "refused for shared funding"],
-    ].map(([v, l]) => `<div class="stat"><div class="v">${v ?? "–"}</div><div class="l">${l}</div></div>`).join("");
+    $("strip").textContent = `${c.pools ?? "–"} pools scanned this hour, ${c.calm ?? 0} quiet dips right now, ${c.cluster_refused ?? 0} refused for shared funding.`;
     $("presets").innerHTML = PRESETS.map((p) => `<button class="preset" data-key="${p.key}">${p.label}</button>`).join("");
     document.querySelectorAll("#presets button").forEach((b) => b.onclick = () => applyPreset(b.dataset.key));
     const caps = (data.bands && data.bands.cluster) || {};
     $("cap1").textContent = (caps.max_cluster_pct ?? 10) + "%"; $("cap2").textContent = (caps.max_clustered_pct ?? 20) + "%";
     const refused = data.refused || [];
-    $("refused").innerHTML = refused.length ? refused.map((r) => `<div class="card"><h3>${esc(r.name)} <span class="down">${r.cluster_pct}%</span></h3><div class="sub">largest cluster ${r.cluster_pct}%, all clusters ${r.clustered_pct}%, fresh wallets ${r.fresh_pct}%, ${ago(r.at)}</div><div class="sub" style="font-family:var(--mono)">${esc(r.mint)}</div></div>`).join("")
-      : `<div class="card"><div class="sub">No refusals in the last two weeks. Traces run only for tokens that reach the paper system's entry gates, so a quiet list means few candidates, not a clean market. Validation against 39 past tokens refused XST (12% in one cluster of 17 wallets), GTAVI (87%) and five of nine day-one launches while admitting every aged survivor.</div></div>`;
+    const refRow = (r) => `<tr><td class="l"><a href="https://solscan.io/token/${encodeURIComponent(r.mint)}" target="_blank" rel="noopener">${esc(r.name)}</a></td><td class="num down">${r.cluster_pct}%</td><td class="num">${r.clustered_pct}%</td><td class="sub">${ago(r.at)}</td></tr>`;
+    const refHead = `<thead><tr><th class="l">Token</th><th>Largest group</th><th>All groups</th><th>Checked</th></tr></thead>`;
+    $("refused").innerHTML = refused.length
+      ? `<div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(0, 5).map(refRow).join("")}</tbody></table></div>` + (refused.length > 5 ? `<details class="more-ref"><summary>Show ${refused.length - 5} more</summary><div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(5).map(refRow).join("")}</tbody></table></div></details>` : "")
+      : `<p class="sub">No refusals in the last two weeks.</p>`;
     $("books").innerHTML = (data.books || []).map((b) => {
       const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : b.verdict.startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
-      const open = b.open.length ? `<li>open: ${b.open.map((o) => `<b>${esc(o.name)}</b> since ${ago(o.opened_at)}`).join(", ")}</li>` : "<li>no open positions</li>";
-      const recent = b.recent.length ? `<li>last: ${b.recent.slice(0, 4).map((t) => `${esc(t.name)} <span class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}R</span>`).join(", ")}</li>` : "";
       const trades = (b.trades || []);
       const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}, ${fmtMoney(b.pnl_usd)} at $100 notional</div><ul>${open}${recent}</ul>${all}</div>`;
+      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${all}</div>`;
     }).join("");
     const refs = CFG.referrals || {};
     const shareRefs = ["gmgn", "axiom", "photon", "trojan"].filter((k) => refs[k]);
     const jupFee = CFG.jupiterFeeBps > 0 && refs.jupiter ? CFG.jupiterFeeBps : 0;
-    const links = Object.keys(CFG.signup || {}).map((k) => `<a href="${esc(CFG.signup[k](refs[k] || ""))}" target="_blank" rel="noopener nofollow">${k}</a>`).join(", ");
-    const parts = ["<b>How Sift stays free.</b> The trade buttons open the token in a trading terminal."];
-    if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links and sign-ups carry our referral code, and the terminal shares a part of its own fee with us on trades by accounts that signed up through it. You pay the same fee either way, and the referral never changes what the table shows.`);
-    if (jupFee) parts.push(`Jupiter swaps opened from this page add a ${(jupFee / 100).toFixed(2)}% referral fee that goes to us; use jup.ag directly to avoid it.`);
-    if (!shareRefs.length && !jupFee) parts.push("Referral codes are not configured on this deployment yet, so no link here pays anyone.");
-    parts.push(`Terminals: ${links}. Sift does not run a bot, does not take a cut of your trades, and does not sell calls.`);
+    const parts = ["Trade links open the token in a trading terminal."];
+    if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`);
+    if (jupFee) parts.push(`Jupiter swaps opened here add a ${(jupFee / 100).toFixed(2)}% referral fee; use jup.ag directly to avoid it.`);
+    if (!shareRefs.length && !jupFee) parts.push("None of them pays Sift anything.");
+    parts.push("Sift does not run a bot, take a cut of your trades, or sell calls.");
     $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));
 
   function renderFast(f) {
     const stale = f.last_tick_at && (Date.now() - Date.parse(f.last_tick_at)) > 20 * 60 * 1000;
-    $("fastnote").innerHTML = `<b>Minute books.</b> Three books trade at one quote per minute with the round-trip cost measured through Jupiter at every entry, and two more provide liquidity instead of trading, booking the fee income each Meteora pool actually reported. Last tick <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale, the scanner is down or restarting)" : ""}, ${f.ticks ?? 0} ticks, ${f.universe ?? 0} established pools watched.`;
+    $("fastnote").innerHTML = `<b>Minute books.</b> Last update <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale)" : ""}.`;
     $("fastbooks").innerHTML = (f.books || []).map((b) => {
       const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : (b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
-      const labels = { M5D: "M5D: flush on established pools", M5A: "M5A: first minutes on the trending list", M5D2: "M5D2: flush on established pools, 12-hour hold (since 12 Oct)", M6E: "M6E: liquidity on established pools (fees earned)", M6Y: "M6Y: liquidity on young survivors (fees earned)" };
+      const labels = { M5D: "M5D: flush", M5A: "M5A: new on trending", M5D2: "M5D2: flush, 12-hour hold", M6E: "M6E: liquidity, established pools", M6Y: "M6Y: liquidity, young pools" };
       const label = labels[b.name] || b.name;
-      const open = (b.open || []).length ? `<li>open: ${b.open.map((o) => `<b>${esc(o.name)}</b> since ${ago(o.opened_at)}${o.fees_usd != null ? ` (fees ${fmtMoney(o.fees_usd)})` : ""}${o.void ? " (void, not counted)" : ""}`).join(", ")}</li>` : "<li>no open positions</li>";
       const voided = b.void || [];
-      const voidNote = voided.length ? `<li>${voided.length} trades opened before 25 Sep under a coding defect (a 15% flush and 2–6% rebound instead of the registered 25% and 1–4%) are void: shown below, not counted. Together ${b.void_r >= 0 ? "+" : ""}${b.void_r}R (${fmtMoney(b.void_pnl_usd)}).</li>` : "";
       const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      const cost = b.kind === "lp"
-        ? (b.fee_yield_per_day_median != null ? `<li>fee income: median ${(b.fee_yield_per_day_median * 100).toFixed(2)}% of the position per day over closed positions</li>` : "<li>fees accrue from the pool's reported income; no closed positions yet</li>")
-        : (b.cost_measured_n ? `<li>measured round trip: median ${(b.cost_median * 100).toFixed(2)}% over ${b.cost_measured_n} entries</li>` : "<li>no measured entries yet</li>");
       const trades = b.trades || [];
       const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}, ${fmtMoney(b.total_pnl_usd)} at $100 notional${b.t == null ? "" : ", t " + b.t}</div><ul>${open}${cost}${voidNote}</ul>${all}${voidTable}</div>`;
+      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
     }).join("");
   }
   fetch("fast.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(renderFast).catch(() => {

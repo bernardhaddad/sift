@@ -15,170 +15,166 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Insider Radar - Sift">
 <meta name="twitter:description" content="See who really holds a Solana token: top holders traced to the wallets that funded them, every link with its on-chain proof. Free, hourly.">
-<meta name="theme-color" content="#13294b">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
   :root {
-    --ink: #1b1f24; --muted: #5d6673; --faint: #8a929e; --line: #d6dbe1; --line-2: #e7eaee;
-    --soft: #f4f6f8; --bar: #13294b; --gold: #f2b632; --link: #1a5bb5;
-    --red: #c0261d; --amber: #9a5b00; --green: #1d7a3b; --blue: #1a5bb5;
-    --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    --mono: Menlo, Consolas, "Liberation Mono", monospace;
+    --ink: #111827; --muted: #4b5563; --faint: #8b93a1; --line: #e3e6eb; --line-2: #eef0f3;
+    --soft: #f6f7f9; --bar: #13294b; --gold: #f2b632; --link: #1d5fd1;
+    --red: #b42318; --red-bg: #fdecea; --amber: #93530a; --amber-bg: #fff3df; --green: #18794e; --green-bg: #e7f6ee; --blue: #1d5fd1;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: #fff; color: var(--ink); font: 14px/1.5 var(--sans); }
+  body { margin: 0; background: #fff; color: var(--ink); font: 15px/1.55 var(--sans); }
   a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
   main { overflow-x: clip; }
 
-  .bar { background: var(--bar); color: #fff; }
-  .bar .wrap { display: flex; align-items: stretch; height: 46px; }
-  .brand { color: #fff; font-weight: bold; font-size: 19px; display: flex; align-items: center; margin-right: 22px; }
+  .bar { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, .96); border-bottom: 1px solid var(--line); }
+  .bar .wrap { display: flex; align-items: stretch; height: 56px; }
+  .brand { color: var(--bar); font-weight: 800; font-size: 21px; display: flex; align-items: center; margin-right: 26px; }
   .brand:hover { text-decoration: none; }
   .brand span { border-bottom: 3px solid var(--gold); line-height: 1; padding-bottom: 1px; }
-  .links { display: flex; }
-  .links a { color: #c3cfdf; display: flex; align-items: center; padding: 0 12px; font-size: 14px; }
-  .links a:hover { color: #fff; text-decoration: none; }
-  .links a.on { color: #fff; box-shadow: inset 0 -3px 0 var(--gold); }
-  .bar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 12px; color: #9fb0c7; }
-  .bar .right a { color: #c3cfdf; }
+  .links { display: flex; gap: 4px; }
+  .links a { color: var(--muted); display: flex; align-items: center; padding: 0 10px; font-size: 14.5px; }
+  .links a:hover { color: var(--ink); text-decoration: none; }
+  .links a.on { color: var(--bar); font-weight: 600; box-shadow: inset 0 -2px 0 var(--bar); }
+  .bar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--faint); }
+  .bar .right a { color: var(--muted); }
 
-  .hero { padding: 20px 0 6px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .lede { color: var(--muted); max-width: 780px; margin: 0 0 14px; }
-  .search { display: flex; gap: 8px; max-width: 780px; }
-  .search svg { display: none; }
-  .search input { flex: 1; min-width: 0; border: 1px solid #b9c1cb; border-radius: 3px; padding: 8px 10px; font: 14px var(--sans); color: var(--ink); background: #fff; }
-  .search input:focus { outline: 2px solid #9cc0ef; outline-offset: 0; border-color: var(--link); }
-  .btn { display: inline-block; border: 1px solid #b9c1cb; background: var(--soft); color: var(--ink); font: 13px var(--sans); border-radius: 3px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
-  .btn:hover { background: #e9edf1; text-decoration: none; }
-  .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 14px; padding: 8px 14px; }
+  .hero { padding: 36px 0 8px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
+  .lede { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0 0 20px; }
+  .search { display: flex; gap: 10px; max-width: 760px; }
+  .search input { flex: 1; min-width: 0; border: 1px solid #cfd5dd; border-radius: 10px; padding: 12px 14px; font: 15.5px var(--sans); color: var(--ink); background: #fff; }
+  .search input:focus { outline: 3px solid #d6e4fb; border-color: var(--link); }
+  .btn { display: inline-block; border: 1px solid #cfd5dd; background: #fff; color: var(--ink); font: 500 13.5px var(--sans); border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--soft); text-decoration: none; }
+  .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 15px; padding: 12px 20px; border-radius: 10px; }
   .btn.primary:hover { background: #1d3a66; }
-  .kpis { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 14px; font-size: 13px; color: var(--muted); border: 1px solid var(--line); background: var(--soft); }
-  .kpis > span { padding: 7px 14px; border-right: 1px solid var(--line); }
-  .kpis > span:last-child { border-right: 0; }
-  .kpis b { color: var(--ink); }
+  .kpis { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
   .ok { color: var(--green); } .bad { color: var(--red); }
 
-  section { padding: 26px 0 4px; }
-  .head { margin-bottom: 10px; }
-  h2 { font-size: 17px; margin: 0; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
-  .sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 0; max-width: 780px; }
-  .seg { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 12px 0 0; }
-  .seg button { background: none; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; color: var(--link); font: 13.5px var(--sans); padding: 7px 12px; cursor: pointer; }
-  .seg button:hover { text-decoration: underline; }
-  .seg button.on { background: #fff; border-color: var(--line); color: var(--ink); font-weight: bold; }
-  .seg button.on:hover { text-decoration: none; }
-  .seg .n { color: var(--faint); font-weight: normal; }
-  .seg .n::before { content: "("; } .seg .n::after { content: ")"; }
+  section { padding: 28px 0 4px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); }
+  .seg button { background: none; border: 0; color: var(--muted); font: 500 14.5px var(--sans); padding: 10px 0; cursor: pointer; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--bar); }
+  .seg .n { color: var(--faint); font-weight: 400; margin-left: 3px; }
+  .hint { font-size: 13.5px; color: var(--faint); margin: 12px 0 10px; }
 
-  .list { border: 1px solid var(--line); border-top: 0; }
-  .lh, .tok { display: grid; grid-template-columns: minmax(0, 2.2fr) 110px minmax(0, 2fr) 90px 44px; gap: 14px; align-items: center; padding: 8px 12px; }
-  .lh { font-size: 12.5px; font-weight: bold; color: var(--muted); background: var(--soft); border-bottom: 1px solid var(--line); }
+  .list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .lh, .tok { display: grid; grid-template-columns: minmax(0, 2.2fr) 120px minmax(0, 2fr) 90px 52px; gap: 16px; align-items: center; padding: 13px 18px; }
+  .lh { font-size: 12.5px; font-weight: 600; color: var(--faint); background: var(--soft); border-bottom: 1px solid var(--line); }
   .tok { border-bottom: 1px solid var(--line-2); cursor: pointer; }
-  .tok:hover { background: #f8fafc; }
-  .tok.open { background: #fdf7e6; }
-  .tok:focus-visible { outline: 2px solid #9cc0ef; outline-offset: -2px; }
+  .tok:last-child { border-bottom: 0; }
+  .tok:hover { background: #f9fafb; }
+  .tok.open { background: #f4f7fc; }
+  .tok:focus-visible { outline: 3px solid #d6e4fb; outline-offset: -3px; }
   .id { min-width: 0; }
-  .ava { display: none; }
-  .tname { font-weight: bold; color: var(--link); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tname { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tmeta { font: 12px var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tag { font-weight: normal; font-size: 12px; color: var(--faint); margin-left: 6px; }
-  .badge { font-weight: bold; font-size: 13px; white-space: nowrap; }
+  .badge { display: inline-block; font-weight: 600; font-size: 12.5px; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
   .badge i { display: none; }
-  .b-high { color: var(--red); } .b-watch { color: var(--amber); } .b-low { color: var(--green); } .b-incomplete { color: var(--faint); }
-  .meter { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .track { flex: 1; height: 7px; background: var(--line-2); display: flex; max-width: 260px; }
+  .b-high { color: var(--red); background: var(--red-bg); } .b-watch { color: var(--amber); background: var(--amber-bg); }
+  .b-low { color: var(--green); background: var(--green-bg); } .b-incomplete { color: var(--muted); background: var(--soft); }
+  .meter { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .track { flex: 1; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line-2); display: flex; max-width: 240px; }
   .track span { height: 100%; }
-  .seg-a { background: var(--red); } .seg-b { background: #e39a95; }
-  .w .seg-a { background: #d08a1c; } .w .seg-b { background: #ecc98c; }
-  .l .seg-a { background: #3a9a5a; } .l .seg-b { background: #a9d4b6; }
-  .seg-u { background: repeating-linear-gradient(-45deg, #c9cfd6 0 2px, transparent 2px 5px); }
-  .mval { font: 12.5px var(--mono); min-width: 48px; text-align: right; }
-  .when { font-size: 12.5px; color: var(--muted); text-align: right; white-space: nowrap; }
-  .chev { font-size: 12.5px; color: var(--link); text-align: right; }
-  .chev::after { content: "show"; } .tok.open .chev::after { content: "hide"; }
-  .empty { padding: 26px 12px; color: var(--muted); text-align: center; }
-  .more { padding: 10px 12px; text-align: center; }
+  .seg-a { background: var(--red); } .seg-b { background: #e8a29c; }
+  .w .seg-a { background: #d9881b; } .w .seg-b { background: #efcd94; }
+  .l .seg-a { background: #2f9461; } .l .seg-b { background: #a8d8bd; }
+  .seg-u { background: repeating-linear-gradient(-45deg, #cfd5dd 0 2px, transparent 2px 5px); }
+  .mval { font: 13px var(--mono); min-width: 48px; text-align: right; }
+  .when { font-size: 13px; color: var(--faint); text-align: right; white-space: nowrap; }
+  .chev { font-size: 13.5px; color: var(--link); text-align: right; }
+  .chev::after { content: "View"; } .tok.open .chev::after { content: "Hide"; }
+  .empty { padding: 30px 16px; color: var(--muted); text-align: center; }
+  .more { padding: 12px; text-align: center; border-top: 1px solid var(--line-2); }
 
-  .detail { border-bottom: 1px solid var(--line); background: #fffdf6; padding: 12px 12px 16px; }
-  .facts { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted); }
-  .facts b { color: var(--ink); }
-  .group { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; background: #fff; border: 1px solid var(--line); padding: 12px; margin-top: 12px; }
-  .group h4 { margin: 0 0 8px; font-size: 14px; }
-  .gsub { font-size: 12.5px; font-weight: bold; color: var(--muted); margin: 0 0 6px; }
-  .graph { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line-2); }
+  .detail { border-bottom: 1px solid var(--line-2); background: #fafbfc; padding: 16px 18px 20px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13.5px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 600; }
+  .group { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 14px; }
+  .group h4 { margin: 0 0 10px; font-size: 15px; }
+  .gsub { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
+  .graph { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line-2); border-radius: 8px; }
   .graph a:hover text { fill: var(--link); }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 16px; height: 2px; display: inline-block; }
-  .ev { list-style: none; padding: 0; margin: 0 0 4px; font-size: 13px; }
-  .ev li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--line-2); }
+  .ev { list-style: none; padding: 0; margin: 0 0 4px; font-size: 13.5px; }
+  .ev li { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line-2); }
   .ev li:last-child { border-bottom: 0; }
-  .kind { flex: none; font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); padding: 0 4px; }
-  .k-tokens { color: var(--blue); border-color: #b9cbe6; }
+  .kind { flex: none; font: 600 11px var(--sans); color: #8a6100; background: #fff3df; border-radius: 4px; padding: 1px 6px; }
+  .k-tokens { color: var(--blue); background: #e8f0fd; }
   a.addr { font-family: var(--mono); font-size: 12.5px; }
-  .proof { margin-left: auto; font-size: 12.5px; white-space: nowrap; }
-  .holders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 12.5px; }
-  .holders b { font: 12px var(--mono); color: var(--muted); margin-left: 4px; font-weight: normal; }
-  .note { font-size: 12.5px; color: #6b4a00; background: #fff4d6; border: 1px solid #f0d58a; padding: 6px 8px; margin-top: 8px; }
-  .share { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .proof { margin-left: auto; font-size: 13px; white-space: nowrap; }
+  .holders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 13px; }
+  .holders b { font: 12px var(--mono); color: var(--muted); margin-left: 4px; font-weight: 400; }
+  .note { font-size: 13px; color: #6b4a00; background: #fff6e0; border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+  .share { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
-  table.rec { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-  table.rec th, table.rec td { border: 1px solid var(--line); padding: 7px 10px; text-align: right; vertical-align: top; }
-  table.rec th { background: var(--soft); font-size: 12.5px; color: var(--muted); }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table.rec { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.rec th, table.rec td { border-bottom: 1px solid var(--line-2); padding: 10px 14px; text-align: right; }
+  table.rec tr:last-child td { border-bottom: 0; }
+  table.rec th { background: var(--soft); font-size: 12.5px; font-weight: 600; color: var(--faint); border-bottom-color: var(--line); }
   table.rec th:first-child, table.rec td:first-child { text-align: left; }
-  table.rec td.wide { text-align: left; color: var(--muted); }
-  .scroll { overflow-x: auto; }
-  .two { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; align-items: start; margin-top: 12px; }
-  .rw { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); }
-  .rw li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 8px 10px; border-bottom: 1px solid var(--line-2); font-size: 13px; }
+  .rw { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 10px; }
+  .rw li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 14px; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
   .rw li:last-child { border-bottom: 0; }
-  .flag { font-size: 12px; color: var(--amber); }
-  .pill { font-size: 12.5px; }
-  .field input { width: 100%; border: 1px solid #b9c1cb; border-radius: 3px; padding: 8px 10px; font: 13px var(--mono); color: var(--ink); }
-  .field input:focus { outline: 2px solid #9cc0ef; border-color: var(--link); }
-  #wres { margin-top: 10px; font-size: 13px; }
-  #wres .box { border: 1px solid var(--line); background: var(--soft); padding: 10px 12px; }
+  .flag { font-size: 12.5px; color: var(--amber); }
+  .pill { font-size: 13px; }
+  .field input { width: 100%; max-width: 560px; border: 1px solid #cfd5dd; border-radius: 10px; padding: 11px 14px; font: 14px var(--mono); color: var(--ink); }
+  .field input:focus { outline: 3px solid #d6e4fb; border-color: var(--link); }
+  #wres { margin-top: 12px; font-size: 14px; max-width: 760px; }
+  #wres .box { border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 12px 14px; }
   #wres ul { margin: 6px 0 0; padding-left: 18px; }
 
-  .steps { margin: 12px 0 4px; padding-left: 22px; max-width: 820px; }
-  .steps li { margin: 5px 0; }
-  details { border-top: 1px solid var(--line-2); max-width: 900px; }
-  details:last-child { border-bottom: 1px solid var(--line-2); }
-  summary { cursor: pointer; padding: 8px 0; color: var(--link); }
-  details .body { padding: 0 0 10px; font-size: 13.5px; }
-  details .body p { margin: 0; }
-  details ul { margin: 0; padding-left: 20px; }
-  details li { margin: 4px 0; }
-  .files { border-collapse: collapse; width: 100%; max-width: 900px; margin-top: 12px; font-size: 13.5px; }
-  .files td { border-bottom: 1px solid var(--line-2); padding: 7px 10px 7px 0; vertical-align: top; }
-  .files td:first-child { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
-  footer { background: var(--soft); border-top: 1px solid var(--line); margin-top: 34px; padding: 16px 0 30px; color: var(--muted); font-size: 12.5px; }
+  .extra { padding-top: 30px; }
+  .extra details { border-top: 1px solid var(--line); }
+  .extra details:last-child { border-bottom: 1px solid var(--line); }
+  .extra summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; }
+  .extra summary::-webkit-details-marker { display: none; }
+  .extra summary::after { content: "+"; color: var(--faint); font-weight: 400; font-size: 20px; line-height: 1; }
+  .extra details[open] summary::after { content: "\2212"; }
+  .extra .body { max-width: 820px; padding: 0 0 18px; font-size: 14.5px; color: var(--muted); }
+  .extra .body p { margin: 0 0 12px; }
+  .extra .body b { color: var(--ink); }
+  .extra h4 { margin: 16px 0 4px; font-size: 14px; color: var(--ink); }
+  .extra ul { margin: 0; padding-left: 20px; }
+  .extra li { margin: 4px 0; }
+  footer { border-top: 1px solid var(--line); margin-top: 40px; padding: 22px 0 40px; color: var(--faint); font-size: 13px; }
   footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+  footer a { color: var(--muted); }
 
   @media (max-width: 900px) {
-    .two, .group { grid-template-columns: 1fr; }
+    .group { grid-template-columns: 1fr; }
     .lh { display: none; }
-    .tok { grid-template-columns: minmax(0, 1fr) auto 40px; gap: 6px 12px; }
+    .tok { grid-template-columns: minmax(0, 1fr) auto 40px; gap: 8px 12px; }
     .tok .meter { grid-column: 1 / -1; order: 4; }
     .tok .when { display: none; }
   }
   @media (max-width: 560px) {
-    .wrap { padding: 0 12px; }
-    .brand { margin-right: 10px; }
-    .links a { padding: 0 8px; font-size: 13.5px; white-space: nowrap; }
+    .wrap { padding: 0 16px; }
+    .brand { margin-right: 12px; }
+    .links a { padding: 0 7px; font-size: 14px; white-space: nowrap; }
     .bar .right { display: none; }
+    .hero { padding-top: 24px; }
+    h1 { font-size: 26px; }
     .search { flex-wrap: wrap; }
+    .search input { flex: 1 1 100%; }
     .search .btn { flex: 1; text-align: center; }
-    .kpis > span { border-right: 0; padding: 5px 10px; width: 100%; }
+    .seg { gap: 0 16px; }
+    .tok { padding: 12px 14px; }
     .ev li { flex-wrap: wrap; }
     .proof { margin-left: 0; }
-    .detail { padding: 10px 8px 14px; }
-    .group { padding: 10px; }
-    .seg button { padding: 6px 8px; font-size: 13px; }
+    .detail { padding: 12px 10px 16px; }
+    .group { padding: 12px; }
   }
 </style>
 </head>
@@ -195,89 +191,66 @@
   <div class="wrap">
     <div class="hero">
       <h1>Insider Radar</h1>
-      <p class="lede">Traces the 20 largest holders of Solana tokens back to the wallets that funded them and groups the ones that lead to the same source. Every link comes with the transaction that shows it.</p>
+      <p class="lede">Shows whether a Solana token's top holders were funded by the same wallet. Every link comes with its on-chain proof.</p>
       <div class="search">
-        <input id="q" type="search" placeholder="Filter by name or mint address" autocomplete="off" aria-label="Search tokens">
+        <input id="q" type="search" placeholder="Token name or mint address" autocomplete="off" aria-label="Search tokens">
         <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Request a trace</a>
       </div>
-      <div class="kpis" id="kpis"></div>
+      <p class="kpis" id="kpis"></p>
     </div>
   </div>
 
   <section id="tokens">
     <div class="wrap">
-      <div class="head"><h2>Traces</h2><p class="sub">Click a row for the holder groups, the funding graph and the proof transactions.</p></div>
       <div class="seg" id="strip" role="tablist"></div>
+      <p class="hint">Tap a token to see which wallets funded its top holders, with the proof for each link.</p>
       <div class="list">
-        <div class="lh"><span>Token</span><span>Verdict</span><span>Supply held by linked groups</span><span style="text-align:right">Traced</span><span></span></div>
+        <div class="lh"><span>Token</span><span>Verdict</span><span>Linked supply</span><span style="text-align:right">Traced</span><span></span></div>
         <div id="rows"><div class="empty">Loading the latest traces</div></div>
       </div>
     </div>
   </section>
 
-  <section id="track">
+  <section class="extra">
     <div class="wrap">
-      <div class="head"><h2>Track record</h2><p class="sub">Each token's verdict is frozen when it is first published and its price is followed for 7 days. <span id="since"></span></p></div>
-      <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished 7 days</th><th>Collapsed</th><th>Median after 24 h</th><th>Median after 7 days</th></tr></thead><tbody id="cards"></tbody></table></div>
-      <p class="sub">Scores are shown once 10 tokens of a verdict have finished their 7 days. Until then only the counts and the 24-hour median so far are given.</p>
-    </div>
-  </section>
+      <details id="track"><summary>Track record</summary><div class="body">
+        <p>Each verdict is frozen when the token is first published, then its price is followed for 7 days. <span id="since"></span> Scores appear once 10 tokens of a verdict have finished.</p>
+        <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished</th><th>Collapsed</th><th>After 24 h</th><th>After 7 days</th></tr></thead><tbody id="cards"></tbody></table></div>
+      </div></details>
 
-  <section id="repeat">
-    <div class="wrap">
-      <div class="head"><h2>Wallets</h2><p class="sub">Wallets that funded or supplied top holders, kept across traces since <span id="regsince">launch</span>. Paste one to see which tokens it was behind.</p></div>
-      <div class="two">
-        <div>
-          <div class="field"><input id="wq" type="search" placeholder="Wallet address" autocomplete="off" aria-label="Check a wallet"></div>
-          <div id="wres"></div>
-        </div>
-        <div><ul class="rw" id="rw"></ul></div>
-      </div>
-    </div>
-  </section>
+      <details id="repeat"><summary>Check a wallet</summary><div class="body">
+        <p>Paste a wallet to see which traced tokens it funded. Wallets are remembered since <span id="regsince">launch</span>.</p>
+        <div class="field"><input id="wq" type="search" placeholder="Wallet address" autocomplete="off" aria-label="Check a wallet"></div>
+        <div id="wres"></div>
+        <p style="margin-top:14px"><b>Seen behind more than one token</b></p>
+        <ul class="rw" id="rw"></ul>
+      </div></details>
 
-  <section id="how">
-    <div class="wrap">
-      <div class="head"><h2>Method</h2></div>
-      <ol class="steps">
-        <li><b>Top holders.</b> The token's 20 largest accounts and their owners. Pools, programs and program addresses are set aside; they are not people.</li>
-        <li><b>Funding.</b> For each holder, who paid for its first transaction (two hops back) and who sent it its first tokens. Exchanges link nobody.</li>
-        <li><b>Groups.</b> Holders that lead to the same private wallet form a linked group, and each link is listed with its transaction.</li>
-      </ol>
-      <div style="margin-top:14px">
-        <details><summary>The verdicts</summary><div class="body"><ul id="meanings"></ul></div></details>
-        <details><summary>Weaker evidence and how it is flagged</summary><div class="body"><ul>
-          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) still counts for Sift's own trading, but is not enough for a "High insider risk" verdict here.</li>
-          <li>A wallet seen behind top holders of several tokens is shown, flagged: it can be a shared service such as a bot, or one deployer behind several tokens.</li>
-        </ul></div></details>
-        <details><summary>How the track record is kept</summary><div class="body"><ul>
-          <li>A token enters the first hour it is published with a price on GeckoTerminal. Its verdict is frozen at that moment; a later re-grade never rewrites the record.</li>
-          <li>Its price is sampled every hour for 7 days: the lowest price, the price 24 to 30 hours after entry and the price 7 days to 7 days 6 hours after entry, each with the hours actually elapsed.</li>
-          <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less (−80%), or the price service reported no price for the token for its last 24 hours (it stopped trading).</li>
-          <li>A verdict's numbers are shown once 10 of its tokens have finished their 7 days. Verdicts are not assigned at random (scanner tokens are established pools; requests and trending tokens skew to new launches, and trending ones enter at peak attention), so a difference between verdicts is evidence, not proof. Prices are sampled hourly, so a crash and recovery inside one hour is not seen. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
-        </ul></div></details>
-        <details><summary>Self-audit</summary><div class="body"><p>Each hour a sample of published links is re-checked against a separate Solana node with code that shares nothing with the tracer: for a funding link, that the proof transaction's fee payer is the funder and that it is the wallet's first transaction; for a token link, that the transaction moved tokens under the sender's authority to the holder. A link the node could not answer for is never counted as passed.</p></div></details>
-        <details><summary>Limits</summary><div class="body"><ul>
-          <li>Besides the tokens Sift's scanner watches and the ones people request, the radar traces up to two trending Solana tokens each hour that no trace covered in the last day.</li>
-          <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back to their funder. A clean result is not a safety guarantee.</li>
-          <li>Results are shown while they are current: scanner traces for 24 hours (2 hours if incomplete), requested traces for 7 days, each with its date.</li>
-          <li>A linked group is strong on-chain evidence that one actor holds several wallets. It is not proof of what they will do.</li>
-          <li>Nothing here is financial advice. Sift never sells, promotes, or calls tokens.</li>
-        </ul></div></details>
-      </div>
-    </div>
-  </section>
+      <details id="how"><summary>How it works</summary><div class="body">
+        <p>For the 20 largest holders of a token, Sift finds who paid for each holder's first transaction (two hops back) and who sent it its first tokens. Holders that lead to the same private wallet form a linked group. Exchanges, pools and programs link nobody.</p>
+        <h4>Verdicts</h4><ul id="meanings"></ul>
+        <h4>Weaker evidence</h4><ul>
+          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) is not enough for a "High insider risk" verdict.</li>
+          <li>A wallet seen behind top holders of several tokens is flagged: it can be a shared service, or one deployer behind several tokens.</li>
+        </ul>
+        <h4>Track record rules</h4><ul>
+          <li>A token enters the first hour it is published with a price on GeckoTerminal; its verdict is frozen then. Its price is sampled hourly for 7 days.</li>
+          <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
+          <li>Verdicts are not assigned at random, so a difference between them is evidence, not proof. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
+        </ul>
+        <h4>Self-audit</h4>
+        <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
+        <h4>Limits</h4><ul>
+          <li>Covers the tokens Sift's scanner watches, requested tokens, and up to two trending tokens an hour.</li>
+          <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
+          <li>Scanner traces are shown for 24 hours (2 if incomplete), requested ones for 7 days.</li>
+          <li>A linked group is evidence that one actor holds several wallets, not proof of what they will do. Not financial advice.</li>
+        </ul>
+      </div></details>
 
-  <section id="data">
-    <div class="wrap">
-      <div class="head"><h2>Data</h2><p class="sub">The page is built from these files, updated hourly. Free to use; please link back.</p></div>
-      <table class="files"><tbody>
-        <tr><td><a href="radar.json">radar.json</a></td><td>Every token: verdict, linked supply, holders, and every link with its proof transaction.</td></tr>
-        <tr><td><a href="radar-ledger.json">radar-ledger.json</a></td><td>The track record: verdict at entry, entry price, lowest price, 24-hour and 7-day samples.</td></tr>
-        <tr><td><a href="radar-wallets.json">radar-wallets.json</a></td><td>The wallet memory: every token each funder wallet was seen behind, with flags.</td></tr>
-        <tr><td><a href="radar-audit.json">radar-audit.json</a></td><td>The self-audit: every re-checked link with its result.</td></tr>
-        <tr><td><a href="radar-feed.xml">radar-feed.xml</a></td><td>RSS alerts for new High and Watch verdicts and repeat wallets. Works in Telegram and Discord RSS bots.</td></tr>
-      </tbody></table>
+      <details id="data"><summary>Data and alerts</summary><div class="body">
+        <p>Free to use, updated hourly: <a href="radar.json">radar.json</a>, <a href="radar-ledger.json">radar-ledger.json</a>, <a href="radar-wallets.json">radar-wallets.json</a>, <a href="radar-audit.json">radar-audit.json</a>. Alerts for new High and Watch verdicts by <a href="radar-feed.xml">RSS</a>.</p>
+      </div></details>
     </div>
   </section>
 </main>
@@ -334,19 +307,19 @@
     });
     const edges = links.filter((k) => pos[k.from] && pos[k.to]).map((k) => {
       const [x1, y1] = pos[k.from], [x2, y2] = pos[k.to], mx = (x1 + x2) / 2;
-      const col = k.kind === "tokens" ? "#1a5bb5" : "#b8860b";
+      const col = k.kind === "tokens" ? "#1d5fd1" : "#c98a12";
       return `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${col}" stroke-opacity=".75" stroke-width="1.6"${k.kind === "tokens" ? ' stroke-dasharray="4 3"' : ""}/>`;
     }).join("");
     const dots = [...nodes].filter((n) => pos[n]).map((n) => {
       const [x, y] = pos[n], h = holders.has(n), r = h ? 4.5 + Math.sqrt(share[n] || 0) * 2.2 : 5;
       const shape = h ? `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="var(--ink)"/>` : `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" rx="2.5" fill="#fff" stroke="var(--ink)" stroke-width="1.6"/>`;
       const label = h
-        ? `<text x="${x + r + 7}" y="${y + 4}" font-family="Menlo, Consolas, monospace" font-size="10.5" fill="var(--muted)">${esc(short(n))}${share[n] ? "  " + share[n].toFixed(1) + "%" : ""}</text>`
-        : `<text x="${x}" y="${y - 11}" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="10.5" fill="var(--muted)" paint-order="stroke" stroke="#fff" stroke-width="4">${esc(short(n))}</text>`;
+        ? `<text x="${x + r + 7}" y="${y + 4}" font-family="SF Mono, Menlo, Consolas, monospace" font-size="10.5" fill="var(--muted)">${esc(short(n))}${share[n] ? "  " + share[n].toFixed(1) + "%" : ""}</text>`
+        : `<text x="${x}" y="${y - 11}" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="10.5" fill="var(--muted)" paint-order="stroke" stroke="#fff" stroke-width="4">${esc(short(n))}</text>`;
       return `<a href="https://solscan.io/account/${encodeURIComponent(n)}" target="_blank" rel="noopener"><title>${esc(n)}</title>${shape}${label}</a>`;
     }).join("");
     return `<svg class="graph" viewBox="0 0 ${W} ${H}" role="img" aria-label="Funding graph of this group">${edges}${dots}</svg>
-      <div class="legend"><span><i style="background:#b8860b"></i>paid first transaction</span><span><i style="background:#1a5bb5"></i>sent first tokens (dashed)</span><span>circle: holder, square: funder</span></div>`;
+      <div class="legend"><span><i style="background:#c98a12"></i>paid first transaction</span><span><i style="background:#1d5fd1"></i>sent first tokens (dashed)</span><span>circle: holder, square: funder</span></div>`;
   }
 
   function groupHtml(c, i) {
@@ -385,7 +358,7 @@
     const page = list.slice(0, Math.max(shown, list.findIndex((t) => t.mint === open) + 1));
     $("rows").innerHTML = page.map((t) => {
       const g = GRADE.has(t.grade) ? t.grade : "incomplete";
-      const tag = t.source === "request" ? `<span class="tag">requested</span>` : t.source === "trending" ? `<span class="tag">trending</span>` : "";
+      const tag = "";
       const row = `<div class="tok${open === t.mint ? " open" : ""}" data-m="${esc(t.mint)}" role="button" tabindex="0" aria-expanded="${open === t.mint}">
         <div class="id"><div class="tname">${esc(t.name)}${tag}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
         <div>${badge(g, t.label, true)}</div>${meter(t, g)}<div class="when" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</div>
@@ -403,18 +376,10 @@
   }
 
   function kpis() {
-    const links = doc.tokens.flatMap((t) => (t.clusters || []).flatMap((c) => c.links || []));
-    const proved = links.filter((k) => SIG.test(String(k.tx || ""))).length;
     const a = (doc.audit || {}).totals || {}, checked = (a.verified || 0) + (a.failed || 0);
-    const c = doc.counts || {};
-    const followed = Object.values(doc.scorecard || {}).reduce((s, g) => s + (g.entries || 0), 0);
-    const cells = [
-      ["tokens traced", int(doc.tokens.length), ""],
-      ["links with a proof transaction", int(proved), ""],
-      ["links re-checked on a second node", checked ? `${int(a.verified)}/${int(checked)}` : "0", a.failed ? `${int(a.failed)} failed` : ""],
-      ["tokens in the 7-day track record", int(followed), ""],
-    ];
-    $("kpis").innerHTML = cells.map(([k, v, s]) => `<span><b>${v}</b> ${esc(k.toLowerCase())}${s ? ` <span style="color:var(--faint)">(${esc(s)})</span>` : ""}</span>`).join("");
+    const line = [`${int(doc.tokens.length)} tokens on the radar`];
+    if (checked) line.push(`${int(a.verified)} of ${int(checked)} links re-checked on a second node${a.failed ? ` (${int(a.failed)} failed)` : ""}`);
+    $("kpis").textContent = line.join(". ") + ".";
   }
 
   function track() {
