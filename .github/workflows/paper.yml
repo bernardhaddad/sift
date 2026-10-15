@@ -9,27 +9,26 @@ name: memecoin paper-trading cycle (public host)
 
 on:
   schedule:
-    - cron: "47 * * * *" # minute changed 2026-09-16 16:05 UTC to re-register a schedule that never fired
+    - cron: "47 * * * *"
     - cron: "17 * * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: write
-  actions: write # the scanner watchdog step dispatches scanner.yml
+  actions: write # watchdog dispatches scanner.yml
 
 concurrency:
-  # renamed 2026-10-07: run 513 (37655526160) stuck in 'queued' with no runner, could not be
-  # cancelled or deleted, and held the old group so every later cycle waited behind it
+  # renamed after a run got stuck in 'queued' and held the old group
   group: memecoin-paper-2
   cancel-in-progress: false
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: bfca96425987ae3a1679d68d8669301c1468ea3a  # the exact commit of the trading code that runs here
+  SOURCE_REF: bb7790a02d0055610f5320ad5a24d59a8b333265  # private code commit
 
 jobs:
   cycle:
-    runs-on: ubuntu-24.04  # pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19; the jobs use the image python3
+    runs-on: ubuntu-24.04  # pinned, uses the image's python3
     timeout-minutes: 25
     steps:
       - name: Check the read token is present
@@ -54,9 +53,7 @@ jobs:
           token: ${{ secrets.SOURCE_READ_TOKEN }}
           path: src
 
-      # Cache-as-state, outside the checkout: unique save key, prefix restore
-      # keeps the newest state. The prefix is "memecoin-book-" (not the earlier
-      # "memecoin-paper-state-") so the empty-book run can never be restored.
+      # book state: unique save key, prefix restore picks the newest
       - name: Restore paper state
         uses: actions/cache@v4
         with:
@@ -89,14 +86,11 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
-          # Amendment 8: the scanner's published candidates get the funding-cluster trace here
+          # trace the scanner's candidates too
           SCANNER_SNAPSHOT: ${{ github.workspace }}/site/fast.json
         run: python3 scripts/run.py cycle
 
-      # §12 live tranche (docs/live.md in the private repository). Fails closed:
-      # without LIVE_ENABLED=1, a LIVE_BOOK at PROMOTE-TO-REVIEW and the wallet
-      # secret it prints one "off" line and exits 0. State lives in data/ with the
-      # paper book and is published with the site as the public record.
+      # live tranche, off unless LIVE_ENABLED=1
       - name: Live tranche (gated)
         if: always()
         continue-on-error: true
@@ -123,39 +117,28 @@ jobs:
           rm -rf paper-state
           cp -r src/memecoin-trading/data paper-state
 
-      # continue-on-error so a failed publish never skips the cache save (= losing the book).
-      # rejected push -> rebase with -X theirs; site files are regenerated each run anyway
+      # continue-on-error: a failed publish must not skip the cache save
       - name: Build and publish the site
         continue-on-error: true
         env:
-          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}  # the radar's trending feed traces with it
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
         run: |
-          # Pillow draws the radar's link-preview cards; without it pages publish without one
+          # pillow is only for the preview cards
           python3 -m pip install --quiet pillow || echo "pillow not installed: no preview cards"
           (cd src/memecoin-trading && python3 scripts/build_site.py)
-          # The research page is built from the private repository's docs; a build
-          # failure there must not block the snapshot, so it is best-effort.
           (cd src/memecoin-trading && python3 scripts/build_research.py) || echo "research page not built"
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
              src/memecoin-trading/site/data.json site/
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
-          # static pages: not found, privacy, terms, sitemap, and the site's preview card
           for f in 404.html privacy.html terms.html sitemap.xml og.png; do
             [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
           done
-          # Insider Radar: the hourly funding-cluster traces plus the on-demand ones (trace.yml) in
-          # radar-requests/; best-effort, like the research page
-          # A few trending tokens no trace covered in 24 h are traced first (radar-auto/, bounded
-          # at 4 traces, 420 s and 6000 RPC calls a day). The build reads back the track record (radar-ledger.json) and
-          # the funder-wallet registry (radar-wallets.json) from the site and writes them updated.
+          # radar: trending feed, audit, build (all best effort)
           (cd src/memecoin-trading && timeout 480 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
-          # Self-audit of what is published now: a sample of links re-checked on a separate node
           (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar not built"
-          # one link-preview page and card per token on the radar (t/<mint>.html, .png), replaced each hour
           [ -d src/memecoin-trading/site/t ] && rm -rf site/t && cp -r src/memecoin-trading/site/t site/ || true
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml site/ || true
-          # Amendment 8: the funding-cluster verdicts the minute scanner reads every 15 minutes
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
           touch site/.nojekyll
           cd site
@@ -178,9 +161,7 @@ jobs:
           done
           echo "site not published after 3 attempts; book unaffected"
 
-      # The minute scanner (scanner.yml) watches this cycle; this cycle watches the
-      # scanner back. If no scanner run is in progress or queued, one is dispatched.
-      # scanner.yml's concurrency group makes a duplicate harmless.
+      # restart the scanner if nothing is running or queued
       - name: Scanner watchdog
         if: always()
         continue-on-error: true
@@ -204,8 +185,6 @@ jobs:
               -d '{"ref":"main"}' -o /dev/null -w "scanner watchdog: dispatched (http %{http_code})\n"
           fi
 
-      # Public-repository artifacts are not metered: the raw panel is retrievable
-      # again for the mining passes.
       - name: Upload data logs
         if: always()
         continue-on-error: true

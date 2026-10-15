@@ -1,18 +1,9 @@
 name: memecoin minute scanner (M5, public host)
 
-# The always-on scanner for the M5 minute books (STRATEGY.md §13 in the private
-# repository). One job runs the scanner for RUN_MINUTES (under the 6-hour job
-# limit), then hands over: it saves its state to the Actions cache, publishes the
-# snapshot, and dispatches its own successor. Two safety nets keep the chain
-# alive when a hand-over is missed:
-#   - the half-hourly schedule queues a run; under the concurrency group a queued
-#     run waits while one is in progress and starts the moment it ends;
-#   - the published site/fast.json carries the whole book state, so a run that
-#     finds no cache restores the books from it and only re-seeds price series.
-# Public repositories are not metered for Actions minutes.
+# minute scanner. each run lasts RUN_MINUTES, saves state to the cache, publishes
+# fast.json and starts the next run. the half-hourly schedule restarts it if that fails.
 #
-# Secrets: SOURCE_REPO and SOURCE_READ_TOKEN (Contents: Read on the private repository) and,
-# optionally, TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID for trade alerts.
+# secrets: SOURCE_REPO, SOURCE_READ_TOKEN; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 on:
   schedule:
@@ -29,12 +20,12 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: bfca96425987ae3a1679d68d8669301c1468ea3a  # the exact commit of the trading code that runs here
+  SOURCE_REF: bb7790a02d0055610f5320ad5a24d59a8b333265  # private code commit
   RUN_MINUTES: "330"
 
 jobs:
   scan:
-    runs-on: ubuntu-24.04  # pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19; the jobs use the image python3
+    runs-on: ubuntu-24.04  # pinned, uses the image's python3
     timeout-minutes: 350
     steps:
       - name: Check the read token is present
@@ -76,17 +67,14 @@ jobs:
           if [ -f site/fast.json ]; then cp site/fast.json src/memecoin-trading/site/fast.json; fi
           if [ -f scanner-state/state.json ]; then echo "cached state restored"; else echo "no cached state: the scanner restores from the published snapshot if there is one"; fi
 
-      # §12 live tranche on a MINUTE book (docs/live.md). Fails closed: without
-      # LIVE_ENABLED=1, LIVE_BOOK set to M5D or M5A at PROMOTE-TO-REVIEW and the wallet
-      # secret, the scanner never touches the tranche code. The wallet secret is never
-      # printed, logged or stored.
+      # live tranche, off unless LIVE_ENABLED=1
       - name: Run the scanner
         id: scan
         working-directory: src/memecoin-trading
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GH_TOKEN: ${{ github.token }}  # the publish hook's paper-cycle watchdog dispatches paper.yml
+          GH_TOKEN: ${{ github.token }}
           LIVE_ENABLED: ${{ secrets.LIVE_ENABLED }}
           LIVE_BOOK: ${{ secrets.LIVE_BOOK }}
           LIVE_WALLET_SECRET: ${{ secrets.LIVE_WALLET_SECRET }}
@@ -100,7 +88,7 @@ jobs:
             python3 -m pip install --quiet solders
           fi
           case "$LIVE_BOOK" in
-            M6E|M6Y) (cd lp_exec && npm install --silent --no-audit --no-fund) ;;  # the Meteora executor
+            M6E|M6Y) (cd lp_exec && npm install --silent --no-audit --no-fund) ;;
           esac
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
@@ -111,9 +99,7 @@ jobs:
           rm -rf scanner-state
           cp -r src/memecoin-trading/data/fast scanner-state
 
-      # Run artifacts expire after 14 days and the cached logs rotate at three days; the
-      # mining passes need weeks. This run's slice of the minute panel, the ten-minute
-      # leaderboard scan and the liquidity-pool log is gzipped into panel/ (about 2 MB a run).
+      # keep this run's panel in panel/ (artifacts expire)
       - name: Archive this run's minute panel
         if: always()
         continue-on-error: true

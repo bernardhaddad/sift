@@ -20,33 +20,31 @@ permissions:
   contents: write
   issues: write
 
-# One group per request: a shared group keeps only one pending run and silently cancels the rest.
-# Parallel saves are handled by the push retry below; volume is capped by the limits.
+# one group per request (a shared group drops pending runs)
 concurrency:
   group: radar-trace-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: bfca96425987ae3a1679d68d8669301c1468ea3a  # the exact commit of the trading code that runs here
+  SOURCE_REF: bb7790a02d0055610f5320ad5a24d59a8b333265  # private code commit
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
 jobs:
   trace:
-    # The request form's body always carries its "Token mint address" heading, so a request is
-    # recognised even when the requester rewrites the "[trace]" title.
+    # match the form heading too, in case the title was edited
     if: >-
       github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[trace]') ||
       contains(github.event.issue.body, '### Token mint address')
-    runs-on: ubuntu-24.04  # pinned like the other jobs; they use the image python3
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout this site repository
         uses: actions/checkout@v4
         with:
           path: site
-          persist-credentials: false  # the token is used only by the save step, not the trace
+          persist-credentials: false
 
       - name: Read the request
         id: req
@@ -75,8 +73,7 @@ jobs:
                       status = "cached"
               except Exception:
                   pass
-          # Limits protect the RPC quota the hourly cycle shares; both fail closed. Labels are not
-          # used: GitHub drops labels set by non-collaborators, so they can be dodged.
+          # rate limits (shared RPC quota). not label based: outsiders can't set labels
           if status == "ok" and os.environ.get("ISSUE_TITLE"):
               now = datetime.now(timezone.utc)
               since = (now - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -91,8 +88,7 @@ jobs:
                       if len(batch) < 100:
                           break
                   return out
-              # all requesters: trace requests opened in the last 24 hours, including ones still
-              # running (saved files would miss a burst of simultaneous requests)
+              # all trace issues in the last 24h
               try:
                   n = sum(1 for i in issues("sort=created")
                           if i["title"].startswith("[trace]") or "### Token mint address" in (i.get("body") or ""))
@@ -101,7 +97,7 @@ jobs:
               except Exception as err:
                   print("daily check failed, refusing:", type(err).__name__)
                   status = "limit"
-              # per requester: issues this account opened in the last 24 hours (any title or label)
+              # this account's issues in the last 24h
               try:
                   author = urllib.parse.quote(os.environ.get("AUTHOR", ""))
                   if len(issues(f"creator={author}")) > int(os.environ["PER_USER_LIMIT"]):
@@ -130,7 +126,7 @@ jobs:
         working-directory: src/memecoin-trading
         env:
           TRACE_MINT: ${{ steps.req.outputs.mint }}
-          KNOWN_PUBLIC_FILE: ${{ github.workspace }}/site/radar-known.json  # same infrastructure list as the hourly cycle
+          KNOWN_PUBLIC_FILE: ${{ github.workspace }}/site/radar-known.json
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: |
