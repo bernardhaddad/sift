@@ -46,9 +46,9 @@
   .bar .right { margin-left: auto; display: flex; align-items: center; font-size: 13px; color: var(--faint); }
   .upd b { color: var(--muted); font-weight: 500; }
   .stale { color: var(--amber); }
-  .hero { padding: 36px 0 4px; }
-  .hero h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
-  .hero p { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0; }
+  .intro { padding: 36px 0 4px; }
+  .intro h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
+  .intro p { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0; }
   .strip { margin: 10px 0 24px; font-size: 13.5px; color: var(--faint); }
   .presets { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
   button.preset { background: none; border: 0; color: var(--muted); font: 500 14.5px var(--sans); padding: 10px 0; cursor: pointer; }
@@ -110,8 +110,8 @@
     .brand { margin-right: 12px; }
     .links a { padding: 0 7px; font-size: 14px; white-space: nowrap; }
     .bar .right { display: none; }
-    .hero { padding-top: 24px; }
-    .hero h1 { font-size: 26px; }
+    .intro { padding-top: 24px; }
+    .intro h1 { font-size: 26px; }
     .presets { gap: 0 16px; }
     dl { grid-template-columns: 1fr; gap: 2px; }
     dd { margin-bottom: 8px; }
@@ -125,12 +125,12 @@
   <div class="right"><span class="upd" id="updated"></span></div>
 </div></header>
 <main><div class="wrap">
-  <div class="hero">
+  <div class="intro">
     <h1>Screener</h1>
-    <p>Solana memecoin pools worth a look right now, rescanned every hour. Pick a tab, then click a column to sort.</p>
+    <p>Solana memecoin pools worth a look right now, rescanned every hour.</p>
   </div>
 
-  <p class="strip" id="strip"></p>
+  <p class="strip" id="summary"></p>
 
   <div class="presets" id="presets"></div>
   <div class="controls">
@@ -144,7 +144,7 @@
     <label>age
       <select id="age">
         <option value="any">any</option><option value="lt1">&lt; 24h (sniper zone)</option>
-        <option value="1-14" selected>1 – 14 d</option><option value="7-30">7 – 30 d</option><option value="gt30">&gt; 30 d</option>
+        <option value="1-14" selected>1–14 d</option><option value="7-30">7–30 d</option><option value="gt30">&gt; 30 d</option>
       </select></label>
     <label><input id="memeonly" type="checkbox" checked> memecoins only</label>
     </div></details>
@@ -156,12 +156,12 @@
       <thead><tr id="head"></tr></thead>
       <tbody id="rows"></tbody>
     </table>
-    <div class="empty" id="empty" hidden>Nothing passes these filters right now, which is normal: most of the leaderboard is under 24 hours old or already sold off.</div>
+    <div class="empty" id="empty" hidden>Nothing passes these filters right now. Most of the leaderboard is under 24 hours old or already sold off.</div>
   </div>
 
   <section id="refused-sec">
     <h2>Refused for shared funding</h2>
-    <p>Tokens refused because one funder's wallets hold more than <span id="cap1"></span> of supply (or all such groups more than <span id="cap2"></span>). <a href="radar.html">How the tracing works</a>.</p>
+    <p>Tokens refused because one funder's wallets hold more than <span id="cap1"></span> of supply (or all such groups more than <span id="cap2"></span>). The <a href="radar.html">radar</a> shows some of them as Watch when the link runs through a high-volume wallet; the paper books refuse them anyway.</p>
     <div id="refused"></div>
   </section>
 
@@ -176,10 +176,10 @@
   <section>
     <details class="howto"><summary>How to read the table</summary>
     <dl>
-      <dt>Quiet dips</dt><dd>Pools 7 – 30 days old with at least $250K liquidity, 24h volume $100K – $1.7M, down 2 – 15% on the day, with a buy ratio between 45% and 62%. The only band in the panel mining whose forward returns cleared a 3% round-trip cost.</dd>
+      <dt>Quiet dips</dt><dd>Pools 7–30 days old with at least $250K liquidity, 24h volume $100K–$1.7M, down 2–15% on the day, with a buy ratio between 45% and 62%. The only band in the panel mining whose forward returns cleared a 3% round-trip cost.</dd>
       <dt>Buy ratio</dt><dd>Buys ÷ (buys + sells) by transaction count over 24 hours. Counts are what manufactured demand inflates, so read it next to flow.</dd>
       <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent sampled trades, with the hours that sample covers. Sampled for the pools the paper books watch, not for every row.</dd>
-      <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget and the paper system treats that as a refusal, not a pass.</dd>
+      <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget. The paper system treats that as a refusal.</dd>
     </dl></details>
   </section>
 
@@ -188,7 +188,7 @@
   </section>
 
   <footer>
-    Data from GeckoTerminal and Solana JSON-RPC. Not financial advice; memecoins often go to zero. Sift never holds your funds or sees your keys.
+    Data from GeckoTerminal and Solana JSON-RPC. Not financial advice. Memecoins often go to zero.
     <div style="margin-top:6px"><a href="radar.html">Insider Radar</a> | <a href="research.html">Research</a> | <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></div>
   </footer>
 </div></main>
@@ -209,8 +209,8 @@
 
   const PRESETS = [
     { key: "calm", label: "Quiet dips", test: (p) => p.calm, hint: "Older pools with deep liquidity that dipped today without heavy selling. Often empty." },
-    { key: "m4", label: "Deep survivors", test: (p) => p.m4, hint: "7 – 30 days old, ≥ $250K liquidity, volume capped so the row is not a manufactured spike." },
-    { key: "m3", label: "Aged 1 – 14 d", test: (p) => p.m3, hint: "Past the sniper window with real liquidity and volume; before the long tail." },
+    { key: "m4", label: "Deep survivors", test: (p) => p.m4, hint: "7–30 days old, ≥ $250K liquidity, volume capped so the row is not a manufactured spike." },
+    { key: "m3", label: "Aged 1–14 d", test: (p) => p.m3, hint: "Past the sniper window with real liquidity and volume; before the long tail." },
     { key: "all", label: "Everything scanned", test: () => true, hint: "Every pool in the last hourly scan. Use the filters." },
   ];
   const COLS = [
@@ -238,7 +238,7 @@
     return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${color}" stroke-width="1.5" points="${pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ")}"/></svg>`;
   }
   function clusterChip(c) {
-    if (!c) return '<span class="chip na" title="Not traced this fortnight: the paper system only traces tokens that reach its entry gates.">not traced</span>';
+    if (!c) return '<span class="chip na" title="Not traced in the last two weeks. The paper system only traces tokens that reach its entry gates.">not traced</span>';
     if (c.verdict === "admitted") return `<span class="chip ok" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, unknown ${c.unknown_pct}%, ${c.wallets}/${c.holders} top holders resolved">clean ${c.cluster_pct}%</span>`;
     if (c.verdict === "refused") return `<span class="chip bad" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, ${ago(c.at)}">cluster ${c.cluster_pct}%</span>`;
     return `<span class="chip warn" title="${esc(c.reason)}, ${ago(c.at)}">no data</span>`;
@@ -316,13 +316,13 @@
     const c = data.counts || {};
     const stale = data.snapshot_at && (Date.now() - Date.parse(data.snapshot_at)) > 3 * 3600 * 1000;
     $("updated").innerHTML = `snapshot <b class="${stale ? "stale" : ""}">${ago(data.snapshot_at)}</b>${stale ? " (stale, the hourly job is behind)" : ""}, cycle ${data.seq ?? "?"}`;
-    $("strip").textContent = `${c.pools ?? "–"} pools scanned this hour, ${c.calm ?? 0} quiet dips right now, ${c.cluster_refused ?? 0} refused for shared funding.`;
+    $("summary").textContent = `${c.pools ?? "–"} pools scanned this hour, ${c.calm ?? 0} quiet ${c.calm === 1 ? "dip" : "dips"} right now, ${c.cluster_refused ?? 0} refused for shared funding.`;
     $("presets").innerHTML = PRESETS.map((p) => `<button class="preset" data-key="${p.key}">${p.label}</button>`).join("");
     document.querySelectorAll("#presets button").forEach((b) => b.onclick = () => applyPreset(b.dataset.key));
     const caps = (data.bands && data.bands.cluster) || {};
     $("cap1").textContent = (caps.max_cluster_pct ?? 10) + "%"; $("cap2").textContent = (caps.max_clustered_pct ?? 20) + "%";
     const refused = data.refused || [];
-    const refRow = (r) => `<tr><td class="l"><a href="https://solscan.io/token/${encodeURIComponent(r.mint)}" target="_blank" rel="noopener">${esc(r.name)}</a></td><td class="num down">${r.cluster_pct}%</td><td class="num">${r.clustered_pct}%</td><td class="sub">${ago(r.at)}</td></tr>`;
+    const refRow = (r) => `<tr><td class="l"><a href="https://solscan.io/token/${encodeURIComponent(r.mint)}" target="_blank" rel="noopener">${esc(r.name)}</a></td><td class="num down">${Number(r.cluster_pct).toFixed(1)}%</td><td class="num">${Number(r.clustered_pct).toFixed(1)}%</td><td class="sub">${ago(r.at)}</td></tr>`;
     const refHead = `<thead><tr><th class="l">Token</th><th>Largest group</th><th>All groups</th><th>Checked</th></tr></thead>`;
     $("refused").innerHTML = refused.length
       ? `<div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(0, 5).map(refRow).join("")}</tbody></table></div>` + (refused.length > 5 ? `<details class="more-ref"><summary>Show ${refused.length - 5} more</summary><div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(5).map(refRow).join("")}</tbody></table></div></details>` : "")
@@ -341,7 +341,7 @@
     if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`);
     if (jupFee) parts.push(`Jupiter swaps opened here add a ${(jupFee / 100).toFixed(2)}% referral fee; use jup.ag directly to avoid it.`);
     if (!shareRefs.length && !jupFee) parts.push("None of them pays Sift anything.");
-    parts.push("Sift doesn't take a cut of your trades. No bot, no paid calls either.");
+    parts.push("Sift takes no cut.");
     $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));
