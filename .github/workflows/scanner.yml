@@ -29,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: a74d0a41fdeffcca230fd778ec9695d9ebb5046d  # the exact commit of the trading code that runs here
+  SOURCE_REF: b69c694963656d08af5090e57c2cfdb7da1bcca9  # the exact commit of the trading code that runs here
   RUN_MINUTES: "330"
 
 jobs:

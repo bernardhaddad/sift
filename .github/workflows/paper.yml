@@ -1,35 +1,11 @@
 name: memecoin paper-trading cycle (public host)
 
-# Relocated here from the private repository on 2026-09-16.
+# hourly paper cycle + site build. runs here (public repo = free Actions minutes),
+# reads the private code with a read-only token. book state lives in the Actions
+# cache under paper-state/, seeded from paper-seed/ if missing.
 #
-# Why: the account is on GitHub Free, whose 2,000 included Actions minutes per
-# month are consumed by jobs in PRIVATE repositories. They ran out on 09-16 and
-# every scheduled paper cycle was refused ("spending limit needs to be
-# increased") until the reset. Public repositories are not metered, and this
-# repository is public because GitHub Pages serves the Sift screener from it.
-# So the cycle runs here, reading the private trading code through a read-only
-# token, and publishes the site in the same job (no deploy token needed).
-#
-# State: the book lives in this repository's Actions cache (cache-as-state),
-# held OUTSIDE the source checkout in paper-state/. The private repository
-# ships a stub memecoin-trading/data/ (an empty August state), and the first
-# version of this workflow restored the cache straight into that directory,
-# saw the stub, skipped seeding and ran a cycle on an empty book (run
-# 35104735505). The cache key prefix changed at the same time so that run can
-# never be restored. When paper-state/ has no state.json the job seeds it from
-# paper-seed/, rebuilt from the last snapshot the private host published
-# (seq 198, 2026-09-16 00:48 UTC, M2 at 57 closed and no open positions).
-#
-# Secrets this repository needs (Settings -> Secrets and variables -> Actions):
-#   SOURCE_REPO          owner/name of the private repository (a secret so it
-#                        stays masked in public logs).
-#   SOURCE_READ_TOKEN    fine-grained PAT, repository access = that repository
-#                        only, permission Contents = Read. Nothing else.
-#   HELIUS_API_KEY       the Amendment 6 funding-cluster gate; without it the
-#                        gate fails closed and no new M2 trades open.
-#   TELEGRAM_BOT_TOKEN   optional phone alerts.
-#   TELEGRAM_CHAT_ID     optional phone alerts.
-#   SOLANA_RPC_URL       optional override; leave unset to use Helius.
+# secrets: SOURCE_REPO, SOURCE_READ_TOKEN (contents:read on that repo only),
+# HELIUS_API_KEY; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SOLANA_RPC_URL
 
 on:
   schedule:
@@ -49,7 +25,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: a74d0a41fdeffcca230fd778ec9695d9ebb5046d  # the exact commit of the trading code that runs here
+  SOURCE_REF: b69c694963656d08af5090e57c2cfdb7da1bcca9  # the exact commit of the trading code that runs here
 
 jobs:
   cycle:
@@ -147,13 +123,8 @@ jobs:
           rm -rf paper-state
           cp -r src/memecoin-trading/data paper-state
 
-      # continue-on-error: a failed step fails the job, and a failed job skips
-      # the cache save, which would drop the cycle that just ran (seen 2026-09-18
-      # 05:56 UTC when a scheduled run and a manual dispatch overlapped and the
-      # second push was rejected). Publishing must never be able to lose the book.
-      # On a rejected push the snapshot is rebased onto origin/main; the site files
-      # are regenerated whole each cycle, so the replayed commit ("theirs" under
-      # rebase) is always the right side of any conflict.
+      # continue-on-error so a failed publish never skips the cache save (= losing the book).
+      # rejected push -> rebase with -X theirs; site files are regenerated each run anyway
       - name: Build and publish the site
         continue-on-error: true
         env:
