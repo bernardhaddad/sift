@@ -49,12 +49,12 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: e5be28304724966c53dec7893291893361865d72  # the exact commit of the trading code that runs here
+  SOURCE_REF: 946ef11a5724c62a17fdda625d742e8f099f3d7b  # the exact commit of the trading code that runs here
 
 jobs:
   cycle:
     runs-on: ubuntu-24.04  # pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19; the jobs use the image python3
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Check the read token is present
         env:
@@ -159,6 +159,8 @@ jobs:
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}  # the radar's trending feed traces with it
         run: |
+          # Pillow draws the radar's link-preview cards; without it pages publish without one
+          python3 -m pip install --quiet pillow || echo "pillow not installed: no preview cards"
           (cd src/memecoin-trading && python3 scripts/build_site.py)
           # The research page is built from the private repository's docs; a build
           # failure there must not block the snapshot, so it is best-effort.
@@ -166,16 +168,20 @@ jobs:
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
              src/memecoin-trading/site/data.json site/
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
+          # static pages: not found, privacy, terms, sitemap, and the site's preview card
+          for f in 404.html privacy.html terms.html sitemap.xml og.png; do
+            [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
+          done
           # Insider Radar: the hourly funding-cluster traces plus the on-demand ones (trace.yml) in
           # radar-requests/; best-effort, like the research page
           # A few trending tokens no trace covered in 24 h are traced first (radar-auto/, bounded
-          # at 2 traces and 300 s). The build reads back the track record (radar-ledger.json) and
+          # at 4 traces, 420 s and 6000 RPC calls a day). The build reads back the track record (radar-ledger.json) and
           # the funder-wallet registry (radar-wallets.json) from the site and writes them updated.
-          (cd src/memecoin-trading && timeout 360 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
+          (cd src/memecoin-trading && timeout 480 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
           # Self-audit of what is published now: a sample of links re-checked on a separate node
           (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar not built"
-          # one link-preview page per token on the radar (t/<mint>.html), replaced each hour
+          # one link-preview page and card per token on the radar (t/<mint>.html, .png), replaced each hour
           [ -d src/memecoin-trading/site/t ] && rm -rf site/t && cp -r src/memecoin-trading/site/t site/ || true
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml site/ || true
           # Amendment 8: the funding-cluster verdicts the minute scanner reads every 15 minutes
