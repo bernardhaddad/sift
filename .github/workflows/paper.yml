@@ -24,7 +24,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 0f92c6da20aad1549b7777a5ce7ec6d4bf24463a  # private code commit
+  SOURCE_REF: 2c111aa7fb967956f7d9082435fedc7844a7e131  # private code commit
 
 jobs:
   cycle:
@@ -135,8 +135,9 @@ jobs:
           done
           # radar: trending feed, audit, build (all best effort)
           (cd src/memecoin-trading && timeout 480 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
-          (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
+          (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py --audit "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json" "$GITHUB_WORKSPACE/site/radar-audit.json" "$GITHUB_WORKSPACE/site/radar-lp.json") || echo "radar not built"
+          cp src/memecoin-trading/scripts/radar_audit.py site/verify.py
           [ -d src/memecoin-trading/site/t ] && rm -rf site/t && cp -r src/memecoin-trading/site/t site/ || true
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml src/memecoin-trading/site/radar-lp.json site/ || true
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
