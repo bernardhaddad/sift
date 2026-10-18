@@ -24,7 +24,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 2c111aa7fb967956f7d9082435fedc7844a7e131  # private code commit
+  SOURCE_REF: a5d51ce34da52a02b7590ea5f1200508d8bbc597  # private code commit
 
 jobs:
   cycle:
@@ -130,7 +130,7 @@ jobs:
           cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
              src/memecoin-trading/site/data.json site/
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
-          for f in 404.html privacy.html terms.html sitemap.xml og.png; do
+          for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json; do
             [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
           done
           # radar: trending feed, audit, build (all best effort)
