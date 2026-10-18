@@ -119,6 +119,15 @@
   .proof { margin-left: auto; font-size: 13px; white-space: nowrap; }
   .holders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 13px; }
   .holders b { font: 12px var(--mono); color: var(--muted); margin-left: 4px; font-weight: 400; }
+  table.rec.rv th, table.rec.rv td { text-align: left; vertical-align: top; }
+  table.rec.rv td.why { min-width: 260px; }
+  @media (max-width: 640px) {
+    table.rec.rv thead { display: none; }
+    table.rec.rv tr { display: block; padding: 10px 14px; border-bottom: 1px solid var(--line-2); }
+    table.rec.rv tr:last-child { border-bottom: 0; }
+    table.rec.rv td { display: inline; border: 0; padding: 0 10px 0 0; }
+    table.rec.rv td.why { display: block; min-width: 0; padding: 4px 0 0; color: var(--muted); }
+  }
   .note { font-size: 13px; color: #6b4a00; background: #fff6e0; border-radius: 5px; padding: 8px 10px; margin-top: 10px; }
   .share { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
@@ -223,6 +232,11 @@
         <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished</th><th>Collapsed</th><th>After 24 h</th><th>After 7 days</th></tr></thead><tbody id="scores"></tbody></table></div>
       </div></details>
 
+      <details id="review"><summary>Case review</summary><div class="body">
+        <p>Every High risk verdict is reviewed case by case, separately from the tracer: all its links re-checked on the chain, the token's age read, and each linking wallet's activity counted. The review does not change a verdict; it says what each one rests on. <a href="radar-review.json">radar-review.json</a></p>
+        <div id="rv"><p style="color:var(--muted)">Loading…</p></div>
+      </div></details>
+
       <details id="repeat"><summary>Check a wallet</summary><div class="body">
         <p>Paste a wallet to see which traced tokens it funded. Wallets are remembered since <span id="regsince">launch</span>.</p>
         <div class="field"><input id="wq" type="search" placeholder="Wallet address" autocomplete="off" aria-label="Check a wallet"></div>
@@ -248,6 +262,8 @@
         <p>Read from the token's mint account every hour. A wallet holding the mint authority can create new tokens; one holding the freeze authority can freeze holders' tokens. Bridged and tokenized assets keep these with a program, which is normal. "Revoked" includes authorities set to the System Program, which nobody can use.</p>
         <h4>LP burn</h4>
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This works for Raydium AMM and PumpSwap pools. Concentrated pools have no LP token, and other pool types are marked as not checked. Lockers are not read, so LP that is locked rather than burned counts as not burned.</p>
+        <h4>Token age</h4>
+        <p>The creation date of the oldest trading pool found for the token, so it has traded at least since then. On a token trading for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than launch insiders. Such tokens keep their verdict, since the grading rules are fixed in advance, and carry a note saying so.</p>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed. You can run the same check yourself on any token: download <a href="verify.py">verify.py</a> (Python 3.11+, no key or packages) and run <code>python3 verify.py &lt;mint&gt;</code>. It checks every published link of that token against the public Solana node, or your own with <code>SOLANA_RPC_URL</code>.</p>
         <h4>Limits</h4><ul>
@@ -370,9 +386,18 @@
     return (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
   };
 
+  const DAY = 864e5;
+  function since(t) {  // the oldest pool seen: the token has traded at least since then
+    const s = Date.parse(t.trading_since || ""), at = Date.parse(t.traced_at || "");
+    return isNaN(s) ? null : { day: new Date(s).toISOString().slice(0, 10), old: !isNaN(at) && at - s > 30 * DAY };
+  }
+
   function detail(t) {
-    const groups = (t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`;
-    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
+    const s = since(t);
+    const older = s && s.old && (t.clusters || []).length
+      ? `<div class="note">Trading since at least ${s.day}. Linked top holders of an older token are often the project's own wallets (treasury, vesting, market making), not launch insiders. The links below are real; what they say about intent is weaker.</div>` : "";
+    const groups = older + ((t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`);
+    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${authority(t)}
       ${groups}
       <div class="share"><a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
@@ -434,6 +459,25 @@
     $("rw").innerHTML = rw.length ? rw.map((r) => `<li>${acct(r.address)}<span style="color:var(--muted)">behind ${int((r.tokens || []).length)} tokens:</span>${(r.tokens || []).slice(0, 8).map(tok).join("")}${(r.flags || []).length ? `<span class="flag">${r.flags.includes("busy") ? "high-volume wallet" : "possibly a shared service"}</span>` : ""}</li>`).join("")
       : `<li style="color:var(--muted)">No wallet has funded top holders of two different tokens yet.</li>`;
   }
+
+  let reviewed = false;
+  async function review() {
+    if (reviewed) return;
+    reviewed = true;
+    let r;
+    try { r = await (await fetch("radar-review.json", { cache: "no-store" })).json(); }
+    catch { reviewed = false; $("rv").innerHTML = `<p>The review could not be loaded. Please try again shortly.</p>`; return; }
+    const sm = r.summary || {}, cases = r.cases || [];
+    const age = (c) => {
+      const d = (Date.parse(c.verdict_at) - Date.parse(c.trading_since)) / DAY;
+      return isNaN(d) ? "–" : d < 1 ? `${Math.max(1, Math.round(d * 24))} h` : d < 60 ? `${Math.round(d)} days` : `${Math.round(d / 30.4)} months`;
+    };
+    const kind = (f) => f === "young" ? "Young token" : f === "older" ? "Older token" : esc(f);
+    $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High risk verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} on young tokens, where a linked group points to one actor behind many top wallets; ${int(sm.older_tokens)} on tokens trading for more than 30 days, where the group is as likely to be the project's own wallets or one large holder.</p>
+      <div class="scroll"><table class="rec rv"><thead><tr><th>Token</th><th>Age at verdict</th><th>Links</th><th>Finding</th><th>What it rests on</th></tr></thead><tbody>${cases.map((c) => `<tr><td><a href="https://solscan.io/token/${encodeURIComponent(c.mint)}" target="_blank" rel="noopener">${esc(c.name)}</a></td><td>${esc(age(c))}</td><td>${esc(c.links)}</td><td>${kind(c.finding)}</td><td class="why">${esc(c.note)}</td></tr>`).join("")}</tbody></table></div>
+      <p style="color:var(--muted)">How: ${(r.method || []).map(esc).join(" ")}</p>`;
+  }
+  $("review").addEventListener("toggle", () => { if ($("review").open) review(); });
 
   let registry = null;
   async function checkWallet() {

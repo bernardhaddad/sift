@@ -1,0 +1,91 @@
+{
+  "reviewed_at": "2026-10-18T20:30:00+00:00",
+  "scope": "Every High risk verdict in the track record up to 2026-10-18 19:27 UTC.",
+  "method": [
+    "Every published link of the token re-checked on the public Solana node with verify.py.",
+    "The token's age: the creation date of its oldest trading pool on GeckoTerminal, against the date of the verdict.",
+    "Each linking wallet's activity: its transaction count, and for wallets with 1,000 or more, how busy they were when the token was traced.",
+    "A verdict on a token trading for over 30 days is marked as an older token: the links hold, but a linked group there is often the project's own wallets or one large holder, not launch insiders."
+  ],
+  "summary": {
+    "verdicts": 8,
+    "links_checked": 148,
+    "links_contradicted": 0,
+    "young_tokens": 4,
+    "older_tokens": 4
+  },
+  "cases": [
+    {
+      "mint": "2fk5eGwAch1wGhsK3XhRUZpopXFGyRbFUn6XL4Yxpump",
+      "name": "MHDG",
+      "verdict_at": "2026-10-16T17:03:00+00:00",
+      "trading_since": "2026-10-15T23:12:09Z",
+      "links": "15 of 15 verified",
+      "finding": "young",
+      "note": "Five top holders with 65.6% of supply are linked directly: one of them paid the first transaction of the others. No exchange or service wallet in the chain."
+    },
+    {
+      "mint": "8RpybikpGLbKsYJ4FXz12ExDz89R7VXAUZ3JXNcKpump",
+      "name": "DOGESTER",
+      "verdict_at": "2026-10-18T19:27:00+00:00",
+      "trading_since": "2026-10-18T16:28:33Z",
+      "links": "40 of 40 verified",
+      "finding": "young",
+      "note": "18 top holders with 39.1% of supply, linked through 7 wallets with 26 to 97 transactions each, which also sent several of them their first tokens. Graded three hours after its first pool opened."
+    },
+    {
+      "mint": "7SG8ap8SqDB1dVmJ9RZhXd3VBkbgwPitxt9Jhj4Spump",
+      "name": "FORGE",
+      "verdict_at": "2026-10-18T19:27:00+00:00",
+      "trading_since": "2026-09-30T21:47:35Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "9 top holders with 26.9% of supply. Two linking wallets are high-volume and flagged as such; the group stays linked without them."
+    },
+    {
+      "mint": "2sY7rkMCQyFNcSpHm3fciJf2ptYRg3cYpn4srN6Bpump",
+      "name": "IOF",
+      "verdict_at": "2026-10-16T04:06:00+00:00",
+      "trading_since": "2026-09-21T01:01:51Z",
+      "links": "26 of 26 verified",
+      "finding": "young",
+      "note": "20 top holders with 26.5% of supply received their first tokens from one wallet with 13 transactions in its whole history. Two other funders were already busy (over 3,000 transactions before the trace) and were left out of the verdict, as designed."
+    },
+    {
+      "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
+      "name": "GOAT",
+      "verdict_at": "2026-10-15T12:06:00+00:00",
+      "trading_since": "2024-10-10T21:19:05Z",
+      "links": "3 of 3 proof transactions checked by hand",
+      "finding": "older",
+      "note": "The linked wallets are real; on a token trading this long they say little about who held it at launch."
+    },
+    {
+      "mint": "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
+      "name": "PENGU",
+      "verdict_at": "2026-10-15T18:30:00+00:00",
+      "trading_since": "2024-12-16T13:58:00Z",
+      "links": "10 of 10 verified",
+      "finding": "older",
+      "note": "A project token. 8 linked top holders with 17.8% of supply are consistent with the project's own distribution or treasury wallets."
+    },
+    {
+      "mint": "KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS",
+      "name": "KMNO",
+      "verdict_at": "2026-10-15T20:37:00+00:00",
+      "trading_since": "2024-04-29T21:04:00Z",
+      "links": "16 of 16 verified",
+      "finding": "older",
+      "note": "A protocol token. Two linked groups (16.7% and 8.9%) are consistent with team, treasury or vesting wallets."
+    },
+    {
+      "mint": "GMzuntWYJLpNuCizrSR7ZXggiMdDzTNiEmSNHHunpump",
+      "name": "dreams",
+      "verdict_at": "2026-10-18T18:48:00+00:00",
+      "trading_since": "2025-01-19T14:28:47Z",
+      "links": "14 of 14 verified",
+      "finding": "older",
+      "note": "One wallet funded and supplied 3 holders with 17.9% of supply: one large holder spread across wallets is as likely as an insider group."
+    }
+  ]
+}
