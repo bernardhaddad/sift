@@ -3,7 +3,8 @@
 # manifest.txt and timestamp it with OpenTimestamps (anchored in Bitcoin). each run also upgrades
 # earlier pending stamps. best effort, always exits 0.
 #   usage: anchor.sh <site dir>
-#   check: sha256sum -c manifest.txt && ots verify manifest.txt.ots
+#   check: sha256sum -c manifest.txt && ots verify manifest.txt.ots (needs a bitcoin node;
+#   without one, ots --no-bitcoin verify prints the block and merkle root to look up)
 set -u
 site="$1"
 day=$(date -u +%F)

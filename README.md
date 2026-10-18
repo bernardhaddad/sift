@@ -12,7 +12,7 @@ Hourly Solana memecoin screener. It shows net buy flow and which top holders wer
 - Holder tracing. The top 20 holders of each token the paper system looks at are traced back to whoever funded them. If one funder's wallets hold more than 10% of supply (or all such groups more than 20%), the token is refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) shows every trace with the transactions behind it. To get any token traced, open an issue with the trace template.
 - The presets (quiet dips, deep survivors, aged pools) are bands measured on a 14-day panel of forward returns.
 - The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far.
-- `proofs/`: a daily copy of the radar's track record and data with their SHA-256 hashes, timestamped in Bitcoin with OpenTimestamps. Check a day with `sha256sum -c manifest.txt` and `ots verify manifest.txt.ots`.
+- `proofs/`: a daily copy of the radar's track record and data with their SHA-256 hashes, timestamped in Bitcoin with OpenTimestamps. Check a day with `sha256sum -c manifest.txt`, then `ots verify manifest.txt.ots` if you run a Bitcoin node. Without one, `ots --no-bitcoin verify manifest.txt.ots` prints a block number and Merkle root to compare with any block explorer.
 
 ## How it runs
 
