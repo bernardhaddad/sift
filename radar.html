@@ -249,7 +249,7 @@
         <h4>LP burn</h4>
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This works for Raydium AMM and PumpSwap pools. Concentrated pools have no LP token, and other pool types are marked as not checked. Lockers are not read, so LP that is locked rather than burned counts as not burned.</p>
         <h4>Self-audit</h4>
-        <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed.</p>
+        <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed. You can run the same check yourself on any token: download <a href="verify.py">verify.py</a> (Python 3.11+, no key or packages) and run <code>python3 verify.py &lt;mint&gt;</code>. It checks every published link of that token against the public Solana node, or your own with <code>SOLANA_RPC_URL</code>.</p>
         <h4>Limits</h4><ul>
           <li>Covers the tokens Sift's scanner watches, requested tokens, and up to four trending tokens an hour.</li>
           <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
