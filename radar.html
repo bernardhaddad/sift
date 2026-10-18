@@ -262,6 +262,8 @@
         <p>Read from the token's mint account every hour. A wallet holding the mint authority can create new tokens; one holding the freeze authority can freeze holders' tokens. Bridged and tokenized assets keep these with a program, which is normal. "Revoked" includes authorities set to the System Program, which nobody can use.</p>
         <h4>LP burn</h4>
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This works for Raydium AMM and PumpSwap pools. Concentrated pools have no LP token, and other pool types are marked as not checked. Lockers are not read, so LP that is locked rather than burned counts as not burned.</p>
+        <h4>Still held</h4>
+        <p>For High and Watch tokens, each hour the token's 20 largest accounts are read again and matched to the linked wallets. A group that still holds its supply is a different risk from one that has already sold. Linked wallets that dropped out of the 20 largest are counted as holding less than the 20th account, so the figure is a minimum.</p>
         <h4>Token age</h4>
         <p>The creation date of the oldest trading pool found for the token, so it has traded at least since then. On a token trading for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than launch insiders. Such tokens keep their verdict, since the grading rules are fixed in advance, and carry a note saying so.</p>
         <h4>Self-audit</h4>
@@ -271,6 +273,7 @@
           <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
           <li>Scanner traces are shown for 24 hours (2 if incomplete), requested ones for 7 days.</li>
           <li>A linked group suggests one actor holds several wallets. It says nothing about what they will do. Not financial advice.</li>
+          <li>Sift publishes on-chain relationships anyone can check. It does not identify people, prove who owns a wallet, or predict prices.</li>
         </ul>
       </div></details>
 
@@ -370,16 +373,26 @@
     return `<span>LP: <b>${num(l.burned_pct).toFixed(1)}%</b> burned in the main ${pool}</span>`;
   }
 
+  function heldLine(t) {  // linked supply still held, read from the 20 largest accounts each hour
+    const r = t.retained;
+    if (!r) return "";
+    const gone = int(r.out_of_top), all = int(r.wallets);
+    const tail = !r.out_of_top ? `all ${all} linked wallets still among the 20 largest`
+      : num(r.below_pct) > 0 ? `${gone} of ${all} linked wallets left the 20 largest (each now holds under ${pct(r.below_pct)})`
+      : `${gone} of ${all} linked wallets hold nothing`;
+    return `<div class="facts auth"><span>Linked wallets now hold <b>${num(r.out_of_top) && num(r.below_pct) > 0 ? "at least " : ""}${pct(r.held_pct)}</b> of supply (${pct(t.clustered_pct)} when traced): ${tail}</span><span style="color:var(--faint)">checked ${ago(r.at)}</span></div>`;
+  }
+
   function authority(t) {
     const a = t.authority;
-    if (!a) return t.lp ? `<div class="facts auth">${lpLine(t)}</div>` : "";
+    if (!a) return (t.lp ? `<div class="facts auth">${lpLine(t)}</div>` : "") + heldLine(t);
     const one = (key, power) => {
       const by = a[key + "_by"];
       if (by === "none") return "revoked";
       if (by === "program") return `held by a program ${acct(a[key])}`;
       return `<span class="bad">held by wallet ${acct(a[key])}, which ${power}</span>`;
     };
-    return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span>${lpLine(t)}<span style="color:var(--faint)">checked ${ago(a.at)}</span></div>`;
+    return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span>${lpLine(t)}<span style="color:var(--faint)">checked ${ago(a.at)}</span></div>${heldLine(t)}`;
   }
   const flags = (t) => {
     const a = t.authority || {};
