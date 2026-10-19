@@ -1,6 +1,6 @@
 {
-  "reviewed_at": "2026-10-18T20:30:00+00:00",
-  "scope": "Every High risk verdict in the track record up to 2026-10-18 19:27 UTC.",
+  "reviewed_at": "2026-10-19T13:10:00+00:00",
+  "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
     "Token age from the oldest trading pool on GeckoTerminal, compared with the date of the verdict.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 8,
-    "links_checked": 148,
+    "verdicts": 9,
+    "links_checked": 186,
     "links_contradicted": 0,
-    "young_tokens": 4,
+    "young_tokens": 5,
     "older_tokens": 4
   },
   "cases": [
@@ -50,6 +50,15 @@
       "links": "26 of 26 verified",
       "finding": "young",
       "note": "20 top holders with 26.5% of supply got their first tokens from one wallet that has made 13 transactions in total. Two other funders already had over 3,000 transactions and don't count toward the verdict."
+    },
+    {
+      "mint": "4EwkXtSRpVxMAHM8ecRDdfK3gjR2F2JgTmqqqwNQpump",
+      "name": "LSCW",
+      "verdict_at": "2026-10-19T09:23:06+00:00",
+      "trading_since": "2026-10-19T04:11:35Z",
+      "links": "38 of 38 verified",
+      "finding": "young",
+      "note": "19 top holders with 17.3% of supply. One wallet funded 19 new wallets, and each of those funded one holder. The 10 middle wallets checked have 15 to 21 transactions each; the funding wallet had 1,145 when the token was traced. Graded five hours after the first pool opened."
     },
     {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
