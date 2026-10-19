@@ -233,7 +233,7 @@
       </div></details>
 
       <details id="review"><summary>Case review</summary><div class="body">
-        <p>Every High risk verdict is reviewed case by case, separately from the tracer: all its links re-checked on the chain, the token's age read, and each linking wallet's activity counted. The review does not change a verdict; it says what each one rests on. <a href="radar-review.json">radar-review.json</a></p>
+        <p>High risk verdicts are reviewed case by case, separately from the tracer: all their links re-checked on the chain, the token's age read, and each linking wallet's activity counted. The review does not change a verdict; it says what each one rests on. Verdicts not reviewed yet are listed below. <a href="radar-review.json">radar-review.json</a></p>
         <div id="rv"><p style="color:var(--muted)">Loading…</p></div>
       </div></details>
 
@@ -477,9 +477,16 @@
   async function review() {
     if (reviewed) return;
     reviewed = true;
-    let r;
+    let r, book = {};
     try { r = await (await fetch("radar-review.json", { cache: "no-store" })).json(); }
     catch { reviewed = false; $("rv").innerHTML = `<p>The review could not be loaded. Please try again shortly.</p>`; return; }
+    try { book = (await (await fetch("radar-ledger.json", { cache: "no-store" })).json()).entries || {}; } catch { book = {}; }
+    const done = new Set((r.cases || []).map((c) => c.mint));
+    const todo = Object.values(book).filter((e) => e.grade === "high" && !done.has(e.mint))
+      .sort((a, b) => String(a.entered_at).localeCompare(String(b.entered_at)));
+    const pending = todo.length
+      ? `<p class="note">Not reviewed yet: ${todo.map((e) => `<a href="https://solscan.io/token/${encodeURIComponent(e.mint)}" target="_blank" rel="noopener">${esc(e.name || short(e.mint))}</a> (${esc(when(e.entered_at))})`).join(", ")}.</p>`
+      : `<p style="color:var(--muted)">Every High risk verdict in the track record is reviewed.</p>`;
     const sm = r.summary || {}, cases = r.cases || [];
     const age = (c) => {
       const d = (Date.parse(c.verdict_at) - Date.parse(c.trading_since)) / DAY;
@@ -488,6 +495,7 @@
     const kind = (f) => f === "young" ? "Young token" : f === "older" ? "Older token" : esc(f);
     $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High risk verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} on young tokens, where a linked group points to one actor behind many top wallets; ${int(sm.older_tokens)} on tokens trading for more than 30 days, where the group is as likely to be the project's own wallets or one large holder.</p>
       <div class="scroll"><table class="rec rv"><thead><tr><th>Token</th><th>Age at verdict</th><th>Links</th><th>Finding</th><th>What it rests on</th></tr></thead><tbody>${cases.map((c) => `<tr><td><a href="https://solscan.io/token/${encodeURIComponent(c.mint)}" target="_blank" rel="noopener">${esc(c.name)}</a></td><td>${esc(age(c))}</td><td>${esc(c.links)}</td><td>${kind(c.finding)}</td><td class="why">${esc(c.note)}</td></tr>`).join("")}</tbody></table></div>
+      ${pending}
       <p style="color:var(--muted)">How: ${(r.method || []).map(esc).join(" ")}</p>`;
   }
   $("review").addEventListener("toggle", () => { if ($("review").open) review(); });
