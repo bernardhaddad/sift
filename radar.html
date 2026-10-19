@@ -235,7 +235,7 @@
       </div></details>
 
       <details id="review"><summary>Case review</summary><div class="body">
-        <p>High risk verdicts are reviewed case by case, separately from the tracer: all their links re-checked on the chain, the token's age read, and each linking wallet's activity counted. The review does not change a verdict; it says what each one rests on. Verdicts not reviewed yet are listed below. <a href="radar-review.json">radar-review.json</a></p>
+        <p>Each High risk verdict is checked a second time, apart from the tracer: every link re-read on the chain, the token's age, and how active each linking wallet is. Reviews don't change verdicts. <a href="radar-review.json">radar-review.json</a></p>
         <div id="rv"><p style="color:var(--muted)">Loading…</p></div>
       </div></details>
 
@@ -265,9 +265,9 @@
         <h4>LP burn</h4>
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This works for Raydium AMM and PumpSwap pools. Concentrated pools have no LP token, and other pool types are marked as not checked. Lockers are not read, so LP that is locked rather than burned counts as not burned.</p>
         <h4>Still held</h4>
-        <p>For High and Watch tokens, each hour the token's 20 largest accounts are read again and matched to the linked wallets. A group that still holds its supply is a different risk from one that has already sold. Linked wallets that dropped out of the 20 largest are counted as holding less than the 20th account, so the figure is a minimum.</p>
+        <p>For High and Watch tokens, the 20 largest accounts are read again every hour and matched to the linked wallets. A wallet that has dropped out of the top 20 isn't counted, so the figure is a minimum.</p>
         <h4>Token age</h4>
-        <p>The creation date of the oldest trading pool found for the token, so it has traded at least since then. On a token trading for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than launch insiders. Such tokens keep their verdict, since the grading rules are fixed in advance, and carry a note saying so.</p>
+        <p>The date of the oldest trading pool found for the token. On a token that has traded for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than insiders from the launch. Those tokens keep their verdict, because the grading rules don't change after the fact, but the page points it out.</p>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed. You can run the same check yourself on any token: download <a href="verify.py">verify.py</a> (Python 3.11+, no key or packages) and run <code>python3 verify.py &lt;mint&gt;</code>. It checks every published link of that token against the public Solana node, or your own with <code>SOLANA_RPC_URL</code>.</p>
         <h4>Limits</h4><ul>
@@ -379,10 +379,8 @@
     const r = t.retained;
     if (!r) return "";
     const gone = int(r.out_of_top), all = int(r.wallets);
-    const tail = !r.out_of_top ? `all ${all} linked wallets still among the 20 largest`
-      : num(r.below_pct) > 0 ? `${gone} of ${all} linked wallets left the 20 largest (each now holds under ${pct(r.below_pct)})`
-      : `${gone} of ${all} linked wallets hold nothing`;
-    return `<div class="facts auth"><span>Linked wallets now hold <b>${num(r.out_of_top) && num(r.below_pct) > 0 ? "at least " : ""}${pct(r.held_pct)}</b> of supply (${pct(t.clustered_pct)} when traced): ${tail}</span><span style="color:var(--faint)">checked ${ago(r.at)}</span></div>`;
+    const tail = !r.out_of_top ? "" : num(r.below_pct) > 0 ? ` ${gone} of ${all} wallets are out of the top 20.` : ` ${gone} of ${all} wallets hold none.`;
+    return `<div class="facts auth"><span>Linked wallets now hold <b>${num(r.out_of_top) && num(r.below_pct) > 0 ? "at least " : ""}${pct(r.held_pct)}</b> of supply, ${pct(t.clustered_pct)} when traced.${tail}</span><span style="color:var(--faint)">checked ${ago(r.at)}</span></div>`;
   }
 
   function authority(t) {
@@ -410,7 +408,7 @@
   function detail(t) {
     const s = since(t);
     const older = s && s.old && (t.clusters || []).length
-      ? `<div class="note">Trading since at least ${s.day}. Linked top holders of an older token are often the project's own wallets (treasury, vesting, market making), not launch insiders. The links below are real; what they say about intent is weaker.</div>` : "";
+      ? `<div class="note">Trading since ${s.day}. On a token this old, the linked holders may be the project's own wallets.</div>` : "";
     const groups = older + ((t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`);
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${authority(t)}
@@ -473,7 +471,7 @@
       const d = cp.definitions;
       const row = (name, side) => `<tr><td>${esc(name)}</td><td>${int(side.closed)}</td><td>${side.rate == null ? "–" : `<b>${pct(num(side.rate) * 100)}</b> <span style="color:var(--faint)">(${int(side.collapsed)})</span>`}</td></tr>`;
       const block = (title, c, a, b, la, lb) => `<tr><td colspan="3" style="text-align:left;font-weight:600">${esc(title)}${c.ready ? "" : ` <span style="color:var(--faint);font-weight:400">(needs ${int(d.min_each)} finished on each side)</span>`}</td></tr>${row(la, c[a])}${row(lb, c[b])}`;
-      $("cmp").innerHTML = `<p>Fixed on ${esc(d.fixed_at)}, before the first token finished its 7 days, and timestamped with the daily proofs. Scope: ${esc(d.scope)}. Outcome: ${esc(d.outcome)}. ${esc(d.age)}. ${esc(d.exit)}. Note: ${esc(d.note)}.</p>
+      $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished High and Watch tokens by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together, so this shows what happened, not what caused it.</p>
         <div class="scroll"><table class="rec"><thead><tr><th>Group</th><th>Finished</th><th>Collapsed</th></tr></thead><tbody>${block("Token age", cp.age, "young", "older", "Young token", "Older token")}${block("Linked wallets", cp.exit, "sold", "held", "Sold half or more", "Held")}</tbody></table></div>`;
     }
     if (doc.registry_since) $("regsince").textContent = when(doc.registry_since);
@@ -503,10 +501,10 @@
       return isNaN(d) ? "–" : d < 1 ? `${Math.max(1, Math.round(d * 24))} h` : d < 60 ? `${Math.round(d)} days` : `${Math.round(d / 30.4)} months`;
     };
     const kind = (f) => f === "young" ? "Young token" : f === "older" ? "Older token" : esc(f);
-    $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High risk verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} on young tokens, where a linked group points to one actor behind many top wallets; ${int(sm.older_tokens)} on tokens trading for more than 30 days, where the group is as likely to be the project's own wallets or one large holder.</p>
-      <div class="scroll"><table class="rec rv"><thead><tr><th>Token</th><th>Age at verdict</th><th>Links</th><th>Finding</th><th>What it rests on</th></tr></thead><tbody>${cases.map((c) => `<tr><td><a href="https://solscan.io/token/${encodeURIComponent(c.mint)}" target="_blank" rel="noopener">${esc(c.name)}</a></td><td>${esc(age(c))}</td><td>${esc(c.links)}</td><td>${kind(c.finding)}</td><td class="why">${esc(c.note)}</td></tr>`).join("")}</tbody></table></div>
+    $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High risk verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} were young tokens and ${int(sm.older_tokens)} had traded for more than 30 days.</p>
+      <div class="scroll"><table class="rec rv"><thead><tr><th>Token</th><th>Age at verdict</th><th>Links</th><th>Finding</th><th>Notes</th></tr></thead><tbody>${cases.map((c) => `<tr><td><a href="https://solscan.io/token/${encodeURIComponent(c.mint)}" target="_blank" rel="noopener">${esc(c.name)}</a></td><td>${esc(age(c))}</td><td>${esc(c.links)}</td><td>${kind(c.finding)}</td><td class="why">${esc(c.note)}</td></tr>`).join("")}</tbody></table></div>
       ${pending}
-      <p style="color:var(--muted)">How: ${(r.method || []).map(esc).join(" ")}</p>`;
+      `;
   }
   $("review").addEventListener("toggle", () => { if ($("review").open) review(); });
 
