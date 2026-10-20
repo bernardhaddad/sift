@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-19T13:10:00+00:00",
+  "reviewed_at": "2026-10-20T05:10:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 9,
-    "links_checked": 186,
+    "verdicts": 10,
+    "links_checked": 222,
     "links_contradicted": 0,
-    "young_tokens": 5,
+    "young_tokens": 6,
     "older_tokens": 4
   },
   "cases": [
@@ -59,6 +59,15 @@
       "links": "38 of 38 verified",
       "finding": "young",
       "note": "19 top holders with 17.3% of supply. One wallet funded 19 new wallets, and each of those funded one holder. The 10 middle wallets checked have 15 to 21 transactions each; the funding wallet had 1,145 when the token was traced. Graded five hours after the first pool opened."
+    },
+    {
+      "mint": "J34sjwqUYsicH2A6aNoMn91MAPYkUUdXsyfFBLBNDoLL",
+      "name": "DOLLARSE",
+      "verdict_at": "2026-10-20T02:00:04+00:00",
+      "trading_since": "2026-10-19T17:28:35Z",
+      "links": "36 of 36 verified",
+      "finding": "young",
+      "note": "19 of the top 20 holders, with 93.3% of supply, are linked. Several of them funded the others and sent them their first tokens. Every linking wallet has between 5 and 64 transactions. Graded eight and a half hours after the first pool opened."
     },
     {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
