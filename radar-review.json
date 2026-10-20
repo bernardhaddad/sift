@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-20T05:10:00+00:00",
+  "reviewed_at": "2026-10-20T09:20:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 10,
-    "links_checked": 222,
+    "verdicts": 11,
+    "links_checked": 254,
     "links_contradicted": 0,
-    "young_tokens": 6,
+    "young_tokens": 7,
     "older_tokens": 4
   },
   "cases": [
@@ -68,6 +68,15 @@
       "links": "36 of 36 verified",
       "finding": "young",
       "note": "19 of the top 20 holders, with 93.3% of supply, are linked. Several of them funded the others and sent them their first tokens. Every linking wallet has between 5 and 64 transactions. Graded eight and a half hours after the first pool opened."
+    },
+    {
+      "mint": "D3tSj2izyLwXMr1svmwmtg6sLr4RubYVJfvmCKJUpump",
+      "name": "STICKFU",
+      "verdict_at": "2026-10-20T07:53:05+00:00",
+      "trading_since": "2026-10-20T04:11:42Z",
+      "links": "32 of 32 verified",
+      "finding": "young",
+      "note": "16 top holders with 13.8% of supply, each funded by its own middle wallet (28 to 47 transactions), and all 16 middle wallets funded by the same wallet that was behind LSCW the day before. Two middle wallets are the same ones used for LSCW. The page links the two tokens through that wallet. Graded under four hours after the first pool opened."
     },
     {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
