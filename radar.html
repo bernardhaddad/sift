@@ -259,6 +259,7 @@
           <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
           <li>From 15 October the ledger also records the first hour a token is 50% and 80% below its entry price. It is extra information and changes no score; tokens already below a line by then have an unknown time.</li>
           <li>Verdicts are not assigned at random, so read differences between them with care. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
+          <li>Until 21 October, the price requests ran into the price service's rate limit, and many entries went over 6 hours without a price. Those entries stay unscored. Since then the oldest unchecked entries are asked first and refused requests are retried. The 6-hour rule itself has not changed.</li>
         </ul>
         <h4>Mint and freeze authority</h4>
         <p>Read from the token's mint account every hour. A wallet holding the mint authority can create new tokens; one holding the freeze authority can freeze holders' tokens. Bridged and tokenized assets keep these with a program, which is normal. "Revoked" includes authorities set to the System Program, which nobody can use.</p>
