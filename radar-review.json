@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-20T17:15:00+00:00",
+  "reviewed_at": "2026-10-21T05:15:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 12,
-    "links_checked": 265,
+    "verdicts": 13,
+    "links_checked": 271,
     "links_contradicted": 0,
-    "young_tokens": 7,
+    "young_tokens": 8,
     "older_tokens": 5
   },
   "cases": [
@@ -77,6 +77,15 @@
       "links": "32 of 32 verified",
       "finding": "young",
       "note": "16 top holders with 13.8% of supply, each funded by its own middle wallet (28 to 47 transactions), and all 16 middle wallets funded by the same wallet that was behind LSCW the day before. Two middle wallets are the same ones used for LSCW. The page links the two tokens through that wallet. Graded under four hours after the first pool opened."
+    },
+    {
+      "mint": "BGsMjz8wobAcpspSE3RvGBhEirngJSmpEsmuzZrkpump",
+      "name": "TNTCOIN",
+      "verdict_at": "2026-10-21T03:13:27+00:00",
+      "trading_since": "2026-10-19T22:24:30Z",
+      "links": "6 of 6 verified",
+      "finding": "young",
+      "note": "One ordinary wallet (not a pool or program) holds 72.3% of supply. Its first transaction was paid through a chain of wallets that runs back through two other top holders, so 3 linked holders control 73.1%. Graded 29 hours after the first pool opened."
     },
     {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
