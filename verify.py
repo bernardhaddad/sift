@@ -154,9 +154,17 @@ def run(doc: dict, prior: dict | None, node: Node, now: datetime, max_links: int
     }
     entry = {"at": now.isoformat(timespec="seconds"), "node": "public Solana RPC", **counts}
     history = ([entry] + list((prior or {}).get("history") or []))[:HISTORY]
-    totals = {s: sum(h.get(s, 0) for h in history) for s in ("verified", "failed", "unreachable")}
+    keys = ("verified", "failed", "unreachable")
+    if isinstance((prior or {}).get("runs"), int):  # running totals since `since`, never trimmed
+        old = prior.get("totals") or {}
+        totals = {k: int(old.get(k) or 0) + entry[k] for k in keys}
+        runs = prior["runs"] + 1
+    else:  # older files kept only the last HISTORY runs; their sum is all they can give
+        totals = {k: sum(h.get(k, 0) for h in history) for k in keys}
+        runs = len(history)
     since = (prior or {}).get("since") or entry["at"]
-    return {"since": since, "last": {**entry, "links": results}, "totals": totals, "history": history}
+    return {"since": since, "runs": runs, "last": {**entry, "links": results}, "totals": totals,
+            "history": history}
 
 
 def all_links(doc: dict, mint: str | None = None) -> list:
