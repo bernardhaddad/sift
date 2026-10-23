@@ -259,6 +259,7 @@
           <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
           <li>From 15 October the ledger also records the first hour a token is 50% and 80% below its entry price. It is extra information and changes no score; tokens already below a line by then have an unknown time.</li>
           <li>Verdicts are not assigned at random, so read differences between them with care. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
+          <li>The radar covers memecoins. On 23 October stablecoins, wrapped coins, staking tokens, tokenized stocks and large protocol tokens (listed by exact address) were taken out of its scope. Their linked holders are usually the issuer's own wallets. The 8 such entries already in the track record are kept in the file, marked out of scope, and left out of the scores.</li>
           <li>Until 21 October, the price requests ran into the price service's rate limit, and many entries went over 6 hours without a price. Those entries stay unscored. Since then the oldest unchecked entries are asked first and refused requests are retried. The 6-hour rule itself has not changed.</li>
         </ul>
         <h4>Mint and freeze authority</h4>
@@ -491,7 +492,7 @@
     catch { reviewed = false; $("rv").innerHTML = `<p>The review could not be loaded. Please try again shortly.</p>`; return; }
     try { book = (await (await fetch("radar-ledger.json", { cache: "no-store" })).json()).entries || {}; } catch { book = {}; }
     const done = new Set((r.cases || []).map((c) => c.mint));
-    const todo = Object.values(book).filter((e) => e.grade === "high" && !done.has(e.mint))
+    const todo = Object.values(book).filter((e) => e.grade === "high" && !done.has(e.mint) && !e.out_of_scope)
       .sort((a, b) => String(a.entered_at).localeCompare(String(b.entered_at)));
     const pending = todo.length
       ? `<p class="note">Not reviewed yet: ${todo.map((e) => `<a href="https://solscan.io/token/${encodeURIComponent(e.mint)}" target="_blank" rel="noopener">${esc(e.name || short(e.mint))}</a> (${esc(when(e.entered_at))})`).join(", ")}.</p>`
