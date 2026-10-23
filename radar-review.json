@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-21T05:15:00+00:00",
+  "reviewed_at": "2026-10-23T09:20:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 13,
-    "links_checked": 271,
+    "verdicts": 15,
+    "links_checked": 312,
     "links_contradicted": 0,
-    "young_tokens": 8,
-    "older_tokens": 5
+    "young_tokens": 9,
+    "older_tokens": 6
   },
   "cases": [
     {
@@ -88,6 +88,15 @@
       "note": "One ordinary wallet (not a pool or program) holds 72.3% of supply. Its first transaction was paid through a chain of wallets that runs back through two other top holders, so 3 linked holders control 73.1%. Graded 29 hours after the first pool opened."
     },
     {
+      "mint": "EzahUvB1uCVDiXzXhqWULdtsX3umMn5C8SyxWtYJLD6u",
+      "name": "AGTM",
+      "verdict_at": "2026-10-23T05:14:12+00:00",
+      "trading_since": "2026-10-06T16:43:46Z",
+      "links": "31 of 31 verified",
+      "finding": "young",
+      "note": "15 linked top holders with 99.8% of supply. One of them (9.7%, 107 transactions) sent 14 others their first tokens. The single pool holds about $22K of liquidity, so nearly the whole supply sits with one group and very little trades."
+    },
+    {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
       "name": "GOAT",
       "verdict_at": "2026-10-15T12:06:00+00:00",
@@ -131,6 +140,15 @@
       "links": "11 of 11 verified",
       "finding": "older",
       "note": "Four small linked groups with 23.8% of supply in all, the largest two holders with 9.6%. Most of the linking wallets are holders themselves, and four of them have over 1,000 transactions. On a token trading this long, these look like large holders moving funds between their own wallets."
+    },
+    {
+      "mint": "DqBXBtPeMoP77D7jhCTqpBvjvHTGWDJATeo5qnvxpump",
+      "name": "LCMM",
+      "verdict_at": "2026-10-23T06:23:06+00:00",
+      "trading_since": "2026-09-09T22:24:43Z",
+      "links": "10 of 10 verified",
+      "finding": "older",
+      "note": "8 linked top holders with 63.0% of supply. One holder with 1.4% (89 transactions) funded or sent first tokens to the others. A funding wallet seen behind 9 tokens is set aside as a likely shared service and does not count toward the verdict. Traded for 43 days before the verdict."
     }
   ]
 }
