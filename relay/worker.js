@@ -12,10 +12,14 @@ const DAILY_LIMIT = 40;      // traces a day, all visitors together (same as tra
 const PER_VISITOR_LIMIT = 3; // traces a day per visitor
 const FRESH_MS = 2 * 3600e3; // a trace this recent is returned instead of a new one
 const RUN_WINDOW_MS = 30 * 60e3;
+const MAX_ACTIVE = 2;        // relay traces queued or running at once; more waits (the paper cycle shares the runners)
+const CACHE_S = 5;           // GitHub answers reused this long, so polling cannot use up the token's API quota
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 const LIMIT_TEXT = `The free daily limit is reached (${PER_VISITOR_LIMIT} traces a day per visitor, ${DAILY_LIMIT} in total). Please try again tomorrow.`;
 const INVALID_TEXT = "That does not look like a Solana token address (base58, 32 to 44 characters).";
+const BUSY_TEXT = "Other traces are running right now. Please try again in a few minutes.";
+const API = `https://api.github.com/repos/${REPO}/`;
 
 export default {
   async fetch(req, env) {
@@ -33,7 +37,9 @@ export default {
     }
     if (url.pathname !== "/trace") return reply({ error: "not found" }, 404, cors);
     try {
-      if (req.method === "GET") return reply(await status(env, (url.searchParams.get("mint") || "").trim()), 200, cors);
+      if (req.method === "GET") {
+        return reply(await status(env, (url.searchParams.get("mint") || "").trim(), url.searchParams.get("since") || ""), 200, cors);
+      }
       if (req.method === "POST") {
         let body = {};
         try { body = await req.json(); } catch { /* empty body: handled as an invalid address */ }
@@ -53,6 +59,7 @@ function reply(body, code, headers) {
 
 function gh(env, path, init = {}) {
   const url = path.startsWith("https://") ? path : `https://api.github.com/repos/${REPO}${path}`;
+  if (!url.startsWith(API)) throw new Error("not this repository");  // the token goes nowhere else
   return fetch(url, {
     ...init,
     headers: {
@@ -70,25 +77,39 @@ async function ok(res) {
   return res.json();
 }
 
+// a GitHub GET as JSON (null for 404), shared by all requests for CACHE_S seconds
+async function cachedJson(env, path, accept) {
+  const store = typeof caches !== "undefined" ? caches.default : null;
+  const key = new Request(`https://relay.cache/${encodeURIComponent(path)}`);
+  const hit = store && await store.match(key);
+  if (hit) return hit.json();
+  const res = await gh(env, path, accept ? { headers: { Accept: accept } } : {});
+  const body = res.status === 404 ? null : await ok(res);
+  if (store) await store.put(key, new Response(JSON.stringify(body), { headers: { "Cache-Control": `max-age=${CACHE_S}` } }));
+  return body;
+}
+
 // the saved trace of this address (radar-requests/<address>.json), or null
 async function saved(env, mint) {
-  const res = await gh(env, `/contents/radar-requests/${mint}.json`, { headers: { Accept: "application/vnd.github.raw+json" } });
-  if (res.status === 404) return null;
-  try { return await ok(res); } catch { return null; }
+  try { return await cachedJson(env, `/contents/radar-requests/${mint}.json`, "application/vnd.github.raw+json"); } catch { return null; }
 }
 
-// relay-started runs of trace.yml since a moment; each is named "trace <address> <visitor>"
-async function runs(env, sinceMs) {
-  const since = new Date(Date.now() - sinceMs).toISOString().replace(/\.\d+Z$/, "Z");
+// relay-started runs of trace.yml in the last 24 hours (newest first); each is named
+// "trace <address> <visitor>". The window starts on the minute so the cache key holds still.
+async function runs(env) {
+  const since = new Date(Math.floor((Date.now() - 24 * 3600e3) / 60e3) * 60e3).toISOString().replace(/\.\d+Z$/, "Z");
   const q = `?event=workflow_dispatch&per_page=100&created=${encodeURIComponent(">=" + since)}`;
-  const d = await ok(await gh(env, `/actions/workflows/${WORKFLOW}/runs${q}`));
-  return (d.workflow_runs || []).filter((r) => String(r.display_title || "").startsWith("trace "));
+  const d = await cachedJson(env, `/actions/workflows/${WORKFLOW}/runs${q}`);
+  return ((d && d.workflow_runs) || []).filter((r) => String(r.display_title || "").startsWith("trace "));
 }
 
+const recent = (r) => Date.now() - Date.parse(r.created_at) < RUN_WINDOW_MS;
+
+// a salted hash of the visitor's address; IPv6 by its /64, the block one connection usually holds
 async function visitor(env, ip) {
-  const day = new Date().toISOString().slice(0, 10);
-  const bytes = new TextEncoder().encode(`${env.SALT || ""}|${day}|${ip}`);
-  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  if (!env.SALT || env.SALT.length < 8) throw new Error("SALT is not set");  // never publish an unsalted hash
+  const key = ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip;
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.SALT}|${key}`)));
   return [...hash.slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -98,31 +119,32 @@ const forMint = (list, mint) => list.filter((r) => r.display_title.startsWith(`t
 
 async function start(env, mint, ip) {
   if (!B58.test(mint)) return { status: "invalid", reason: INVALID_TEXT };
+  const day = await runs(env);
+  if (forMint(day, mint).some((r) => r.status !== "completed" && recent(r))) return { status: "running" };
   const rec = await saved(env, mint);
   if (fresh(rec)) return done(rec);
-  const day = await runs(env, 24 * 3600e3);
-  if (forMint(day, mint).some((r) => r.status !== "completed" && Date.now() - Date.parse(r.created_at) < RUN_WINDOW_MS)) {
-    return { status: "running" };
-  }
   const who = await visitor(env, ip);
-  if (day.length >= DAILY_LIMIT || day.filter((r) => r.display_title.endsWith(` ${who}`)).length >= PER_VISITOR_LIMIT) {
+  const counted = day.filter((r) => r.conclusion !== "cancelled");  // cancelled runs traced nothing
+  if (counted.length >= DAILY_LIMIT || counted.filter((r) => r.display_title.endsWith(` ${who}`)).length >= PER_VISITOR_LIMIT) {
     return { status: "limit", reason: LIMIT_TEXT };
   }
+  if (day.filter((r) => r.status !== "completed" && recent(r)).length >= MAX_ACTIVE) return { status: "busy", reason: BUSY_TEXT };
+  const since = new Date(Date.now() - 5e3).toISOString();  // the run this request starts is created after this
   const res = await gh(env, `/actions/workflows/${WORKFLOW}/dispatches`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ref: "main", inputs: { mint, requester: who } }),
   });
   if (res.status !== 204) throw new Error(`dispatch ${res.status}`);
-  return { status: "queued" };
+  return { status: "queued", since };
 }
 
 // why a finished run saved nothing: the reason trace.yml left as a "reply" annotation
 async function reason(env, run) {
   try {
-    const jobs = await ok(await gh(env, `/actions/runs/${run.id}/jobs`));
+    const jobs = await cachedJson(env, `/actions/runs/${run.id}/jobs`) || {};
     for (const job of jobs.jobs || []) {
-      const notes = await ok(await gh(env, `${job.check_run_url}/annotations`));
+      const notes = await cachedJson(env, `${job.check_run_url}/annotations`) || [];
       const hit = notes.find((a) => a.title === "reply");
       if (hit) return hit.message.split("\n")[0];
     }
@@ -130,16 +152,17 @@ async function reason(env, run) {
   return null;
 }
 
-async function status(env, mint) {
+async function status(env, mint, since) {
   if (!B58.test(mint)) return { status: "invalid", reason: INVALID_TEXT };
-  const run = forMint(await runs(env, RUN_WINDOW_MS), mint)
+  // `since`: the page started its own run then, so an earlier finished run of this token is not its answer
+  const after = Date.parse(since) || 0;
+  // only addresses with a recent run are looked up further: polling made-up addresses costs nothing
+  const run = forMint(await runs(env), mint).filter((r) => recent(r) && Date.parse(r.created_at) >= after)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
-  if (!run) {
-    const rec = await saved(env, mint);
-    return fresh(rec) ? done(rec) : { status: "none" };
-  }
+  if (!run) return { status: "none" };
   if (run.status !== "completed") return { status: run.status === "in_progress" ? "running" : "queued" };
   const rec = await saved(env, mint);
   if (rec && Date.parse(rec.at) >= Date.parse(run.created_at) - 60e3) return done(rec);
+  if (run.conclusion === "cancelled") return { status: "failed", reason: BUSY_TEXT };
   return { status: "failed", reason: (await reason(env, run)) || "The trace did not finish. Please try again in a few minutes." };
 }

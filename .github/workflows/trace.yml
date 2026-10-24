@@ -22,17 +22,19 @@ on:
         required: false
 
 permissions:
+  actions: read   # the daily count of relay requests
   contents: write
   issues: write
 
-# one group per request (a shared group drops pending runs)
+# one group per issue request; relay requests share one group, so at most one runs and one waits
+# (a newer waiting run replaces the older one) and a burst of requests cannot hold the runners
 concurrency:
-  group: radar-trace-${{ github.event.issue.number || github.run_id }}
+  group: radar-trace-${{ github.event.inputs.requester != '' && 'relay' || github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: f0d91200da31f83cafe68c6baf63213dd22455bc  # private code commit
+  SOURCE_REF: fbb6eecaa66d96091860280a46674dffa4d50b52  # private code commit
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
@@ -60,6 +62,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           AUTHOR: ${{ github.event.issue.user.login }}
+          REQUESTER: ${{ github.event.inputs.requester }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           python3 - <<'PY'
           import json, os, pathlib, re, urllib.parse, urllib.request
@@ -109,6 +113,22 @@ jobs:
                       status = "limit"
               except Exception as err:
                   print("per-user check failed, refusing:", type(err).__name__)
+                  status = "limit"
+          # relay requests: the relay applies the limits; this is the backstop if it is raced
+          if status == "ok" and os.environ.get("REQUESTER"):
+              try:
+                  since = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                  url = (f"https://api.github.com/repos/{os.environ['REPO']}/actions/workflows/trace.yml/runs"
+                         f"?event=workflow_dispatch&per_page=100&created=%3E%3D{since}")
+                  req = urllib.request.Request(url, headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                                                             "Accept": "application/vnd.github+json"})
+                  rs = json.load(urllib.request.urlopen(req, timeout=20))["workflow_runs"]
+                  n = sum(1 for r in rs if str(r.get("display_title", "")).startswith("trace ")
+                          and r.get("conclusion") != "cancelled" and str(r["id"]) != os.environ["RUN_ID"])
+                  if n >= int(os.environ["DAILY_LIMIT"]):
+                      status = "limit"
+              except Exception as err:
+                  print("relay daily check failed, refusing:", type(err).__name__)
                   status = "limit"
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"mint={mint}\nstatus={status}\n")
@@ -173,6 +193,7 @@ jobs:
           MINT: ${{ steps.req.outputs.mint }}
           CODE: ${{ steps.trace.outputs.code }}
         run: |
+          [[ "$NUMBER" =~ ^[0-9]+$ ]] || { echo "not an issue number"; exit 0; }
           case "$STATUS" in
             ok)      [ -s "$RUNNER_TEMP/reply.md" ] || echo "The trace failed unexpectedly. Please try again later." > "$RUNNER_TEMP/reply.md" ;;
             cached)  printf 'This token was traced less than 2 hours ago. See it on the [Insider Radar](https://bernardhaddad.github.io/sift/radar.html#%s).\n' "$MINT" > "$RUNNER_TEMP/reply.md" ;;
