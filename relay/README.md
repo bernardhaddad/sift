@@ -22,7 +22,7 @@ salted, daily-changing hash in the run name.
 4. Put the worker's address (for example `https://sift-trace.<name>.workers.dev`) in `RELAY` in
    `radar.html`.
 
-Or as a Cloudflare Pages project connected to this repository: `functions/trace.js` serves the
+Or as a Cloudflare Pages project connected to this repository: `functions/_middleware.js` serves the
 relay at `/trace`. Leave the build command empty, set the build output directory to `relay`, add
 `functions/*` and `relay/*` as the only build watch paths (the hourly data commits then start no
 builds), and add the two secrets under Variables and secrets.
