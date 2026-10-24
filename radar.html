@@ -208,7 +208,7 @@
       <p>Shows whether a Solana token's top holders were funded by the same wallet. Each link shows the transaction behind it.</p>
       <div class="search">
         <input id="q" type="search" placeholder="Token name or mint address" autocomplete="off" aria-label="Search tokens">
-        <a class="btn primary" id="req" href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml" target="_blank" rel="noopener">Request a trace</a>
+        <button class="btn primary" id="req" type="button">Trace a token</button>
       </div>
       <p id="counts"></p>
     </div>
@@ -299,7 +299,7 @@
   const int = (v) => num(v) == null ? "–" : Math.round(num(v)).toLocaleString("en-US");
   const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
   // the trace relay (sift relay/worker.js); empty = requests go through a GitHub issue instead
-  const RELAY = "";
+  const RELAY = "https://sift-trace.pages.dev";
   const ISSUE = "https://github.com/bernardhaddad/sift/issues/new?template=trace.yml";
   const SIG = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/;
   const ago = (iso) => {
@@ -603,8 +603,8 @@
   $("rows").addEventListener("keydown", (e) => { const r = e.target.closest(".tok"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); r.click(); } });
   $("q").addEventListener("input", () => { if (doc) render(); });
   $("req").addEventListener("click", (e) => {
-    if (!RELAY) return;  // no relay: the link opens the GitHub request form
     e.preventDefault();
+    if (!RELAY) { window.open(ISSUE, "_blank", "noopener"); return; }  // no relay: the GitHub request form
     const raw = $("q").value.trim();
     if (doc && B58.test(raw) && !doc.tokens.some((t) => t.mint === raw)) { filter = "all"; tabs(); startTrace(raw); return; }
     if (doc && B58.test(raw)) { render(); return; }
