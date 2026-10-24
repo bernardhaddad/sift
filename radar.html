@@ -298,6 +298,9 @@
   const pct = (v) => num(v) == null ? "–" : `${num(v).toFixed(1)}%`;
   const int = (v) => num(v) == null ? "–" : Math.round(num(v)).toLocaleString("en-US");
   const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  // the trace relay (sift relay/worker.js); empty = requests go through a GitHub issue instead
+  const RELAY = "";
+  const ISSUE = "https://github.com/bernardhaddad/sift/issues/new?template=trace.yml";
   const SIG = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/;
   const ago = (iso) => {
     const t = Date.parse(iso || "");
@@ -415,7 +418,59 @@
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${authority(t)}
       ${groups}
-      <div class="share"><a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a><button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
+      <div class="share">${t.live ? "" : `<a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a>`}<button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
+  }
+
+  // on-demand trace through the relay: start it, then ask every 15 s until it is done
+  const trace = { mint: null, state: "", text: "", t0: 0, timer: null };
+  const plain = (s) => esc(String(s || "").replace(/`/g, ""));
+  function traceHtml() {
+    if (trace.state === "running") {
+      const m = Math.floor((Date.now() - trace.t0) / 60000);
+      return `Tracing ${esc(short(trace.mint))}: reading the top holders and who funded them. This takes 2 to 5 minutes; keep this page open.<br><span style="color:var(--faint)">${m ? `${m} min so far` : "started"}</span>`;
+    }
+    return plain(trace.text) + (trace.state === "retry" ? `<br><br><button class="btn" id="dotrace">Try again</button>` : "");
+  }
+  async function relay(method, mint) {
+    const r = method === "POST"
+      ? await fetch(`${RELAY}/trace`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mint }) })
+      : await fetch(`${RELAY}/trace?mint=${encodeURIComponent(mint)}`, { cache: "no-store" });
+    return r.json();
+  }
+  function settle(mint, ans) {
+    const s = ans && ans.status;
+    if (s === "queued" || s === "running" || (s === "none" && Date.now() - trace.t0 < 90e3)) return false;
+    clearInterval(trace.timer);
+    if (s === "done" && ans.row && ans.row.mint) {
+      ans.row.live = true;  // no share page until the hourly build
+      doc.tokens = [ans.row, ...doc.tokens.filter((t) => t.mint !== ans.row.mint)];
+      trace.mint = null; trace.state = "done"; open = ans.row.mint; filter = "all"; $("q").value = ans.row.mint; tabs();
+    } else if (s === "done") {
+      trace.state = "msg"; trace.text = "This token was traced less than 2 hours ago. It will be on the radar after the next hourly update.";
+    } else if (s === "limit" || s === "invalid") {
+      trace.state = "msg"; trace.text = ans.reason;
+    } else {
+      trace.state = "retry"; trace.text = (ans && ans.reason) || "The trace did not finish. Please try again in a few minutes.";
+    }
+    return true;
+  }
+  async function startTrace(mint) {
+    if (!B58.test(mint)) { $("q").focus(); return; }
+    Object.assign(trace, { mint, state: "running", t0: Date.now() });
+    clearInterval(trace.timer);
+    render();
+    const step = async (method) => {
+      let ans;
+      try { ans = await relay(method, mint); } catch { ans = { status: "error" }; }
+      if (trace.mint !== mint) return;
+      if (method === "GET" && ans.status === "error" && Date.now() - trace.t0 < 12 * 60e3) return;  // a dropped poll
+      if (settle(mint, ans) || Date.now() - trace.t0 > 12 * 60e3) {
+        if (trace.state === "running") settle(mint, { status: "failed" });
+      }
+      if (doc) render();
+    };
+    await step("POST");
+    if (trace.state === "running") trace.timer = setInterval(() => step("GET"), 15000);
   }
 
   function render() {
@@ -425,8 +480,11 @@
     if (!list.length) {
       const elsewhere = q && doc.tokens.some(match);
       $("rows").innerHTML = `<div class="empty">${elsewhere ? `No match under this verdict. <a href="#" id="showall">Show all verdicts</a>`
-        : B58.test(raw) ? `This token has not been traced recently. <a href="https://github.com/bernardhaddad/sift/issues/new?template=trace.yml&title=${encodeURIComponent("[trace] " + raw)}" target="_blank" rel="noopener">Request a trace</a>`
+        : B58.test(raw) ? (trace.mint === raw ? traceHtml() : RELAY ? `This token has not been traced recently.<br><br><button class="btn" id="dotrace">Trace it now</button>`
+          : `This token has not been traced recently. <a href="${ISSUE}&title=${encodeURIComponent("[trace] " + raw)}" target="_blank" rel="noopener">Request a trace</a>`)
         : "No tokens match."}</div>`;
+      const dt = $("dotrace");
+      if (dt) dt.addEventListener("click", () => startTrace(raw));
       const sa = $("showall");
       if (sa) sa.addEventListener("click", (e) => { e.preventDefault(); filter = "all"; tabs(); render(); });
       return;
@@ -544,6 +602,15 @@
   });
   $("rows").addEventListener("keydown", (e) => { const r = e.target.closest(".tok"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); r.click(); } });
   $("q").addEventListener("input", () => { if (doc) render(); });
+  $("req").addEventListener("click", (e) => {
+    if (!RELAY) return;  // no relay: the link opens the GitHub request form
+    e.preventDefault();
+    const raw = $("q").value.trim();
+    if (doc && B58.test(raw) && !doc.tokens.some((t) => t.mint === raw)) { filter = "all"; tabs(); startTrace(raw); return; }
+    if (doc && B58.test(raw)) { render(); return; }
+    $("q").placeholder = "Paste the token's mint address here";
+    $("q").focus();
+  });
   $("wq").addEventListener("input", () => { if (doc) checkWallet(); });
   window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; tabs(); render(); $("tokens").scrollIntoView({ behavior: "smooth" }); } });
 
