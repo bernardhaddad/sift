@@ -27,6 +27,10 @@ export default {
     };
     if (req.method === "OPTIONS") return new Response(null, { headers: cors });
     const url = new URL(req.url);
+    // opened in a browser rather than called by the page: send the visitor to the radar
+    if (req.method === "GET" && (url.pathname !== "/trace" || !url.searchParams.has("mint"))) {
+      return Response.redirect(`${ORIGIN}/sift/radar.html`, 302);
+    }
     if (url.pathname !== "/trace") return reply({ error: "not found" }, 404, cors);
     try {
       if (req.method === "GET") return reply(await status(env, (url.searchParams.get("mint") || "").trim()), 200, cors);
