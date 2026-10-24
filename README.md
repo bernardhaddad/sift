@@ -9,7 +9,7 @@ Hourly Solana memecoin screener. It shows net buy flow and which top holders wer
 ## What's on it
 
 - Buy flow over the last few hours: net dollars in or out, buyers against sellers, and a warning when one address is most of the buying.
-- Holder tracing. The top 20 holders of each token the paper system looks at are traced back to whoever funded them. If one funder's wallets hold more than 10% of supply (or all such groups more than 20%), the token is refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) shows every trace with the transactions behind it. To get any token traced, open an issue with the trace template.
+- Holder tracing. The top 20 holders of each token the paper system looks at are traced back to whoever funded them. If one funder's wallets hold more than 10% of supply (or all such groups more than 20%), the token is refused and listed. Public rug-checkers pass most of these. The [Insider Radar](https://bernardhaddad.github.io/sift/radar.html) shows every trace with the transactions behind it. To get any token traced, paste its address on the radar page and press Trace; the result shows on the page within a few minutes.
 - The presets (quiet dips, deep survivors, aged pools) are bands measured on a 14-day panel of forward returns.
 - The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far.
 - `verify.py`: check the radar's published links for any token yourself, `python3 verify.py <mint>` (Python 3.11+, no key). The site runs the same file hourly on a sample.
