@@ -422,7 +422,7 @@
   }
 
   // on-demand trace through the relay: start it, then ask every 15 s until it is done
-  const trace = { mint: null, state: "", text: "", t0: 0, timer: null };
+  const trace = { mint: null, id: 0, since: "", state: "", text: "", t0: 0, timer: null };
   const plain = (s) => esc(String(s || "").replace(/`/g, ""));
   function traceHtml() {
     if (trace.state === "running") {
@@ -434,7 +434,7 @@
   async function relay(method, mint) {
     const r = method === "POST"
       ? await fetch(`${RELAY}/trace`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mint }) })
-      : await fetch(`${RELAY}/trace?mint=${encodeURIComponent(mint)}`, { cache: "no-store" });
+      : await fetch(`${RELAY}/trace?mint=${encodeURIComponent(mint)}${trace.since ? `&since=${encodeURIComponent(trace.since)}` : ""}`, { cache: "no-store" });
     return r.json();
   }
   function settle(mint, ans) {
@@ -442,8 +442,14 @@
     if (s === "queued" || s === "running" || (s === "none" && Date.now() - trace.t0 < 90e3)) return false;
     clearInterval(trace.timer);
     if (s === "done" && ans.row && ans.row.mint) {
-      ans.row.live = true;  // no share page until the hourly build
-      doc.tokens = [ans.row, ...doc.tokens.filter((t) => t.mint !== ans.row.mint)];
+      const had = doc.tokens.find((t) => t.mint === ans.row.mint);
+      if (!had || Date.parse(had.traced_at || "") < Date.parse(ans.row.traced_at || "")) {  // never over a newer trace
+        ans.row.live = true;  // no share page until the hourly build
+        doc.tokens = [ans.row, ...doc.tokens.filter((t) => t.mint !== ans.row.mint)];
+        doc.counts = {};
+        doc.tokens.forEach((t) => { const g = GRADE.has(t.grade) ? t.grade : "incomplete"; doc.counts[g] = (doc.counts[g] || 0) + 1; });
+        counts();
+      }
       trace.mint = null; trace.state = "done"; open = ans.row.mint; filter = "all"; $("q").value = ans.row.mint; tabs();
     } else if (s === "done") {
       trace.state = "msg"; trace.text = "This token was traced less than 2 hours ago. It will be on the radar after the next hourly update.";
@@ -456,13 +462,16 @@
   }
   async function startTrace(mint) {
     if (!B58.test(mint)) { $("q").focus(); return; }
-    Object.assign(trace, { mint, state: "running", t0: Date.now() });
+    if (trace.mint === mint && trace.state === "running") return;  // already tracing this one (a double click)
+    const id = ++trace.id;
     clearInterval(trace.timer);
+    Object.assign(trace, { mint, state: "running", t0: Date.now(), since: "" });
     render();
     const step = async (method) => {
       let ans;
       try { ans = await relay(method, mint); } catch { ans = { status: "error" }; }
-      if (trace.mint !== mint) return;
+      if (trace.id !== id || trace.mint !== mint) return;  // a newer trace started, or this one ended
+      if (method === "POST" && ans.since) trace.since = ans.since;  // our run: older runs of this token are not ours
       if (method === "GET" && ans.status === "error" && Date.now() - trace.t0 < 12 * 60e3) return;  // a dropped poll
       if (settle(mint, ans) || Date.now() - trace.t0 > 12 * 60e3) {
         if (trace.state === "running") settle(mint, { status: "failed" });
@@ -470,7 +479,7 @@
       if (doc) render();
     };
     await step("POST");
-    if (trace.state === "running") trace.timer = setInterval(() => step("GET"), 15000);
+    if (trace.id === id && trace.state === "running") { clearInterval(trace.timer); trace.timer = setInterval(() => step("GET"), 15000); }
   }
 
   function render() {
