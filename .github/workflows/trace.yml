@@ -1,4 +1,6 @@
 name: insider radar trace
+# site requests come through the relay (relay/worker.js), which finds its run by this name
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('trace {0} {1}', inputs.mint, inputs.requester) || github.event.issue.title }}
 
 # answers "[trace] <mint>" issues with a holder trace (scripts/trace_token.py in the private repo),
 # saves it to radar-requests/ and replies on the issue. workflow_dispatch = same thing by hand.
@@ -15,6 +17,9 @@ on:
       issue:
         description: Issue number to answer (optional, for re-running a missed request)
         required: false
+      requester:
+        description: Opaque requester id from the site relay (it applies the daily limits)
+        required: false
 
 permissions:
   contents: write
@@ -27,7 +32,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 74522909347b88a350fde10a92c32160c684429a  # private code commit
+  SOURCE_REF: ba325d32483dc513177f4ce03f748e6acad1ffa7  # private code commit
   DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account
 
@@ -132,7 +137,12 @@ jobs:
         run: |
           set +e
           python3 scripts/trace_token.py "$RUNNER_TEMP/trace.json" "$RUNNER_TEMP/reply.md"
-          echo "code=$?" >> "$GITHUB_OUTPUT"
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          # the reason a trace failed, as a run annotation the site relay reads back
+          if [ "$code" != "0" ] && [ -s "$RUNNER_TEMP/reply.md" ]; then
+            echo "::notice title=reply::$(python3 -c 'import os; t=open(os.environ["RUNNER_TEMP"]+"/reply.md").read(); print(t.replace("%","%25").replace("\r","").replace("\n","%0A"))')"
+          fi
 
       - name: Save the result to the radar
         if: steps.req.outputs.status == 'ok' && steps.trace.outputs.code == '0'
