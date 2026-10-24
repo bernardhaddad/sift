@@ -1,0 +1,2 @@
+d64cdb34666eaf123d0978b0f6c37a1f998b3eec06f429046f1568932711b0a2  radar-ledger.json.gz
+751a3ad15fe2bb0568cc81a74ba9a5f6e5ad22b00bce819d5d180967aac33e2a  radar.json.gz
