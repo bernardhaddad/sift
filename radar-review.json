@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-23T09:20:00+00:00",
+  "reviewed_at": "2026-10-25T20:20:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 15,
-    "links_checked": 312,
+    "verdicts": 16,
+    "links_checked": 316,
     "links_contradicted": 0,
-    "young_tokens": 9,
+    "young_tokens": 10,
     "older_tokens": 6
   },
   "cases": [
@@ -95,6 +95,15 @@
       "links": "31 of 31 verified",
       "finding": "young",
       "note": "15 linked top holders with 99.8% of supply. One of them (9.7%, 107 transactions) sent 14 others their first tokens. The single pool holds about $22K of liquidity, so nearly the whole supply sits with one group and very little trades."
+    },
+    {
+      "mint": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
+      "name": "BTC",
+      "verdict_at": "2026-10-25T11:35:04+00:00",
+      "trading_since": "2026-10-25T06:24:26Z",
+      "links": "4 of 4 verified",
+      "finding": "young",
+      "note": "A memecoin using the BTC ticker, not Bitcoin. 2 top holders with 11.7% of supply: one (3.9%, 558 transactions) paid for the other's first transaction and sent it its first tokens. The second holder (7.8%) is an ordinary wallet despite its address starting with \"LoCK\". The chain runs back through a wallet with 20 transactions to one with over 1,000, which is flagged on the page. Graded five hours after the first pool opened."
     },
     {
       "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",

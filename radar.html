@@ -210,6 +210,7 @@
         <input id="q" type="search" placeholder="Token name or mint address" autocomplete="off" aria-label="Search tokens">
         <button class="btn primary" id="req" type="button">Trace a token</button>
       </div>
+      <div id="ts"></div>
       <p id="counts"></p>
     </div>
   </div>
@@ -301,6 +302,8 @@
   // the trace relay (sift relay/worker.js); empty = requests go through a GitHub issue instead
   const RELAY = "https://sift-trace.pages.dev";
   const ISSUE = "https://github.com/bernardhaddad/sift/issues/new?template=trace.yml";
+  // Cloudflare Turnstile site key (public); empty = no check. It only shows a box when Cloudflare is unsure.
+  const TURNSTILE = "0x4AAAAAAFlqVzdXM1xAAC3k";
   const SIG = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/;
   const ago = (iso) => {
     const t = Date.parse(iso || "");
@@ -431,9 +434,32 @@
     }
     return plain(trace.text) + (trace.state === "retry" ? `<br><br><button class="btn" id="dotrace">Try again</button>` : "");
   }
+  // a fresh Turnstile token for one request ("" when the check is off)
+  let tsWidget = null, tsLoad = null;
+  function humanToken() {
+    if (!TURNSTILE) return Promise.resolve("");
+    tsLoad = tsLoad || new Promise((ok, fail) => {
+      const sc = document.createElement("script");
+      sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      sc.async = true; sc.onload = ok; sc.onerror = () => { tsLoad = null; fail(new Error("turnstile")); };
+      document.head.appendChild(sc);
+    });
+    return tsLoad.then(() => new Promise((ok, fail) => {
+      const no = () => fail(new Error("check"));
+      setTimeout(no, 180e3);  // a check left unanswered must not hold the trace forever
+      if (tsWidget !== null) window.turnstile.remove(tsWidget);  // a token is good for one request
+      tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, appearance: "interaction-only", execution: "execute",
+        callback: ok, "error-callback": no, "expired-callback": no });
+      window.turnstile.execute(tsWidget);
+    }));
+  }
   async function relay(method, mint) {
+    let token = "";
+    if (method === "POST") {
+      try { token = await humanToken(); } catch { return { status: "check", reason: "The check that you are a person did not complete. Please try again." }; }
+    }
     const r = method === "POST"
-      ? await fetch(`${RELAY}/trace`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mint }) })
+      ? await fetch(`${RELAY}/trace`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mint, token }) })
       : await fetch(`${RELAY}/trace?mint=${encodeURIComponent(mint)}${trace.since ? `&since=${encodeURIComponent(trace.since)}` : ""}`, { cache: "no-store" });
     return r.json();
   }
