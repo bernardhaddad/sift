@@ -3,7 +3,8 @@
 // has to open GitHub. Runs as a Cloudflare Worker (relay/README.md).
 //
 // Secrets: GH_TOKEN, a fine-grained token for this repository only with Actions read and write and
-// Contents read; SALT, any long random string (visitor addresses are only kept as salted hashes).
+// Contents read; SALT, any long random string (visitor addresses are only kept as salted hashes);
+// TURNSTILE_SECRET, optional: when set, a trace starts only with a passed Cloudflare Turnstile check.
 
 const REPO = "bernardhaddad/sift";
 const WORKFLOW = "trace.yml";
@@ -19,6 +20,7 @@ const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const LIMIT_TEXT = `The free daily limit is reached (${PER_VISITOR_LIMIT} traces a day per visitor, ${DAILY_LIMIT} in total). Please try again tomorrow.`;
 const INVALID_TEXT = "That does not look like a Solana token address (base58, 32 to 44 characters).";
 const BUSY_TEXT = "Other traces are running right now. Please try again in a few minutes.";
+const CHECK_TEXT = "The check that you are a person did not pass. Please try again.";
 const API = `https://api.github.com/repos/${REPO}/`;
 
 export default {
@@ -44,6 +46,10 @@ export default {
         let body = {};
         try { body = await req.json(); } catch { /* empty body: handled as an invalid address */ }
         const ip = req.headers.get("CF-Connecting-IP") || "";
+        // checked before anything else, so automated requests cost no GitHub call
+        if (env.TURNSTILE_SECRET && !(await human(env, String(body.token || ""), ip))) {
+          return reply({ status: "check", reason: CHECK_TEXT }, 200, cors);
+        }
         return reply(await start(env, String(body.mint || "").trim(), ip), 200, cors);
       }
       return reply({ error: "method not allowed" }, 405, cors);
@@ -52,6 +58,22 @@ export default {
     }
   },
 };
+
+// Cloudflare Turnstile: was this token issued to a person on the radar page, just now, once
+async function human(env, token, ip) {
+  if (!token || token.length > 2048) return false;
+  const form = new FormData();
+  form.append("secret", env.TURNSTILE_SECRET);
+  form.append("response", token);
+  if (ip) form.append("remoteip", ip);
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+    const d = await res.json();
+    return d.success === true && (!d.hostname || d.hostname === new URL(ORIGIN).hostname);
+  } catch {
+    return false;
+  }
+}
 
 function reply(body, code, headers) {
   return new Response(JSON.stringify(body), { status: code, headers: { ...headers, "Content-Type": "application/json", "Cache-Control": "no-store" } });

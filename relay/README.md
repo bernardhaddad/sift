@@ -27,5 +27,10 @@ relay at `/trace`. Leave the build command empty, set the build output directory
 `functions/*` and `relay/*` as the only build watch paths (the hourly data commits then start no
 builds), and add the two secrets under Variables and secrets.
 
+Optional, against automated requests: create a Turnstile widget in the Cloudflare dashboard for
+the hostname `bernardhaddad.github.io`, add its secret key as `TURNSTILE_SECRET` here, and put its
+site key in `TURNSTILE` in `radar.html`. Set both, or neither: with only the secret set, every
+request is refused.
+
 Or from a terminal: `npx wrangler deploy`, then `npx wrangler secret put GH_TOKEN` and
 `npx wrangler secret put SALT`.

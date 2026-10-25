@@ -10,6 +10,7 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.endsWith("/dispatches")) { state.dispatched.push(JSON.parse(init.body)); return new Response(null, { status: 204 }); }
   if (url.includes("/jobs")) return J({ jobs: [{ check_run_url: "https://api.github.com/repos/bernardhaddad/sift/check-runs/1" }] });
   if (url.endsWith("/annotations")) return J(state.notes);
+  if (url.includes("siteverify")) { const t = init.body.get("response"); return J({ success: t === "good", hostname: t === "good" ? "bernardhaddad.github.io" : undefined }); }
   throw new Error("unexpected " + url);
 };
 const env = { GH_TOKEN: "t", SALT: "a-long-salt" };
@@ -48,6 +49,12 @@ state.dispatched = [];
 await call("POST", { mint: OTHER }, "", "2001:db8:1:2:aaaa::1"); await call("POST", { mint: MINT }, "", "2001:db8:1:2:bbbb::2");
 eq(state.dispatched[0].inputs.requester === state.dispatched[1].inputs.requester, true, "IPv6 keyed by /64");
 eq((await call("POST", { mint: OTHER }, "", "1.2.3.4", { GH_TOKEN: "t" })).status, "error", "no SALT fails closed");
+const strict = { ...env, TURNSTILE_SECRET: "s" };
+state.runs = []; state.dispatched = [];
+eq((await call("POST", { mint: OTHER }, "", "9.9.9.9", strict)).status, "check", "no Turnstile token refused");
+eq((await call("POST", { mint: OTHER, token: "bad" }, "", "9.9.9.9", strict)).status, "check", "failed Turnstile token refused");
+eq(state.dispatched.length, 0, "nothing dispatched without the check");
+eq((await call("POST", { mint: OTHER, token: "good" }, "", "9.9.9.9", strict)).status, "queued", "passed Turnstile token accepted");
 const pre = await w.fetch(new Request("https://r.dev/trace", { method: "OPTIONS" }), env);
 eq(pre.headers.get("Access-Control-Allow-Origin"), "https://bernardhaddad.github.io", "cors");
 const red = await w.fetch(new Request("https://r.dev/"), env); eq([red.status, red.headers.get("location")], [302, "https://bernardhaddad.github.io/sift/radar.html"], "browser visit redirected");
