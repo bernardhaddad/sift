@@ -24,7 +24,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: d632971d6343f6fae66c7e0bb79a329f281b9042  # private code commit
+  SOURCE_REF: 13734fc9077b460ee9d9ac5dcc5ac72e6db9cfaf  # private code commit
 
 jobs:
   cycle:
