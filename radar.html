@@ -18,7 +18,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:title" content="Insider Radar - Sift">
 <meta name="twitter:description" content="Traces a Solana token's top 20 holders back to the wallets that funded them. Each link has its tx so you can check it. Refreshed hourly.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#14213d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -58,7 +58,6 @@
   .btn:hover { background: var(--soft); text-decoration: none; }
   .btn.primary { background: var(--bar); border-color: var(--bar); color: #fff; font-size: 15px; padding: 12px 20px; border-radius: 6px; }
   .btn.primary:hover { background: #1d3a66; }
-  #counts { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
   .ok { color: var(--green); } .bad { color: var(--red); }
   .flag-bad { font-size: 11.5px; font-weight: 600; color: var(--red); margin-left: 8px; }
   .facts.auth { margin-top: 6px; }
@@ -191,6 +190,7 @@
     .group { padding: 12px; }
   }
 </style>
+<link rel="stylesheet" href="sift.css">
 </head>
 <body>
 <header class="bar">
@@ -211,7 +211,7 @@
         <button class="btn primary" id="req" type="button">Trace a token</button>
       </div>
       <div id="ts"></div>
-      <p id="counts"></p>
+      <div id="counts" class="proofs" aria-live="polite"></div>
     </div>
   </div>
 
@@ -569,9 +569,11 @@
 
   function counts() {
     const a = (doc.audit || {}).totals || {}, checked = (a.verified || 0) + (a.failed || 0);
-    const line = [`${int(doc.tokens.length)} tokens on the radar`];
-    if (checked) line.push(`${int(a.verified)} of ${int(checked)} links re-checked on a second node${a.failed ? ` (${int(a.failed)} failed)` : ""}`);
-    $("counts").textContent = line.join(". ") + ".";
+    const recorded = Object.values(doc.scorecard || {}).reduce((n, g) => n + (num(g.entries) || 0), 0);
+    const stat = (n, label) => `<div><b>${n}</b><span>${label}</span></div>`;
+    $("counts").innerHTML = stat(int(doc.tokens.length), "tokens on the radar")
+      + (checked ? stat(int(checked), `links re-checked on a second node, ${int(a.failed || 0)} contradicted`) : "")
+      + (recorded ? stat(int(recorded), "verdicts in the timestamped track record") : "");
   }
 
   function track() {
