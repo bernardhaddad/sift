@@ -413,12 +413,21 @@
     return isNaN(s) ? null : { day: new Date(s).toISOString().slice(0, 10), old: !isNaN(at) && at - s > 30 * DAY };
   }
 
+  // a listed token: the progress of its new trace, or an offer to trace it again once its trace is old
+  function retrace(t) {
+    if (trace.mint === t.mint && trace.state !== "done") return `<div class="note">${traceHtml()}</div>`;
+    const age = Date.now() - Date.parse(t.traced_at || "");
+    if (!RELAY || t.live || !(age > 2 * 3600e3)) return "";
+    return `<div class="note">Traced ${esc(ago(t.traced_at))}. <button class="btn" data-trace="${esc(t.mint)}">Trace again now</button></div>`;
+  }
+
   function detail(t) {
     const s = since(t);
     const older = s && s.old && (t.clusters || []).length
       ? `<div class="note">Trading since ${s.day}. On a token this old, the linked holders may be the project's own wallets.</div>` : "";
     const groups = older + ((t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`);
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
+      ${retrace(t)}
       ${authority(t)}
       ${groups}
       <div class="share">${t.live ? "" : `<a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a>`}<button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
@@ -432,7 +441,7 @@
       const m = Math.floor((Date.now() - trace.t0) / 60000);
       return `Tracing ${esc(short(trace.mint))}: reading the top holders and who funded them. This takes 2 to 5 minutes; keep this page open.<br><span style="color:var(--faint)">${m ? `${m} min so far` : "started"}</span>`;
     }
-    return plain(trace.text) + (trace.state === "retry" ? `<br><br><button class="btn" id="dotrace">Try again</button>` : "");
+    return plain(trace.text) + (trace.state === "retry" ? `<br><br><button class="btn" data-trace="${esc(trace.mint)}">Try again</button>` : "");
   }
   // a fresh Turnstile token for one request ("" when the check is off)
   let tsWidget = null, tsLoad = null;
@@ -492,6 +501,7 @@
     const id = ++trace.id;
     clearInterval(trace.timer);
     Object.assign(trace, { mint, state: "running", t0: Date.now(), since: "" });
+    open = mint;  // a listed token shows the progress in its opened result
     render();
     const step = async (method) => {
       let ans;
@@ -515,11 +525,9 @@
     if (!list.length) {
       const elsewhere = q && doc.tokens.some(match);
       $("rows").innerHTML = `<div class="empty">${elsewhere ? `No match under this verdict. <a href="#" id="showall">Show all verdicts</a>`
-        : B58.test(raw) ? (trace.mint === raw ? traceHtml() : RELAY ? `This token has not been traced recently.<br><br><button class="btn" id="dotrace">Trace it now</button>`
+        : B58.test(raw) ? (trace.mint === raw ? traceHtml() : RELAY ? `This token has not been traced recently.<br><br><button class="btn" data-trace="${esc(raw)}">Trace it now</button>`
           : `This token has not been traced recently. <a href="${ISSUE}&title=${encodeURIComponent("[trace] " + raw)}" target="_blank" rel="noopener">Request a trace</a>`)
         : "No tokens match."}</div>`;
-      const dt = $("dotrace");
-      if (dt) dt.addEventListener("click", () => startTrace(raw));
       const sa = $("showall");
       if (sa) sa.addEventListener("click", (e) => { e.preventDefault(); filter = "all"; tabs(); render(); });
       return;
@@ -631,6 +639,8 @@
   $("rows").addEventListener("click", (e) => {
     const cp = e.target.closest("[data-copy]");
     if (cp) { if (navigator.clipboard) navigator.clipboard.writeText(cp.dataset.copy).then(() => { cp.textContent = "Copied"; setTimeout(() => { cp.textContent = "Copy mint"; }, 1400); }); return; }
+    const tr = e.target.closest("[data-trace]");
+    if (tr) { startTrace(tr.dataset.trace); return; }
     if (e.target.closest("a")) return;
     const r = e.target.closest(".tok"); if (!r) return;
     open = open === r.dataset.m ? null : r.dataset.m; render();
@@ -642,7 +652,12 @@
     if (!RELAY) { window.open(ISSUE, "_blank", "noopener"); return; }  // no relay: the GitHub request form
     const raw = $("q").value.trim();
     if (doc && B58.test(raw) && !doc.tokens.some((t) => t.mint === raw)) { filter = "all"; tabs(); startTrace(raw); return; }
-    if (doc && B58.test(raw)) { render(); return; }
+    if (doc && B58.test(raw)) {  // already on the radar: open its result (it offers a new trace when old)
+      filter = "all"; open = raw; tabs(); render();
+      const row = document.querySelector(`.tok[data-m="${raw}"]`);
+      if (row) row.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     $("q").placeholder = "Paste the token's mint address here";
     $("q").focus();
   });
