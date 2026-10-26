@@ -61,6 +61,7 @@
   .filters { font-size: 14px; }
   .filters summary { cursor: pointer; color: var(--link); padding: 8px 0; }
   .fbody { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 6px 0 0; }
+  .fbody label { max-width: 100%; } .fbody select { min-width: 0; max-width: 100%; }
   .hint { color: var(--faint); font-size: 13.5px; margin: 0 0 10px; }
   .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
   table { border-collapse: collapse; width: 100%; min-width: 760px; }
@@ -138,7 +139,7 @@
 <main><div class="wrap">
   <div class="intro">
     <h1>Screener</h1>
-    <p>Solana memecoin pools worth a look right now, rescanned every hour.</p>
+    <p>Solana memecoin pools that pass Sift's filters, rescanned every hour.</p>
   </div>
 
   <p class="strip" id="summary"></p>
@@ -178,7 +179,7 @@
 
   <section>
     <h2>Paper trading record</h2>
-    <p>Every rule Sift tests is traded on paper with fixed rules, and losing books stay up. Details on the <a href="research.html">research page</a>.</p>
+    <p>Every strategy Sift tests is traded on paper under rules fixed in advance, and losing books stay up. Details on the <a href="research.html">research page</a>.</p>
     <div class="cards" id="books"></div>
     <p id="fastnote" class="sub" style="margin:22px 0 10px"></p>
     <div class="cards" id="fastbooks"></div>
@@ -187,7 +188,7 @@
   <section>
     <details class="howto"><summary>How to read the table</summary>
     <dl>
-      <dt>Quiet dips</dt><dd>Pools 7–30 days old with at least $250K liquidity, 24h volume $100K–$1.7M, down 2–15% on the day, with a buy ratio between 45% and 62%. The only band in the panel mining whose forward returns cleared a 3% round-trip cost.</dd>
+      <dt>Quiet dips</dt><dd>Pools 7–30 days old with at least $250K liquidity, 24h volume $100K–$1.7M, down 2–15% on the day, with a buy ratio between 45% and 62%. The best band in the 14-day panel: it cleared a 3% cost in one week, not both, and real costs are higher (see Research).</dd>
       <dt>Buy ratio</dt><dd>Buys ÷ (buys + sells) by transaction count over 24 hours. Counts are what manufactured demand inflates, so read it next to flow.</dd>
       <dt>Flow</dt><dd>Net dollars (buys minus sells) over the most recent sampled trades, with the hours that sample covers. Sampled for the pools the paper books watch, not for every row.</dd>
       <dt>Cluster</dt><dd>Result of the funding-cluster trace above. "no data" means the trace ran out of time or budget. The paper system treats that as a refusal. "wallet authority" means a wallet can still mint or freeze the token, which is also a refusal.</dd>
@@ -352,8 +353,7 @@
     const parts = ["Trade links open the token in a trading terminal."];
     if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`);
     if (jupFee) parts.push(`Jupiter swaps opened here add a ${(jupFee / 100).toFixed(2)}% referral fee; use jup.ag directly to avoid it.`);
-    if (!shareRefs.length && !jupFee) parts.push("None of them pays Sift anything.");
-    parts.push("Sift takes no cut.");
+    if (!shareRefs.length && !jupFee) parts.push("Sift takes no cut.");
     $("disclosure").innerHTML = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));

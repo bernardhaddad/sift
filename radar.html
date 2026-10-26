@@ -241,7 +241,7 @@
       </div></details>
 
       <details id="repeat"><summary>Check a wallet</summary><div class="body">
-        <p>Paste a wallet to see which traced tokens it funded. Wallets are remembered since <span id="regsince">launch</span>.</p>
+        <p>Paste a wallet to see which traced tokens it funded. The wallet list starts on <span id="regsince">launch day</span>.</p>
         <div class="field"><input id="wq" type="search" placeholder="Wallet address" autocomplete="off" aria-label="Check a wallet"></div>
         <div id="wres"></div>
         <p style="margin-top:14px"><b>Seen behind more than one token</b></p>
@@ -259,9 +259,9 @@
           <li>A token enters the first hour it is published with a price on GeckoTerminal; its verdict is frozen then. Its price is sampled hourly for 7 days.</li>
           <li><b>Collapsed</b> means the lowest hourly price fell to 20% of the entry price or less, or the token stopped trading (no price for its last 24 hours).</li>
           <li>From 15 October the ledger also records the first hour a token is 50% and 80% below its entry price. It is extra information and changes no score; tokens already below a line by then have an unknown time.</li>
-          <li>Verdicts are not assigned at random, so read differences between them with care. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
+          <li>Verdicts are not a controlled test, so a difference between them does not prove the verdict caused it. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
           <li>The radar covers memecoins. On 23 October stablecoins, wrapped coins, staking tokens, tokenized stocks and large protocol tokens (listed by exact address) were taken out of its scope. Their linked holders are usually the issuer's own wallets. The 8 such entries already in the track record are kept in the file, marked out of scope, and left out of the scores.</li>
-          <li>On 26 October a review found that an hourly run which had waited behind another one could publish an older copy of the track record over the newer one. Between 14 and 26 October this affected 67 entries: 30 had been dropped and entered again minutes or hours later at a different price, 10 were marked void because a sample had gone missing, and the rest lost a sample (a lower price, or the first price of the 24-hour or 7-day window). Every one was rebuilt from the hourly prices kept in the file's published history, by the same rules, and each change is listed in <a href="radar-ledger-repair.json">radar-ledger-repair.json</a>. High risk and Watch scores did not change; Low risk went from 60 of 104 collapsed to 65 of 113. The same fault had dropped 6 hourly audit runs (72 link checks, none failed) from the audit totals and one funder link from the wallet registry; both were restored from their published history and are listed in the same file. The cause is fixed.</li>
+          <li>On 26 October a fault was found and fixed: an hourly run that waited behind another could publish an older copy of the track record over a newer one. 67 entries from 14 to 26 October, 6 audit runs and one funder link were rebuilt from the published history by the same rules; Low risk went from 60 of 104 collapsed to 65 of 113, High risk and Watch did not change. Every change is listed in <a href="radar-ledger-repair.json">radar-ledger-repair.json</a>.</li>
           <li>The same review found that a token whose 7-day window closed while the price service was unreachable could be counted as vanished (-100%) instead of void. Only hours the service answered "no price" now count toward vanished.</li>
           <li>Until 21 October, the price requests ran into the price service's rate limit, and many entries went over 6 hours without a price. Those entries stay unscored. Since then the oldest unchecked entries are asked first and refused requests are retried. The 6-hour rule itself has not changed.</li>
         </ul>
@@ -277,7 +277,7 @@
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed. You can run the same check yourself on any token: download <a href="verify.py">verify.py</a> (Python 3.11+, no key or packages) and run <code>python3 verify.py &lt;mint&gt;</code>. It checks every published link of that token against the public Solana node, or your own with <code>SOLANA_RPC_URL</code>.</p>
         <h4>Limits</h4><ul>
           <li>Covers the tokens Sift's scanner watches, requested tokens, and up to four trending tokens an hour.</li>
-          <li>Only the 20 largest accounts are sampled, and wallets with over 1,000 transactions are not traced back. A clean result is not a safety guarantee.</li>
+          <li>Only the 20 largest accounts are sampled, and a holder wallet with over 1,000 transactions is not traced back (its first transaction is out of reach). A clean result is not a safety guarantee.</li>
           <li>Scanner traces are shown for 24 hours (2 if incomplete), requested ones for 7 days.</li>
           <li>A linked group suggests one actor holds several wallets. It says nothing about what they will do. Not financial advice.</li>
           <li>Sift publishes on-chain relationships anyone can check. It does not identify people, prove who owns a wallet, or predict prices.</li>
@@ -428,7 +428,7 @@
     const older = s && s.old && (t.clusters || []).length
       ? `<div class="note">Trading since ${s.day}. On a token this old, the linked holders may be the project's own wallets.</div>` : "";
     const groups = older + ((t.clusters || []).length ? t.clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`);
-    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top owners checked</span><span><b>${int(t.wallets)}</b> personal wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
+    return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top holders checked</span><span><b>${int(t.wallets)}</b> private wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${retrace(t)}
       ${authority(t)}
       ${groups}
@@ -592,7 +592,7 @@
       const d = cp.definitions;
       const row = (name, side) => `<tr><td>${esc(name)}</td><td>${int(side.closed)}</td><td>${side.rate == null ? "–" : `<b>${pct(num(side.rate) * 100)}</b> <span style="color:var(--faint)">(${int(side.collapsed)})</span>`}</td></tr>`;
       const block = (title, c, a, b, la, lb) => `<tr><td colspan="3" style="text-align:left;font-weight:600">${esc(title)}${c.ready ? "" : ` <span style="color:var(--faint);font-weight:400">(needs ${int(d.min_each)} finished on each side)</span>`}</td></tr>${row(la, c[a])}${row(lb, c[b])}`;
-      $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished High and Watch tokens by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together, so this shows what happened, not what caused it.</p>
+      $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished High and Watch tokens by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together; this does not show which caused which.</p>
         <div class="scroll"><table class="rec"><thead><tr><th>Group</th><th>Finished</th><th>Collapsed</th></tr></thead><tbody>${block("Token age", cp.age, "young", "older", "Young token", "Older token")}${block("Linked wallets", cp.exit, "sold", "held", "Sold half or more", "Held")}</tbody></table></div>`;
     }
     if (doc.registry_since) $("regsince").textContent = when(doc.registry_since);
@@ -636,7 +636,7 @@
     if (!B58.test(a)) { $("wres").innerHTML = `<div class="box">That is not a Solana address.</div>`; return; }
     if (!registry) {
       try { registry = await (await fetch("radar-wallets.json", { cache: "no-store" })).json(); }
-      catch { $("wres").innerHTML = `<div class="box">The wallet memory could not be loaded. Please try again shortly.</div>`; return; }
+      catch { $("wres").innerHTML = `<div class="box">The wallet list could not be loaded. Please try again shortly.</div>`; return; }
     }
     const w = (registry.wallets || {})[a];
     if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered.</div>`; return; }

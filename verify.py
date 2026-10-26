@@ -58,7 +58,7 @@ class Node:
                 time.sleep(self.pause)
                 if "result" in reply:
                     return reply["result"]
-            except Exception:  # noqa: BLE001 — any transport problem is "could not ask"
+            except Exception:  # noqa: BLE001  # any transport problem is "could not ask"
                 pass
             time.sleep(2.0 * (attempt + 1))
         raise Unreachable(method)
