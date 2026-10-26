@@ -83,6 +83,8 @@ def check_link(node: Node, link: dict) -> tuple[str, str]:
     tx = node.call("getTransaction", [sig, TX_OPTS])
     if tx is None:
         return "failed", "proof transaction not found"
+    if (tx.get("meta") or {}).get("err") is not None:  # a failed transaction moves nothing
+        return "failed", "the proof transaction failed on-chain"
     keys = _keys(tx)
     if kind == "funded":
         if keys[0] != src:
@@ -92,8 +94,11 @@ def check_link(node: Node, link: dict) -> tuple[str, str]:
         sigs = node.call("getSignaturesForAddress", [dst, {"limit": 1000}])
         if len(sigs) >= 1000:
             return "verified", "fee payer confirmed; 1,000+ transactions, first one not reachable"
-        if sigs and sigs[-1]["signature"] != sig:
-            return "failed", "the proof is not the wallet's first transaction"
+        if not sigs:  # it took part in the proof, so it has history: this node does not serve it
+            return "verified", "fee payer confirmed; history not served by this node"
+        ok = [s for s in sigs if s.get("err") is None]  # failed transactions prove nothing
+        if not ok or ok[-1]["signature"] != sig:
+            return "failed", "the proof is not the wallet's first successful transaction"
         return "verified", "fee payer and first transaction confirmed"
     if kind == "tokens":
         moved = False
@@ -217,7 +222,14 @@ def audit(argv: list[str]) -> int:
         return 1
     node = Node(os.environ.get("AUDIT_RPC_URL") or PUBLIC_RPC)
     out = run(doc, prior, node, datetime.now(UTC), int(argv[3]) if len(argv) > 3 else MAX_LINKS)
-    path.write_text(json.dumps(out, separators=(",", ":")))
+    # written beside it, then swapped in: a run killed mid-write never leaves a truncated file
+    # that every later run would refuse to overwrite
+    tmp = path.with_name(f".{path.name}.tmp")
+    try:
+        tmp.write_text(json.dumps(out, separators=(",", ":")))
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
     last = out["last"]
     print(f"[audit] {last['verified']} verified, {last['failed']} failed, {last['unreachable']} unreachable")
     for r in last["links"]:

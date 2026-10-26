@@ -50,6 +50,7 @@
   .intro h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; }
   .intro p { color: var(--muted); font-size: 16px; max-width: 700px; margin: 0; }
   .strip { margin: 10px 0 24px; font-size: 13.5px; color: var(--faint); }
+  .note { margin: -14px 0 24px; padding: 8px 12px; font-size: 13.5px; max-width: 760px; }
   .presets { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
   button.preset { background: none; border: 0; color: var(--muted); font: 500 14.5px var(--sans); padding: 10px 0; cursor: pointer; }
   button.preset:hover { color: var(--ink); }
@@ -82,6 +83,8 @@
   .btns { display: inline-flex; gap: 12px; font-size: 13px; }
   svg.spark { width: 90px; height: 26px; display: block; }
   .empty { padding: 30px; text-align: center; color: var(--muted); }
+  .more { padding: 12px; text-align: center; border-top: 1px solid var(--line-2); }
+  .more button { border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 500 13.5px var(--sans); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
   section { margin-top: 44px; }
   section h2 { font-size: 20px; margin: 0 0 6px; }
   section > p { color: var(--muted); max-width: 760px; font-size: 14.5px; margin: 0 0 14px; }
@@ -136,7 +139,6 @@
 <header class="bar"><div class="in">
   <a class="brand" href="./" aria-label="Sift home"><span>sift</span></a>
   <nav class="links"><a class="on" href="./">Screener</a><a href="radar.html">Insider Radar</a><a href="research.html">Research</a></nav>
-  <div class="right"><span class="upd" id="updated"></span></div>
 </div></header>
 <main><div class="wrap">
   <div class="intro">
@@ -145,10 +147,11 @@
   </div>
 
   <p class="strip" id="summary"></p>
+  <p class="note" id="stalenote" role="status" hidden></p>
 
   <div class="presets" id="presets"></div>
   <div class="controls">
-    <input id="q" type="search" placeholder="Search token" size="18">
+    <input id="q" type="search" placeholder="Search token" size="18" aria-label="Search tokens">
     <details class="filters"><summary>Filters</summary><div class="fbody">
     <label>min liq
       <select id="minliq">
@@ -170,7 +173,8 @@
       <thead><tr id="head"></tr></thead>
       <tbody id="rows"></tbody>
     </table>
-    <div class="empty" id="empty" hidden>Nothing passes these filters right now. Most of the leaderboard is under 24 hours old or already sold off.</div>
+    <div class="more" id="more" hidden><button type="button"></button></div>
+    <div class="empty" id="empty" hidden>Nothing passes these filters in the latest scan. Most of the leaderboard is under 24 hours old or already sold off.</div>
   </div>
 
   <section id="refused-sec">
@@ -220,7 +224,8 @@
   const p1 = (v) => v == null || !Number.isFinite(+v) ? "–" : (+v).toFixed(1);
   const int = (v) => Number.isFinite(+v) ? Math.round(+v) : 0;
   const fmtPrice = (p) => p == null ? "–" : p >= 1 ? p.toFixed(3) : p.toPrecision(3);
-  const ago = (iso) => { if (!iso) return "unknown"; const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); return m < 60 ? m + " min ago" : m < 2880 ? (m / 60).toFixed(1) + " h ago" : (m / 1440).toFixed(1) + " d ago"; };
+  const ago = (iso) => { const t = Date.parse(iso || ""); if (!Number.isFinite(t)) return "unknown"; const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 60 ? m + " min ago" : m < 2880 ? (m / 60).toFixed(1) + " h ago" : (m / 1440).toFixed(1) + " d ago"; };
+  const fmtR = (v) => Number.isFinite(+v) ? (+v >= 0 ? "+" : "") + (+v) + "R" : "–";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const PRESETS = [
@@ -244,6 +249,9 @@
   let data = null;
   let preset = "calm";
   let sortKey = "liq", sortDir = -1;
+  const PAGE = 100;  // rows drawn at a time; "Show more" adds the next page
+  let shown = PAGE;
+  let fresh = true;  // data.json is from the last 75 minutes: only then is it "this hour"
 
   function spark(vals) {
     const v = (vals || []).filter((x) => x != null && Number.isFinite(x));
@@ -264,7 +272,7 @@
     if (!f) return '<span class="sub">–</span>';
     const cls = f.net_usd > 0 ? "up" : f.net_usd < 0 ? "down" : "";
     const conc = f.top_buyer_share != null && f.top_buyer_share >= 0.25 ? ' <span class="warn" title="One address is ' + Math.round(f.top_buyer_share * 100) + '% of buy volume">⚠</span>' : "";
-    return `<span class="${cls}">${fmtSigned(f.net_usd)}</span><div class="sub">${f.buyers} buyers, ${f.span_h}h${conc}</div>`;
+    return `<span class="${cls}">${fmtSigned(f.net_usd)}</span><div class="sub">${esc(f.buyers)} buyers, ${esc(f.span_h)}h${conc}</div>`;
   }
   function tradeButtons(p) {
     const out = [];
@@ -301,16 +309,18 @@
   }
   function render() {
     const col = COLS.find((c) => c.key === sortKey);
-    const rows = filtered();
-    if (col && col.sort) rows.sort((a, b) => (col.sort(a) > col.sort(b) ? 1 : col.sort(a) < col.sort(b) ? -1 : 0) * sortDir);
+    let rows = filtered();
+    if (col && col.sort) rows = rows.map((p) => [col.sort(p), p]).sort((a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0) * sortDir).map((x) => x[1]);
     $("head").innerHTML = COLS.map((c) => `<th class="${c.left ? "l " : ""}${c.key === sortKey ? "on" : ""}" data-key="${c.key}"${c.sort ? ` aria-sort="${c.key === sortKey ? (sortDir < 0 ? "descending" : "ascending") : "none"}"` : ""}>${c.sort ? `<button type="button" class="sortb">${c.label}${c.key === sortKey ? (sortDir < 0 ? " ↓" : " ↑") : ""}</button>` : c.label}</th>`).join("");
-    $("rows").innerHTML = rows.map(row).join("");
+    $("rows").innerHTML = rows.slice(0, shown).map(row).join("");
+    $("more").hidden = rows.length <= shown;
+    $("more").firstChild.textContent = `Show ${Math.min(PAGE, rows.length - shown)} more (${rows.length - shown} not shown)`;
     $("empty").hidden = rows.length > 0;
     const pr = PRESETS.find((x) => x.key === preset);
     $("hint").textContent = `${rows.length} of ${data.pools.length} scanned pools. ${pr.hint}`;
     if (preset !== "all" && rows.length < 5) {  // a narrow band on a quiet hour: point to the full scan
       const memes = data.pools.filter((x) => x.meme).length;
-      $("hint").insertAdjacentHTML("beforeend", ` <a href="#all" class="widen">See all ${memes} memecoin pools scanned this hour.</a>`);
+      $("hint").insertAdjacentHTML("beforeend", ` <a href="#all" class="widen">See all ${memes} memecoin pools ${fresh ? "scanned this hour" : "in the latest scan"}.</a>`);
     }
     document.querySelectorAll("#presets button").forEach((b) => b.classList.toggle("on", b.dataset.key === preset));
     document.querySelectorAll("#head th").forEach((th) => th.onclick = () => {
@@ -322,6 +332,7 @@
   }
   function applyPreset(key) {
     preset = PRESETS.some((p) => p.key === key) ? key : "all";
+    shown = PAGE;
     if (preset === "calm" || preset === "m4") { $("age").value = "7-30"; $("minliq").value = "250000"; }
     else if (preset === "m3") { $("age").value = "1-14"; $("minliq").value = "30000"; }
     else { $("age").value = "any"; $("minliq").value = "0"; }
@@ -336,9 +347,17 @@
   }
   function renderStatic() {
     const c = data.counts || {};
-    const stale = data.snapshot_at && (Date.now() - Date.parse(data.snapshot_at)) > 3 * 3600 * 1000;
-    $("updated").innerHTML = `snapshot <b class="${stale ? "stale" : ""}">${ago(data.snapshot_at)}</b>${stale ? " (stale, the hourly job is behind)" : ""}, cycle ${data.seq ?? "?"}`;
-    $("summary").textContent = `${c.pools ?? "–"} pools scanned this hour, ${c.calm ?? 0} quiet ${c.calm === 1 ? "dip" : "dips"} right now, ${c.cluster_refused ?? 0} refused for shared funding.`;
+    const at = Date.parse(data.snapshot_at || "");
+    fresh = Number.isFinite(at) && Date.now() - at <= 75 * 60e3;  // one missed hourly run is no longer "this hour"
+    const dips = `${c.calm ?? 0} quiet ${c.calm === 1 ? "dip" : "dips"}`;
+    $("summary").textContent = fresh
+      ? `${c.pools ?? "–"} pools scanned this hour, ${dips} right now, ${c.cluster_refused ?? 0} refused for shared funding.`
+      : `${c.pools ?? "–"} pools in the latest scan, ${dips}, ${c.cluster_refused ?? 0} refused for shared funding.`;
+    // no routine age label (the header stays clean); a warning only when the hourly job is behind
+    $("stalenote").hidden = fresh;
+    $("stalenote").textContent = fresh ? "" : Number.isFinite(at)
+      ? `The latest scan is from ${ago(data.snapshot_at)}. The hourly job is behind, so these figures may be out of date.`
+      : "The time of the latest scan is unknown, so these figures may be out of date.";
     $("presets").innerHTML = PRESETS.map((p) => `<button class="preset" data-key="${p.key}">${p.label}</button>`).join("");
     document.querySelectorAll("#presets button").forEach((b) => b.onclick = () => applyPreset(b.dataset.key));
     const caps = (data.bands && data.bands.cluster) || {};
@@ -354,7 +373,7 @@
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
       const trades = (b.trades || []);
       const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${all}</div>`;
+      return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${fmtR(b.total_r)}</div><div class="sub">${esc(b.closed)} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${all}</div>`;
     }).join("");
     const refs = CFG.referrals || {};
     const shareRefs = ["gmgn", "axiom", "photon", "trojan"].filter((k) => refs[k]);
@@ -365,10 +384,12 @@
     if (!shareRefs.length && !jupFee) parts.push("Sift takes no cut.");
     $("disclosure").innerHTML = parts.join(" ");
   }
-  ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", render));
+  ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", () => { shown = PAGE; render(); }));
+  $("more").firstChild.addEventListener("click", () => { shown += PAGE; render(); if (!$("more").hidden) $("more").firstChild.focus(); });
 
   function renderFast(f) {
-    const stale = f.last_tick_at && (Date.now() - Date.parse(f.last_tick_at)) > 20 * 60 * 1000;
+    const t = Date.parse(f.last_tick_at || "");
+    const stale = !Number.isFinite(t) || Date.now() - t > 20 * 60 * 1000;  // an unreadable time is not a fresh one
     $("fastnote").innerHTML = `<b>Minute books.</b> Last update <b class="${stale ? "stale" : ""}">${ago(f.last_tick_at)}</b>${stale ? " (stale)" : ""}.`;
     $("fastbooks").innerHTML = (f.books || []).map((b) => {
       const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : (b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
@@ -379,7 +400,7 @@
       const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       const trades = b.trades || [];
       const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
+      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${fmtR(b.total_r)}</div><div class="sub">${esc(b.closed)} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
     }).join("");
   }
   fetch("fast.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(renderFast).catch(() => {
@@ -390,7 +411,6 @@
     data = d; renderStatic(); applyPreset(initialPreset());
     window.addEventListener("hashchange", () => applyPreset(location.hash.replace(/^#/, "")));
   }).catch((err) => {
-    $("updated").innerHTML = '<span class="stale">no snapshot yet</span>';
     $("hint").textContent = "data.json is missing or unreadable (" + err + "). The hourly build has not published a snapshot to this site yet.";
   });
 })();

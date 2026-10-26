@@ -6,7 +6,7 @@
 @font-face { font-family: "IBM Plex Mono"; src: url(fonts/IBMPlexMono-Medium.woff2) format("woff2"); font-weight: 500 700; font-style: normal; font-display: swap; }
 
 :root {
-  --ink: #17213a; --muted: #4f5869; --faint: #7a8291; --line: #e2ded4; --line-2: #ece8df;
+  --ink: #17213a; --muted: #4f5869; --faint: #646c7b;  /* 4.6:1 on --soft, the darkest ground it sits on */ --line: #e2ded4; --line-2: #ece8df;
   --soft: #f3f0e8; --paper: #f8f6f1; --card: #fffefb; --bar: #14213d; --bar-2: #1d2d52;
   --gold: #c9962e; --gold-ink: #8a6420; --link: #1f4e9c;
   --red: #9f2a1e; --red-bg: #f8e7e2; --amber: #7a5410; --amber-bg: #faefd8; --green: #23693a; --green-bg: #e4f0e6;
