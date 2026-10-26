@@ -2,7 +2,7 @@ name: memecoin paper-trading cycle (public host)
 
 # hourly paper cycle + site build. runs here (public repo = free Actions minutes),
 # reads the private code with a read-only token. book state lives in the Actions
-# cache under paper-state/, seeded from paper-seed/ if missing.
+# cache under paper-state/; a missing cache skips the cycle (dispatch with seed=yes to start over).
 #
 # secrets: SOURCE_REPO, SOURCE_READ_TOKEN (contents:read on that repo only),
 # HELIUS_API_KEY; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SOLANA_RPC_URL
@@ -11,7 +11,12 @@ on:
   schedule:
     - cron: "47 * * * *"
     - cron: "17 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Start the paper book over from paper-seed/ if no cached book is found (yes/no)
+        required: false
+        default: "no"
 
 permissions:
   contents: write
@@ -24,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: af7b553a5c3a8ba794f03a24115fce8e2391e783  # private code commit
+  SOURCE_REF: 1c10ff89b1bab9735d4fce672dbadf9032296bdd  # private code commit
 
 jobs:
   cycle:
@@ -40,9 +45,12 @@ jobs:
             exit 1
           fi
 
+      # ref: main, not the commit that triggered the run: a run that waited behind another one must
+      # start from the newest published ledger, or it would publish an older copy over it
       - name: Checkout this site repository
         uses: actions/checkout@v4
         with:
+          ref: main
           path: site
 
       - name: Checkout the private trading code
@@ -53,24 +61,35 @@ jobs:
           token: ${{ secrets.SOURCE_READ_TOKEN }}
           path: src
 
-      # book state: unique save key, prefix restore picks the newest
+      # book state: unique save key, prefix restore picks the newest. Restore and save are separate
+      # steps so a run without a book never saves one (an empty save would hide the real book)
       - name: Restore paper state
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: paper-state
           key: memecoin-book-${{ github.run_id }}
           restore-keys: |
             memecoin-book-
 
-      - name: Seed the book on first run, then install it over the repo stub
+      # a missing cache (service error, eviction) must never quietly restart the book from the seed
+      - name: Install the book (seed only when asked)
+        id: book
+        env:
+          SEED: ${{ github.event.inputs.seed }}
         run: |
           mkdir -p paper-state
           if [ ! -f paper-state/state.json ]; then
-            echo "no cached book: seeding paper-state/ from paper-seed/ (rebuilt from the published snapshot, seq 198)"
+            if [ "$SEED" != "yes" ]; then
+              echo "::error::no cached paper book was restored; the trading cycle is skipped this run (dispatch with seed=yes to start over from paper-seed/)"
+              echo "book=missing" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "seeding paper-state/ from paper-seed/ (rebuilt from the published snapshot, seq 198)"
             cp site/paper-seed/state.json site/paper-seed/cycle_meta.json site/paper-seed/flow_log.jsonl paper-state/
           else
             echo "cached book restored"
           fi
+          echo "book=ok" >> "$GITHUB_OUTPUT"
           rm -rf src/memecoin-trading/data
           cp -r paper-state src/memecoin-trading/data
           python3 - <<'PY'
@@ -80,6 +99,8 @@ jobs:
           PY
 
       - name: Run cycle
+        id: cycle
+        if: steps.book.outputs.book == 'ok'
         working-directory: src/memecoin-trading
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -92,7 +113,7 @@ jobs:
 
       # live tranche, off unless LIVE_ENABLED=1
       - name: Live tranche (gated)
-        if: always()
+        if: always() && steps.book.outputs.book == 'ok'
         continue-on-error: true
         working-directory: src/memecoin-trading
         env:
@@ -112,23 +133,38 @@ jobs:
           python3 scripts/live.py
 
       - name: Save the book back to the cached path
-        if: always()
+        if: always() && steps.book.outputs.book == 'ok'
         run: |
           rm -rf paper-state
           cp -r src/memecoin-trading/data paper-state
 
-      # continue-on-error: a failed publish must not skip the cache save
+      - name: Save paper state
+        if: always() && steps.book.outputs.book == 'ok'
+        uses: actions/cache/save@v4
+        with:
+          path: paper-state
+          key: memecoin-book-${{ github.run_id }}
+
+      # always: the radar and its track record are sampled every hour even when the trading cycle
+      # failed (6 hours without a sample would void every open entry); the screener's data.json is
+      # only rebuilt from a book that finished its cycle
       - name: Build and publish the site
+        if: always()
         continue-on-error: true
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          CYCLE: ${{ steps.cycle.outcome }}
         run: |
           # pillow is only for the preview cards
           python3 -m pip install --quiet pillow || echo "pillow not installed: no preview cards"
-          (cd src/memecoin-trading && python3 scripts/build_site.py)
+          if [ "$CYCLE" = "success" ]; then
+            (cd src/memecoin-trading && python3 scripts/build_site.py)
+            cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
+               src/memecoin-trading/site/data.json site/
+          else
+            echo "trading cycle did not finish ($CYCLE): screener data left as published"
+          fi
           (cd src/memecoin-trading && python3 scripts/build_research.py) || echo "research page not built"
-          cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
-             src/memecoin-trading/site/data.json site/
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
           for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json; do
             [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
@@ -166,7 +202,13 @@ jobs:
               runs = json.load(sys.stdin)["workflow_runs"]
           except Exception:
               print("unknown"); raise SystemExit
-          print("alive" if any(r["status"] in ("queued", "in_progress", "waiting", "pending") for r in runs) else "dead")
+          from datetime import datetime, timezone
+          now = datetime.now(timezone.utc)
+          def age(r):
+              return (now - datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))).total_seconds()
+          # a run left queued for over 30 minutes is stuck, not alive
+          print("alive" if any(r["status"] == "in_progress" or (r["status"] in ("queued", "waiting", "pending") and age(r) < 1800)
+                               for r in runs) else "dead")
           ')
           echo "scanner watchdog: $alive"
           if [ "$alive" = "dead" ]; then
