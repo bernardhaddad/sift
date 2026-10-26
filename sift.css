@@ -101,4 +101,8 @@ footer a:hover { color: #ffffff; }
   .proofs div { min-width: 0; }
   .proofs b { font-size: 26px; }
 }
+@media (max-width: 360px) {
+  .brand { font-size: 21px; margin-right: 12px; }
+  .links a { padding: 0 6px; font-size: 13.5px; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

@@ -382,7 +382,7 @@
     const pool = `<a href="https://solscan.io/account/${encodeURIComponent(l.pool)}" target="_blank" rel="noopener">${esc(l.dex)} pool</a>`;
     if (l.no_lp_token) return `<span>LP: ${pool}, concentrated liquidity, no LP token</span>`;
     if (l.not_checked) return `<span>LP: ${pool}, burn not checked</span>`;
-    return `<span>LP: <b>${num(l.burned_pct).toFixed(1)}%</b> burned in the main ${pool}</span>`;
+    return l.burned_pct == null ? `<span>LP: ${pool}, burn not known</span>` : `<span>LP: <b>${num(l.burned_pct).toFixed(1)}%</b> burned in the main ${pool}</span>`;
   }
 
   function heldLine(t) {  // linked supply still held, read from the 20 largest accounts each hour
@@ -467,12 +467,12 @@
       tsLoad.then(() => {
         if (settled) return;
         try { if (tsWidget !== null) window.turnstile.remove(tsWidget); } catch { /* already gone */ }  // one token per request
-        mine = tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, action: "trace", appearance: "interaction-only",
+        try { mine = tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, action: "trace", appearance: "interaction-only",
           execution: "execute", "refresh-expired": "never",
           callback: (t) => finish(() => ok(t)),  // removed once used, so it never pops up again mid-trace
           "before-interactive-callback": () => $("ts").scrollIntoView({ behavior: "smooth", block: "center" }),
           "error-callback": no, "expired-callback": no });
-        window.turnstile.execute(mine);
+        window.turnstile.execute(mine); } catch { no(); }
       }, no);
     });
   }
@@ -557,7 +557,7 @@
         <span class="chev"></span></div>`;
       return open === t.mint ? row + detail(t) : row;
     }).join("") + (list.length > page.length ? `<div class="more"><button class="btn" id="more">Show ${list.length - page.length} more</button></div>` : "");
-    const m = $("more"); if (m) m.addEventListener("click", () => { shown += 30; render(); });
+    const m = $("more"); if (m) m.addEventListener("click", () => { const at = shown; shown += 30; render(); const r = document.querySelectorAll("#rows .tok")[at]; if (r) r.focus(); });
   }
 
   function tabs() {
@@ -629,15 +629,16 @@
   }
   $("review").addEventListener("toggle", () => { if ($("review").open) review(); });
 
-  let registry = null;
+  let registryLoad = null;
   async function checkWallet() {
     const a = $("wq").value.trim();
     if (!a) { $("wres").innerHTML = ""; return; }
     if (!B58.test(a)) { $("wres").innerHTML = `<div class="box">That is not a Solana address.</div>`; return; }
-    if (!registry) {
-      try { registry = await (await fetch("radar-wallets.json", { cache: "no-store" })).json(); }
-      catch { $("wres").innerHTML = `<div class="box">The wallet list could not be loaded. Please try again shortly.</div>`; return; }
-    }
+    if (!registryLoad) registryLoad = fetch("radar-wallets.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    let registry;
+    try { registry = await registryLoad; }
+    catch { registryLoad = null; if ($("wq").value.trim() === a) $("wres").innerHTML = `<div class="box">The wallet list could not be loaded. Please try again shortly.</div>`; return; }
+    if ($("wq").value.trim() !== a) return;  // a newer lookup owns the box
     const w = (registry.wallets || {})[a];
     if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered.</div>`; return; }
     const toks = Object.entries(w.tokens || {}).sort((x, y) => String(y[1].last_seen).localeCompare(String(x[1].last_seen)));
@@ -653,7 +654,7 @@
     return true;
   }
 
-  $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.g; tabs(); render(); });
+  $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.g; tabs(); render(); const nb = document.querySelector(`#tabs button[data-g="${filter}"]`); if (nb) nb.focus(); });
   $("rows").addEventListener("click", (e) => {
     const cp = e.target.closest("[data-copy]");
     if (cp) { if (navigator.clipboard) navigator.clipboard.writeText(cp.dataset.copy).then(() => { cp.textContent = "Copied"; setTimeout(() => { cp.textContent = "Copy mint"; }, 1400); }); return; }
@@ -661,7 +662,9 @@
     if (tr) { startTrace(tr.dataset.trace); return; }
     if (e.target.closest("a")) return;
     const r = e.target.closest(".tok"); if (!r) return;
-    open = open === r.dataset.m ? null : r.dataset.m; render();
+    const m = r.dataset.m;
+    open = open === m ? null : m; render();
+    const nr = [...document.querySelectorAll("#rows .tok")].find((x) => x.dataset.m === m); if (nr) nr.focus();
   });
   $("rows").addEventListener("keydown", (e) => { const r = e.target.closest(".tok"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); r.click(); } });
   $("q").addEventListener("input", () => { if (doc) render(); });
@@ -680,7 +683,14 @@
     $("q").focus();
   });
   $("wq").addEventListener("input", () => { if (doc) checkWallet(); });
-  window.addEventListener("hashchange", () => { if (doc && fromHash()) { filter = "all"; tabs(); render(); $("tokens").scrollIntoView({ behavior: "smooth" }); } });
+  const goHash = () => { if (doc && fromHash()) { filter = "all"; tabs(); render(); $("tokens").scrollIntoView({ behavior: "smooth" }); } };
+  const openData = () => { if (location.hash === "#data") $("data").open = true; };
+  window.addEventListener("hashchange", () => { openData(); goHash(); });
+  openData();
+  $("rw").addEventListener("click", (e) => {  // a token already in the address bar fires no hashchange
+    const a = e.target.closest('a.pill[href^="#"]');
+    if (a && a.getAttribute("href") === location.hash) { e.preventDefault(); goHash(); }
+  });
 
   fetch("radar.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     if (!d || !Array.isArray(d.tokens)) throw new Error("bad data");

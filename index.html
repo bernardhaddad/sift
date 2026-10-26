@@ -95,6 +95,7 @@
   .card table { font-size: 12.5px; }
   .card th, .card td { padding: 5px 7px; }
   .card th:first-child, .card td:first-child { text-align: left; }
+  th .sortb { all: unset; cursor: pointer; } th .sortb:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
   .card:has(> details[open]) { grid-column: 1 / -1; }
   @media (max-width: 560px) {
     .card table { font-size: 12px; }
@@ -216,7 +217,7 @@
   const fmtPct = (v, d = 1) => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(d) + "%";
   const fmtAge = (h) => h == null ? "–" : h < 48 ? h.toFixed(0) + "h" : (h / 24).toFixed(1) + "d";
   const fmtPrice = (p) => p == null ? "–" : p >= 1 ? p.toFixed(3) : p.toPrecision(3);
-  const ago = (iso) => { if (!iso) return "unknown"; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 60 ? m + " min ago" : m < 2880 ? (m / 60).toFixed(1) + " h ago" : (m / 1440).toFixed(1) + " d ago"; };
+  const ago = (iso) => { if (!iso) return "unknown"; const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); return m < 60 ? m + " min ago" : m < 2880 ? (m / 60).toFixed(1) + " h ago" : (m / 1440).toFixed(1) + " d ago"; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const PRESETS = [
@@ -233,7 +234,7 @@
     { key: "buy_ratio", label: "Buy ratio", sort: (p) => p.buy_ratio ?? -1 },
     { key: "flow", label: "Flow", sort: (p) => p.flow ? p.flow.net_usd : -1e12 },
     { key: "cluster", label: "Cluster", sort: (p) => p.cluster ? (p.cluster.verdict === "admitted" ? 2 : p.cluster.verdict === "refused" ? 0 : 1) : -1 },
-    { key: "spark", label: "48h", sort: (p) => p.spark && p.spark.length > 1 ? p.spark[p.spark.length - 1] / p.spark[0] : 0 },
+    { key: "spark", label: "48h", sort: (p) => { const v = (p.spark || []).filter((x) => x != null && x > 0); return v.length > 1 ? v[v.length - 1] / v[0] : 0; } },
     { key: "trade", label: "Trade", sort: null },
   ];
 
@@ -242,8 +243,8 @@
   let sortKey = "liq", sortDir = -1;
 
   function spark(vals) {
-    if (!vals || vals.length < 2) return '<span class="sub">–</span>';
-    const v = vals.filter((x) => x != null);
+    const v = (vals || []).filter((x) => x != null && Number.isFinite(x));
+    if (v.length < 2) return '<span class="sub">–</span>';
     const min = Math.min(...v), max = Math.max(...v), w = 110, h = 28;
     const pts = v.map((y, i) => [(i / (v.length - 1)) * w, max === min ? h / 2 : h - 3 - ((y - min) / (max - min)) * (h - 6)]);
     const color = v[v.length - 1] >= v[0] ? "var(--up)" : "var(--down)";
@@ -299,7 +300,7 @@
     const col = COLS.find((c) => c.key === sortKey);
     const rows = filtered();
     if (col && col.sort) rows.sort((a, b) => (col.sort(a) > col.sort(b) ? 1 : col.sort(a) < col.sort(b) ? -1 : 0) * sortDir);
-    $("head").innerHTML = COLS.map((c) => `<th class="${c.left ? "l " : ""}${c.key === sortKey ? "on" : ""}" data-key="${c.key}">${c.label}${c.key === sortKey ? (sortDir < 0 ? " ↓" : " ↑") : ""}</th>`).join("");
+    $("head").innerHTML = COLS.map((c) => `<th class="${c.left ? "l " : ""}${c.key === sortKey ? "on" : ""}" data-key="${c.key}"${c.sort ? ` aria-sort="${c.key === sortKey ? (sortDir < 0 ? "descending" : "ascending") : "none"}"` : ""}>${c.sort ? `<button type="button" class="sortb">${c.label}${c.key === sortKey ? (sortDir < 0 ? " ↓" : " ↑") : ""}</button>` : c.label}</th>`).join("");
     $("rows").innerHTML = rows.map(row).join("");
     $("empty").hidden = rows.length > 0;
     const pr = PRESETS.find((x) => x.key === preset);
@@ -309,6 +310,7 @@
       const c = COLS.find((x) => x.key === th.dataset.key); if (!c || !c.sort) return;
       if (sortKey === c.key) sortDir = -sortDir; else { sortKey = c.key; sortDir = c.key === "name" ? 1 : -1; }
       render();
+      const b = document.querySelector(`#head th[data-key="${c.key}"] button`); if (b) b.focus();
     });
   }
   function applyPreset(key) {
@@ -341,10 +343,10 @@
       ? `<div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(0, 5).map(refRow).join("")}</tbody></table></div>` + (refused.length > 5 ? `<details class="more-ref"><summary>Show ${refused.length - 5} more</summary><div class="tablewrap"><table class="small">${refHead}<tbody>${refused.slice(5).map(refRow).join("")}</tbody></table></div></details>` : "")
       : `<p class="sub">No refusals in the last two weeks.</p>`;
     $("books").innerHTML = (data.books || []).map((b) => {
-      const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : b.verdict.startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
+      const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : String(b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
       const trades = (b.trades || []);
-      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${all}</div>`;
     }).join("");
     const refs = CFG.referrals || {};
@@ -367,9 +369,9 @@
       const labels = { M5D: "M5D: flush", M5A: "M5A: new on trending", M5D2: "M5D2: flush, 12-hour hold", M6E: "M6E: liquidity, established pools", M6Y: "M6Y: liquidity, young pools" };
       const label = labels[b.name] || b.name;
       const voided = b.void || [];
-      const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       const trades = b.trades || [];
-      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened</th><th>closed</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${b.total_r >= 0 ? "+" : ""}${b.total_r}R</div><div class="sub">${b.closed} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
     }).join("");
   }
