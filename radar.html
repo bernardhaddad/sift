@@ -453,19 +453,26 @@
       sc.async = true; sc.onload = ok; sc.onerror = () => { tsLoad = null; fail(new Error("turnstile")); };
       document.head.appendChild(sc);
     });
-    return tsLoad.then(() => new Promise((ok, fail) => {
-      let timer = null;
-      const done = () => { clearTimeout(timer); if (tsWidget !== null) { window.turnstile.remove(tsWidget); tsWidget = null; } };
-      const no = () => { done(); fail(new Error("check")); };
-      timer = setTimeout(no, 180e3);  // a check left unanswered must not hold the trace forever
-      if (tsWidget !== null) window.turnstile.remove(tsWidget);  // a token is good for one request
-      tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, action: "trace", appearance: "interaction-only",
-        execution: "execute", "refresh-expired": "never",
-        callback: (t) => { done(); ok(t); },  // removed once used, so it never pops up again mid-trace
-        "before-interactive-callback": () => $("ts").scrollIntoView({ behavior: "smooth", block: "center" }),
-        "error-callback": no, "expired-callback": no });
-      window.turnstile.execute(tsWidget);
-    }));
+    return new Promise((ok, fail) => {
+      let mine = null, settled = false;
+      const drop = () => {  // remove this call's widget only; a newer check may own the box by now
+        try { if (mine !== null && tsWidget === mine) { window.turnstile.remove(mine); tsWidget = null; } } catch { /* already gone */ }
+      };
+      const finish = (f) => { if (settled) return; settled = true; clearTimeout(timer); f(); drop(); };
+      const no = () => finish(() => fail(new Error("check")));
+      // started before the script loads: a stalled load or an unanswered box must not hold the trace forever
+      const timer = setTimeout(no, 180e3);
+      tsLoad.then(() => {
+        if (settled) return;
+        try { if (tsWidget !== null) window.turnstile.remove(tsWidget); } catch { /* already gone */ }  // one token per request
+        mine = tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, action: "trace", appearance: "interaction-only",
+          execution: "execute", "refresh-expired": "never",
+          callback: (t) => finish(() => ok(t)),  // removed once used, so it never pops up again mid-trace
+          "before-interactive-callback": () => $("ts").scrollIntoView({ behavior: "smooth", block: "center" }),
+          "error-callback": no, "expired-callback": no });
+        window.turnstile.execute(mine);
+      }, no);
+    });
   }
   async function relay(method, mint) {
     let token = "";
