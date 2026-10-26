@@ -1560,7 +1560,17 @@
    }
   },
   "M4": {
-   "open": {},
+   "open": {
+    "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": {
+     "address": "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S",
+     "name": "Dacity / SOL",
+     "mint": "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump",
+     "entry_price": 0.009338407996029002,
+     "high_price": 0.009338407996029002,
+     "opened_at": "2026-10-26T17:29:38+00:00",
+     "entry_liq": 567046.1224
+    }
+   },
    "closed": [
     {
      "address": "4iVHkn5WhmGwrKb2fYFNPnTkqhwYTEEezvsju9YEBY76",
@@ -1614,12 +1624,14 @@
    "last_entry": {
     "4iVHkn5WhmGwrKb2fYFNPnTkqhwYTEEezvsju9YEBY76": "2026-09-21T21:14:41+00:00",
     "BN7CfsGm6Vq9w8NibLZXRGW2tp5y2axwXuLAs85NGakf": "2026-10-08T13:19:11+00:00",
-    "FTmwv748VxVVrRohjYzvdfyL4SXP3C6QTnHSem5QhewZ": "2026-10-17T18:49:07+00:00"
+    "FTmwv748VxVVrRohjYzvdfyL4SXP3C6QTnHSem5QhewZ": "2026-10-17T18:49:07+00:00",
+    "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": "2026-10-26T17:29:38+00:00"
    },
    "last_entry_mint": {
     "4MMQY9bwkxxTtsK3W227Q5ABT6yFY8Pmn9Ze7wmAXKY8": "2026-09-21T21:14:41+00:00",
     "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": "2026-10-08T13:19:11+00:00",
-    "6Mix12LiHrQFojaQEnfPUC65Qkwd6X4Y5Qg93oFbordr": "2026-10-17T18:49:07+00:00"
+    "6Mix12LiHrQFojaQEnfPUC65Qkwd6X4Y5Qg93oFbordr": "2026-10-17T18:49:07+00:00",
+    "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump": "2026-10-26T17:29:38+00:00"
    },
    "rejects": {
     "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": "2026-10-25T22:35:02+00:00"

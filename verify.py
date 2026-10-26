@@ -82,6 +82,11 @@ def check_link(node: Node, link: dict) -> tuple[str, str]:
         return "skipped", "published without a proof transaction"
     tx = node.call("getTransaction", [sig, TX_OPTS])
     if tx is None:
+        # a public node can answer null for a transaction it has not served this time: only the
+        # chain's own status record decides whether the proof really does not exist
+        status = (node.call("getSignatureStatuses", [[sig], {"searchTransactionHistory": True}]) or {})
+        if ((status.get("value") or [None])[0]) is not None:
+            return "unreachable", "proof transaction exists but this node did not return it"
         return "failed", "proof transaction not found"
     if (tx.get("meta") or {}).get("err") is not None:  # a failed transaction moves nothing
         return "failed", "the proof transaction failed on-chain"
