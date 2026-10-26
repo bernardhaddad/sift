@@ -380,7 +380,7 @@
     const l = t.lp;
     if (!l) return "";
     const pool = `<a href="https://solscan.io/account/${encodeURIComponent(l.pool)}" target="_blank" rel="noopener">${esc(l.dex)} pool</a>`;
-    if (l.no_lp_token) return `<span>LP: ${pool}, concentrated liquidity, no LP token</span>`;
+    if (l.no_lp_token) return `<span>LP: ${pool}, ${l.dex === "Meteora DBC" ? "still on its launch curve" : "liquidity held as positions"}, no LP token to burn</span>`;
     if (l.not_checked) return `<span>LP: ${pool}, burn not checked</span>`;
     return l.burned_pct == null ? `<span>LP: ${pool}, burn not known</span>` : `<span>LP: <b>${num(l.burned_pct).toFixed(1)}%</b> burned in the main ${pool}</span>`;
   }

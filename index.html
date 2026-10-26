@@ -72,6 +72,7 @@
   tbody tr:hover td { background: #f8f8f9; }
   tbody tr:last-child td { border-bottom: 0; }
   td.num { font: 13px var(--mono); }
+  td.num .sub { font-family: var(--sans); }
   .name { font-weight: 600; }
   .sub { color: var(--faint); font-size: 12.5px; }
   .up { color: var(--green); } .down { color: var(--red); } .warn { color: var(--amber); }
@@ -215,7 +216,9 @@
   const fmtSigned = (v) => v == null ? "–" : (v >= 0 ? "+" : "−") + fmtUsd(Math.abs(v));
   const fmtMoney = (v) => v == null ? "–" : (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(2);
   const fmtPct = (v, d = 1) => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(d) + "%";
-  const fmtAge = (h) => h == null ? "–" : h < 48 ? h.toFixed(0) + "h" : (h / 24).toFixed(1) + "d";
+  const fmtAge = (h) => h == null ? "–" : h < 48 ? h.toFixed(0) + "h" : h < 60 * 24 ? (h / 24).toFixed(1) + "d" : h < 365 * 24 ? Math.round(h / 24 / 30.4) + " mo" : (h / 24 / 365).toFixed(1) + " y";
+  const p1 = (v) => v == null || !Number.isFinite(+v) ? "–" : (+v).toFixed(1);
+  const int = (v) => Number.isFinite(+v) ? Math.round(+v) : 0;
   const fmtPrice = (p) => p == null ? "–" : p >= 1 ? p.toFixed(3) : p.toPrecision(3);
   const ago = (iso) => { if (!iso) return "unknown"; const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); return m < 60 ? m + " min ago" : m < 2880 ? (m / 60).toFixed(1) + " h ago" : (m / 1440).toFixed(1) + " d ago"; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -252,9 +255,9 @@
   }
   function clusterChip(c) {
     if (!c) return '<span class="chip na" title="Not traced in the last two weeks. The paper system only traces tokens that reach its entry gates.">not traced</span>';
-    if (c.verdict === "admitted") return `<span class="chip ok" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, unknown ${c.unknown_pct}%, ${c.wallets}/${c.holders} top holders resolved">clean ${c.cluster_pct}%</span>`;
+    if (c.verdict === "admitted") return `<span class="chip ok" title="Largest cluster ${p1(c.cluster_pct)}%, all clusters ${p1(c.clustered_pct)}%, unknown ${p1(c.unknown_pct)}%, ${int(c.wallets)}/${int(c.holders)} top holders resolved">clean ${p1(c.cluster_pct)}%</span>`;
     if (c.reason === "wallet_authority") return `<span class="chip bad" title="A wallet can still mint or freeze this token, ${ago(c.at)}">wallet authority</span>`;
-    if (c.verdict === "refused") return `<span class="chip bad" title="Largest cluster ${c.cluster_pct}%, all clusters ${c.clustered_pct}%, ${ago(c.at)}">cluster ${c.cluster_pct}%</span>`;
+    if (c.verdict === "refused") return `<span class="chip bad" title="Largest cluster ${p1(c.cluster_pct)}%, all clusters ${p1(c.clustered_pct)}%, ${ago(c.at)}">cluster ${p1(c.cluster_pct)}%</span>`;
     return `<span class="chip warn" title="${esc(c.reason)}, ${ago(c.at)}">no data</span>`;
   }
   function flowCell(f) {
@@ -305,6 +308,10 @@
     $("empty").hidden = rows.length > 0;
     const pr = PRESETS.find((x) => x.key === preset);
     $("hint").textContent = `${rows.length} of ${data.pools.length} scanned pools. ${pr.hint}`;
+    if (preset !== "all" && rows.length < 5) {  // a narrow band on a quiet hour: point to the full scan
+      const memes = data.pools.filter((x) => x.meme).length;
+      $("hint").insertAdjacentHTML("beforeend", ` <a href="#all" class="widen">See all ${memes} memecoin pools scanned this hour.</a>`);
+    }
     document.querySelectorAll("#presets button").forEach((b) => b.classList.toggle("on", b.dataset.key === preset));
     document.querySelectorAll("#head th").forEach((th) => th.onclick = () => {
       const c = COLS.find((x) => x.key === th.dataset.key); if (!c || !c.sort) return;
