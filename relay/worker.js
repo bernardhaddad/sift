@@ -142,7 +142,8 @@ function v6prefix(ip) {
 // a salted hash of the visitor's address; IPv6 by its /64, the block one connection usually holds
 async function visitor(env, ip) {
   if (!env.SALT || env.SALT.length < 8) throw new Error("SALT is not set");  // never publish an unsalted hash
-  const key = ip.includes(":") ? v6prefix(ip) : ip;
+  // IPv4-mapped IPv6 (::ffff:1.2.3.4) is an IPv4 visitor; other IPv6 by its /64
+  const key = ip.includes(".") ? ip.slice(ip.lastIndexOf(":") + 1) : ip.includes(":") ? v6prefix(ip) : ip;
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.SALT}|${key}`)));
   return [...hash.slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }

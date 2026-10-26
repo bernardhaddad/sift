@@ -51,6 +51,10 @@ eq(state.dispatched[0].inputs.requester === state.dispatched[1].inputs.requester
 state.runs = []; state.dispatched = [];
 await call("POST", { mint: OTHER }, "", "2001:db8::aaaa:1"); await call("POST", { mint: MINT }, "", "2001:db8:0:0:bbbb::9");
 eq(state.dispatched[0].inputs.requester === state.dispatched[1].inputs.requester, true, "compressed IPv6 keyed by the same /64");
+state.runs = []; state.dispatched = [];
+await call("POST", { mint: OTHER }, "", "::ffff:1.2.3.4"); await call("POST", { mint: MINT }, "", "::ffff:5.6.7.8"); await call("POST", { mint: MINT }, "", "1.2.3.4");
+const [m1, m2, m3] = state.dispatched.map((d) => d.inputs.requester);
+eq([m1 !== m2, m1 === m3], [true, true], "IPv4-mapped visitors kept apart and matched to their IPv4");
 eq((await call("POST", { mint: OTHER }, "", "1.2.3.4", { GH_TOKEN: "t", PRODUCTION_ONLY: "off", TURNSTILE: "off" })).status, "error", "no SALT fails closed");
 const strict = { GH_TOKEN: "t", SALT: "a-long-salt", PRODUCTION_ONLY: "off", TURNSTILE_SECRET: "s" };
 state.runs = []; state.dispatched = [];
