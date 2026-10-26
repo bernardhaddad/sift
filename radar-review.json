@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-25T20:20:00+00:00",
+  "reviewed_at": "2026-10-26T10:00:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 16,
-    "links_checked": 311,
+    "verdicts": 17,
+    "links_checked": 353,
     "links_contradicted": 0,
     "young_tokens": 10,
-    "older_tokens": 6
+    "older_tokens": 7
   },
   "cases": [
     {
@@ -158,6 +158,15 @@
       "links": "10 of 10 verified",
       "finding": "older",
       "note": "8 linked top holders with 63.0% of supply. One holder with 1.4% (89 transactions) funded or sent first tokens to the others. A funding wallet seen behind 9 tokens is set aside as a likely shared service and does not count toward the verdict. Traded for 43 days before the verdict."
+    },
+    {
+      "mint": "D4BPL1zvhhJbxUdgi2qVUtjx4jeQWyUr2PAUjKc9rN5x",
+      "name": "MUSK",
+      "verdict_at": "2026-10-26T09:14:12+00:00",
+      "trading_since": "2025-12-28T02:26:00Z",
+      "links": "42 of 42 verified",
+      "finding": "older",
+      "note": "All 20 top holders, with 56.4% of supply, are linked. One wallet with over 1,000 transactions sent every one of them its first tokens; without it, funding links alone still join 18 holders with 50.5%. Traded for 302 days before the verdict."
     }
   ]
 }

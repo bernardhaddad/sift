@@ -93,6 +93,16 @@
   .card table, table.small { min-width: 0; }
   .card table { font-size: 12.5px; }
   .card th, .card td { padding: 5px 7px; }
+  .card th:first-child, .card td:first-child { text-align: left; }
+  .card:has(> details[open]) { grid-column: 1 / -1; }
+  @media (max-width: 560px) {
+    .card table { font-size: 12px; }
+    .card th, .card td { padding: 5px 4px; }
+    .card td:nth-child(2), .card td:nth-child(3) { white-space: normal; min-width: 40px; }
+    .card td:first-child { white-space: normal; overflow-wrap: anywhere; }
+  }
+  summary:focus:not(:focus-visible) { outline: none; }
+  summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
   .more-ref summary { cursor: pointer; color: var(--link); font-size: 14px; padding: 10px 0; }
   .howto { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .howto summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; }
