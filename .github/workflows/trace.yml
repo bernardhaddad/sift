@@ -177,12 +177,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "radar-requests/${MINT}.json"
           git commit --quiet -m "Radar trace ${MINT:0:8}"
-          for attempt in 1 2 3 4; do
-            if git push --quiet origin HEAD:main; then echo "saved"; exit 0; fi
-            git pull --quiet --rebase -X theirs origin main || git rebase --abort || true
-            sleep $((attempt * 5))
-          done
-          echo "::warning::could not save the trace; the reply is still posted"
+          bash scripts/push-snapshot.sh 4 || echo "::warning::could not save the trace; the reply is still posted"
 
       - name: Reply on the issue
         if: always() && (github.event_name == 'issues' || github.event.inputs.issue != '')

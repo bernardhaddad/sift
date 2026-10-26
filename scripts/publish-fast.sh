@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# push site/fast.json; on a rejected push rebase (-X theirs) and retry. always exits 0.
+# push site/fast.json; on a rejected push re-apply it onto the new main (push-snapshot.sh). always exits 0.
 set -u
 WS="${1:-${GITHUB_WORKSPACE:-.}}"
 SRC="$WS/src/memecoin-trading/site/fast.json"
@@ -48,17 +48,5 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add fast.json
 if git diff --cached --quiet; then echo "fast.json unchanged"; exit 0; fi
 git commit --quiet -m "Minute books $(date -u +%Y-%m-%dT%H:%MZ)"
-for attempt in 1 2 3; do
-  if git push --quiet origin HEAD:main; then echo "published"; exit 0; fi
-  echo "push rejected (attempt $attempt); rebasing onto origin/main"
-  git fetch --quiet origin main
-  if ! git rebase --quiet -X theirs origin/main; then
-    git rebase --abort || true
-    git reset --quiet --hard origin/main
-    echo "rebase failed; snapshot not published this time"
-    exit 0
-  fi
-  sleep 5
-done
-echo "not published after 3 attempts"
+bash scripts/push-snapshot.sh 3 || echo "snapshot not published this time"
 exit 0

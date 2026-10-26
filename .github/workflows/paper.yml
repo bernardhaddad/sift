@@ -149,19 +149,7 @@ jobs:
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit --quiet -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
-          for attempt in 1 2 3; do
-            if git push --quiet origin HEAD:main; then echo "published"; exit 0; fi
-            echo "push rejected (attempt $attempt); rebasing onto origin/main"
-            git fetch --quiet origin main
-            if ! git rebase --quiet -X theirs origin/main; then
-              git rebase --abort || true
-              git reset --quiet --hard origin/main
-              echo "rebase failed; site left at origin/main, book unaffected"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "site not published after 3 attempts; book unaffected"
+          bash scripts/push-snapshot.sh 4 || echo "site not published; book unaffected"
 
       # restart the scanner if nothing is running or queued
       - name: Scanner watchdog

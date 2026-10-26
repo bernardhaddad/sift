@@ -74,16 +74,5 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add panel
 if git diff --cached --quiet; then echo "archive: nothing new"; exit 0; fi
 git commit --quiet -m "Panel archive $STAMP (run $RUN_ID)"
-for attempt in 1 2 3; do
-  if git push --quiet origin HEAD:main; then echo "archive: published"; exit 0; fi
-  git fetch --quiet origin main
-  if ! git rebase --quiet -X theirs origin/main; then
-    git rebase --abort || true
-    git reset --quiet --hard origin/main
-    echo "archive: rebase failed; not published this time"
-    exit 0
-  fi
-  sleep 5
-done
-echo "archive: not published after 3 attempts"
+bash scripts/push-snapshot.sh 3 || echo "archive: not published this time"
 exit 0
