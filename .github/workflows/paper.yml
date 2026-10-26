@@ -29,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 1c10ff89b1bab9735d4fce672dbadf9032296bdd  # private code commit
+  SOURCE_REF: 0652a6f948f544acad9c31c160bfc884d9a5ccb1  # private code commit
 
 jobs:
   cycle:
@@ -166,13 +166,14 @@ jobs:
           fi
           (cd src/memecoin-trading && python3 scripts/build_research.py) || echo "research page not built"
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
-          for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json; do
+          for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json sift.css; do
             [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
           done
           # radar: trending feed, audit, build (all best effort)
           (cd src/memecoin-trading && timeout 480 python3 scripts/radar_feed.py "$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-requests") || echo "radar feed skipped"
           (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py --audit "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json" "$GITHUB_WORKSPACE/site/radar-audit.json" "$GITHUB_WORKSPACE/site/radar-lp.json") || echo "radar not built"
+          [ -d src/memecoin-trading/site/fonts ] && rm -rf site/fonts && cp -r src/memecoin-trading/site/fonts site/ || true
           cp src/memecoin-trading/scripts/radar_audit.py site/verify.py
           [ -d src/memecoin-trading/site/t ] && rm -rf site/t && cp -r src/memecoin-trading/site/t site/ || true
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml src/memecoin-trading/site/radar-lp.json site/ || true
