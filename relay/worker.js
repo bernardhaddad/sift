@@ -15,9 +15,12 @@ const DAILY_LIMIT = 40;      // traces a day, all visitors together (same as tra
 const PER_VISITOR_LIMIT = 3; // traces a day per visitor
 const FRESH_MS = 2 * 3600e3; // a trace this recent is returned instead of a new one
 const RUN_WINDOW_MS = 30 * 60e3;
-const MAX_ACTIVE = 2;        // relay traces queued or running at once; more waits (the paper cycle shares the runners)
+const MAX_ACTIVE = 2;        // relay traces queued or running at once; more are refused (the paper cycle shares the runners)
 const CACHE_S = 5;           // GitHub answers reused this long, so polling cannot use up the token's API quota
+const RECOUNT_MS = 2000;     // after a dispatch, the wait before the runs are counted again (RECOUNT_MS to change it)
+const MAX_PAGES = 10;        // run list pages read (100 runs each); a longer list refuses rather than undercounts
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 const LIMIT_TEXT = `The free daily limit is reached (${PER_VISITOR_LIMIT} traces a day per visitor, ${DAILY_LIMIT} in total). Please try again tomorrow.`;
 const INVALID_TEXT = "That does not look like a Solana token address (base58, 32 to 44 characters).";
@@ -103,11 +106,12 @@ async function ok(res) {
   return res.json();
 }
 
-// a GitHub GET as JSON (null for 404), shared by all requests for CACHE_S seconds
-async function cachedJson(env, path, accept) {
+// a GitHub GET as JSON (null for 404), shared by all requests for CACHE_S seconds; `fresh` reads
+// GitHub itself (and refreshes the shared copy)
+async function cachedJson(env, path, accept, fresh = false) {
   const store = typeof caches !== "undefined" ? caches.default : null;
   const key = new Request(`https://relay.cache/${encodeURIComponent(path)}`);
-  const hit = store && await store.match(key);
+  const hit = !fresh && store && await store.match(key);
   if (hit) return hit.json();
   const res = await gh(env, path, accept ? { headers: { Accept: accept } } : {});
   const body = res.status === 404 ? null : await ok(res);
@@ -120,13 +124,52 @@ async function saved(env, mint) {
   try { return await cachedJson(env, `/contents/radar-requests/${mint}.json`, "application/vnd.github.raw+json"); } catch { return null; }
 }
 
+// the start of the 24-hour window, on the minute so the cache keys hold still
+const daySince = () => new Date(Math.floor((Date.now() - 24 * 3600e3) / 60e3) * 60e3).toISOString().replace(/\.\d+Z$/, "Z");
+
 // relay-started runs of trace.yml in the last 24 hours (newest first); each is named
-// "trace <address> <visitor>". The window starts on the minute so the cache key holds still.
-async function runs(env) {
-  const since = new Date(Math.floor((Date.now() - 24 * 3600e3) / 60e3) * 60e3).toISOString().replace(/\.\d+Z$/, "Z");
-  const q = `?event=workflow_dispatch&per_page=100&created=${encodeURIComponent(">=" + since)}`;
-  const d = await cachedJson(env, `/actions/workflows/${WORKFLOW}/runs${q}`);
-  return ((d && d.workflow_runs) || []).filter((r) => String(r.display_title || "").startsWith("trace "));
+// "trace <address> <visitor>". Every page is read: cancelled runs are listed too, and counted runs
+// past the first 100 would otherwise drop out of the count. `partial`: more runs than were read.
+async function runs(env, fresh = false) {
+  const since = daySince(), seen = new Map();
+  let total = 0;
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const q = `?event=workflow_dispatch&per_page=100&page=${page}&created=${encodeURIComponent(">=" + since)}`;
+    const d = (await cachedJson(env, `/actions/workflows/${WORKFLOW}/runs${q}`, undefined, fresh)) || {};
+    const batch = d.workflow_runs || [];
+    total = Math.max(total, Number(d.total_count) || 0);
+    for (const r of batch) seen.set(r.id, r);  // a run created between two pages shows up twice
+    if (batch.length < 100) break;
+  }
+  const list = [...seen.values()].filter((r) => String(r.display_title || "").startsWith("trace "));
+  return { list, partial: seen.size < total };
+}
+
+// trace requests opened as issues in the last 24 hours: they share the daily total with the relay.
+// Best effort (0 when unreadable): trace.yml counts both again and refuses when it cannot.
+async function issueTraces(env) {
+  const since = daySince();
+  let n = 0;
+  try {
+    for (let page = 1; page <= 3; page++) {
+      const batch = (await cachedJson(env, `/issues?state=all&sort=created&since=${since}&per_page=100&page=${page}`)) || [];
+      n += batch.filter((i) => !i.pull_request && String(i.created_at) >= since &&
+        (String(i.title || "").startsWith("[trace]") || String(i.body || "").includes("### Token mint address"))).length;
+      if (batch.length < 100) break;
+    }
+  } catch { /* counted again by trace.yml */ }
+  return n;
+}
+
+// a Solana address: base58 that decodes to exactly 32 bytes (a made-up string of the right
+// characters usually does not, and would cost a run)
+function validMint(s) {
+  if (!B58.test(s)) return false;
+  let n = 0n;
+  for (const c of s) n = n * 58n + BigInt(B58_ALPHABET.indexOf(c));
+  const zeros = s.length - s.replace(/^1+/, "").length;  // each leading "1" is a zero byte
+  const bytes = n === 0n ? 0 : Math.ceil(n.toString(16).length / 2);
+  return zeros + bytes === 32;
 }
 
 const recent = (r) => Date.now() - Date.parse(r.created_at) < RUN_WINDOW_MS;
@@ -151,26 +194,52 @@ async function visitor(env, ip) {
 const fresh = (rec) => rec && Date.now() - Date.parse(rec.at) < FRESH_MS;
 const done = (rec) => ({ status: "done", row: rec.row || null, at: rec.at });
 const forMint = (list, mint) => list.filter((r) => r.display_title.startsWith(`trace ${mint} `));
+const active = (r) => r.status !== "completed" && recent(r);
+
+// why a new trace may not start, from the runs before it and the day's trace issues; null when it
+// may. Cancelled runs traced nothing; a failed run (our side: the RPC node did not answer) spent
+// the shared quota but does not use up the visitor's own three.
+function refusal(day, issues, who, mint) {
+  if (forMint(day, mint).some(active)) return { status: "running" };
+  const counted = day.filter((r) => r.conclusion !== "cancelled");
+  const mine = counted.filter((r) => r.conclusion !== "failure" && r.display_title.endsWith(` ${who}`));
+  if (counted.length + issues >= DAILY_LIMIT || mine.length >= PER_VISITOR_LIMIT) return { status: "limit", reason: LIMIT_TEXT };
+  if (day.filter(active).length >= MAX_ACTIVE) return { status: "busy", reason: BUSY_TEXT };
+  return null;
+}
 
 async function start(env, mint, ip) {
-  if (!B58.test(mint)) return { status: "invalid", reason: INVALID_TEXT };
+  if (!validMint(mint)) return { status: "invalid", reason: INVALID_TEXT };
   const day = await runs(env);
-  if (forMint(day, mint).some((r) => r.status !== "completed" && recent(r))) return { status: "running" };
+  if (forMint(day.list, mint).some(active)) return { status: "running" };
   const rec = await saved(env, mint);
   if (fresh(rec)) return done(rec);
   const who = await visitor(env, ip);
-  const counted = day.filter((r) => r.conclusion !== "cancelled");  // cancelled runs traced nothing
-  if (counted.length >= DAILY_LIMIT || counted.filter((r) => r.display_title.endsWith(` ${who}`)).length >= PER_VISITOR_LIMIT) {
-    return { status: "limit", reason: LIMIT_TEXT };
-  }
-  if (day.filter((r) => r.status !== "completed" && recent(r)).length >= MAX_ACTIVE) return { status: "busy", reason: BUSY_TEXT };
+  if (day.partial) return { status: "limit", reason: LIMIT_TEXT };  // more runs than can be counted
+  const issues = await issueTraces(env);
+  const no = refusal(day.list, issues, who, mint);
+  if (no) return no;
   const since = new Date(Date.now() - 5e3).toISOString();  // the run this request starts is created after this
   const res = await gh(env, `/actions/workflows/${WORKFLOW}/dispatches`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ref: "main", inputs: { mint, requester: who } }),
+    body: JSON.stringify({ ref: "main", inputs: { mint, requester: who }, return_run_details: true }),
   });
-  if (res.status !== 204) throw new Error(`dispatch ${res.status}`);
+  if (res.status !== 200 && res.status !== 204) throw new Error(`dispatch ${res.status}`);
+  const id = res.status === 200 ? Number((await res.json()).workflow_run_id) || 0 : 0;
+  // Requests that arrive together all read the same list above and all pass. Count again now that
+  // this run exists, against only the runs created before it (run ids rise with creation, so every
+  // request ranks them the same way), and cancel this run if it is beyond a limit.
+  if (id) {
+    await new Promise((ok) => setTimeout(ok, Number(env.RECOUNT_MS ?? RECOUNT_MS)));
+    const now = await runs(env, true);
+    const before = now.list.filter((r) => r.id < id);
+    const late = now.partial ? { status: "limit", reason: LIMIT_TEXT } : refusal(before, issues, who, mint);
+    if (late) {
+      try { await gh(env, `/actions/runs/${id}/cancel`, { method: "POST" }); } catch { /* trace.yml refuses it too */ }
+      return late;
+    }
+  }
   return { status: "queued", since };
 }
 
@@ -188,11 +257,11 @@ async function reason(env, run) {
 }
 
 async function status(env, mint, since) {
-  if (!B58.test(mint)) return { status: "invalid", reason: INVALID_TEXT };
+  if (!validMint(mint)) return { status: "invalid", reason: INVALID_TEXT };
   // `since`: the page started its own run then, so an earlier finished run of this token is not its answer
   const after = Date.parse(since) || 0;
   // only addresses with a recent run are looked up further: polling made-up addresses costs nothing
-  const run = forMint(await runs(env), mint).filter((r) => recent(r) && Date.parse(r.created_at) >= after)
+  const run = forMint((await runs(env)).list, mint).filter((r) => recent(r) && Date.parse(r.created_at) >= after)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
   if (!run) return { status: "none" };
   if (run.status !== "completed") return { status: run.status === "in_progress" ? "running" : "queued" };

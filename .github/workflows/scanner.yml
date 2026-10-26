@@ -2,6 +2,7 @@ name: memecoin minute scanner (M5, public host)
 
 # minute scanner. each run lasts RUN_MINUTES, saves state to the cache, publishes
 # fast.json and starts the next run. the half-hourly schedule restarts it if that fails.
+# a SOURCE_REF change on main ends the run after its next publish and starts a fresh one.
 #
 # secrets: SOURCE_REPO, SOURCE_READ_TOKEN; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
@@ -20,7 +21,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: e7606988aaf9a21fda5cd1af95d2aea3a362a3f2  # private code commit
+  SOURCE_REF: 56c41704d41a5ea220db615091f7abe63b5818e1  # private code commit
   RUN_MINUTES: "330"
 
 jobs:
@@ -37,9 +38,12 @@ jobs:
             exit 1
           fi
 
+      # ref: main, not the commit that triggered the run: a run that waited in the queue must
+      # compare its cache with the newest published fast.json, or it could publish older books
       - name: Checkout this site repository
         uses: actions/checkout@v4
         with:
+          ref: main
           path: site
 
       - name: Checkout the private trading code
@@ -84,6 +88,14 @@ jobs:
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: |
           echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
+          # a run that waited in the queue across a SOURCE_REF change would trade under the old
+          # rules: hand over to a fresh run on main's code before the first tick
+          main_ref=$(sed -nE 's/^ *SOURCE_REF: *([0-9a-f]{40}).*/\1/p' "$GITHUB_WORKSPACE/site/.github/workflows/scanner.yml" | head -1)
+          if [ -n "$main_ref" ] && [ "$main_ref" != "$SOURCE_REF" ]; then
+            echo "::notice::main pins private code ${main_ref:0:8}, this run ${SOURCE_REF:0:8}: handing over to a fresh run"
+            echo "handover=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$LIVE_ENABLED" = "1" ] || [ -f data/fast/live_state.json ] || [ -f data/fast/lp_live_state.json ]; then
             python3 -m pip install --quiet solders
           fi
@@ -92,11 +104,27 @@ jobs:
           esac
           # GitHub skips scheduled runs when busy: every 10 minutes, start the hourly cycle if it is late
           ( while sleep 600; do bash "$GITHUB_WORKSPACE/site/scripts/paper-heartbeat.sh" || true; done ) &
+          # in the background so publish-fast.sh can stop it right after a publish when main pins
+          # other private code (it then leaves fast.handover next to the pid file)
+          export FAST_PID_FILE="$RUNNER_TEMP/fast.pid"
+          echo "ran=yes" >> "$GITHUB_OUTPUT"  # from here the state is the scanner's to save
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
-            --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
+            --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE" &
+          fast=$!
+          echo "$fast" > "$FAST_PID_FILE"
+          code=0
+          wait "$fast" || code=$?
+          if [ -f "$RUNNER_TEMP/fast.handover" ]; then
+            echo "::notice::main pins other private code: stopped after a publish, handing over to a fresh run"
+            echo "handover=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit "$code"
 
+      # only after the scanner ran: a run that stopped before it has nothing new, and an empty save
+      # would become the newest cache entry
       - name: Save the state back to the cached path
-        if: always()
+        if: always() && steps.scan.outputs.ran == 'yes'
         run: |
           rm -rf scanner-state
           cp -r src/memecoin-trading/data/fast scanner-state
@@ -108,17 +136,33 @@ jobs:
         run: bash site/scripts/archive-run.sh "$GITHUB_WORKSPACE" "${{ steps.scan.outputs.started_at }}" "${{ github.run_id }}"
 
       - name: Save scanner state
-        if: always()
+        if: always() && steps.scan.outputs.ran == 'yes'
         uses: actions/cache/save@v4
         with:
           path: scanner-state
           key: memecoin-scanner-${{ github.run_id }}
 
+      # not after a cancel, and not after a run that ended in its first minutes (expired token, bad
+      # SOURCE_REF, a crash at start): its successor would fail the same way, a run a minute. The
+      # half-hourly schedule retries instead. A handover always dispatches.
       - name: Dispatch the successor
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
+          STARTED: ${{ steps.scan.outputs.started_at }}
+          HANDOVER: ${{ steps.scan.outputs.handover }}
         run: |
+          if [ "$HANDOVER" != "yes" ]; then
+            if [ -z "$STARTED" ]; then
+              echo "::warning::the scanner did not start; no successor dispatched, the schedule retries"
+              exit 0
+            fi
+            mins=$(( ($(date -u +%s) - $(date -u -d "$STARTED" +%s)) / 60 ))
+            if [ "$mins" -lt 20 ]; then
+              echo "::warning::the scan ended after $mins minutes; no successor dispatched, the schedule retries"
+              exit 0
+            fi
+          fi
           curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/scanner.yml/dispatches" \
             -d '{"ref":"main"}' -o /dev/null -w "dispatch http %{http_code}\n" || echo "dispatch failed; the schedule will start the next run"

@@ -11,8 +11,13 @@ trace is saved, then hands the page the result.
   `failed` (with the reason) or `none`.
 - Any other visit is redirected to the radar page.
 
-Limits: 3 traces a day per visitor (IPv6 by its /64), 40 a day in total, at most one trace running
-and one waiting. Visitor addresses are only used as a salted hash in the run name.
+Limits: 3 traces a day per visitor (IPv6 by its /64), 40 a day in total (trace requests opened as
+issues count toward the same 40), at most two traces queued or running at once. A trace that fails
+on our side (the RPC node did not answer) does not use up one of the visitor's three. Only an
+address that decodes to a 32-byte Solana key starts a run. Requests that arrive together all pass
+the first check, so after starting its run the relay counts again against the runs started before
+it and cancels its own run if that one is over a limit. `trace.yml` repeats the same checks when the
+run starts. Visitor addresses are only used as a salted hash in the run name.
 
 Every trace needs a passed Cloudflare Turnstile check from the radar page (action `trace`, hostname
 `bernardhaddad.github.io`). A missing secret refuses every request rather than letting them through.
@@ -21,7 +26,9 @@ Only the production address answers; preview builds and old deployments return 4
 ## Setup (once, free)
 
 1. Create a GitHub fine-grained token: Settings, Developer settings, Fine-grained tokens. Give it
-   access to this repository only, with **Actions: Read and write** and **Contents: Read**.
+   access to this repository only, with **Actions: Read and write**, **Contents: Read** and
+   **Issues: Read** (to count trace issues toward the daily total; without it the relay leaves that
+   count to `trace.yml`).
 2. In Cloudflare, create a Turnstile widget for the hostname `bernardhaddad.github.io` and put its
    site key in `TURNSTILE` in `radar.html`.
 3. Create a Cloudflare Pages project connected to this repository (`functions/_middleware.js` serves
@@ -35,6 +42,6 @@ Only the production address answers; preview builds and old deployments return 4
 
 Settings: `RELAY_HOST` if the relay is served from another address than `sift-trace.pages.dev`
 (for example a Worker on workers.dev); `TURNSTILE=off` with no `TURNSTILE_SECRET` switches the
-check off.
+check off; `RECOUNT_MS` (default 2000) is the wait after starting a run before the second count.
 
 Test without network: `node relay/test.mjs`.

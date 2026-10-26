@@ -26,17 +26,19 @@ permissions:
   contents: write
   issues: write
 
-# one group per issue request; relay requests share one group, so at most one runs and one waits
-# (a newer waiting run replaces the older one) and a burst of requests cannot hold the runners
+# one group per issue request and per relay run. Relay runs do not share a group: a newer waiting
+# run would cancel another visitor's waiting one. The relay keeps them to MAX_ACTIVE at once and
+# cancels its own run when a burst went past a limit; "Read the request" refuses one it missed.
 concurrency:
-  group: radar-trace-${{ github.event.inputs.requester != '' && 'relay' || github.event.issue.number || github.run_id }}
+  group: radar-trace-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: e7606988aaf9a21fda5cd1af95d2aea3a362a3f2  # private code commit
-  DAILY_LIMIT: "40"      # fresh traces a day, all requesters together
-  PER_USER_LIMIT: "3"    # requests a day per GitHub account
+  SOURCE_REF: 56c41704d41a5ea220db615091f7abe63b5818e1  # private code commit
+  DAILY_LIMIT: "40"      # fresh traces a day, issue and relay requests together
+  PER_USER_LIMIT: "3"    # requests a day per GitHub account or relay visitor
+  MAX_ACTIVE: "2"        # relay traces queued or running at once (same as relay/worker.js)
 
 jobs:
   trace:
@@ -82,26 +84,43 @@ jobs:
                       status = "cached"
               except Exception:
                   pass
-          # rate limits (shared RPC quota). not label based: outsiders can't set labels
+          # rate limits (shared RPC quota). not label based: outsiders can't set labels.
+          # Issue and relay requests share one daily total; a count that cannot be read refuses.
+          now = datetime.now(timezone.utc)
+          since = (now - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+          hdrs = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+          def get(url):
+              return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=hdrs), timeout=20))
+          def issues(query):
+              out = []
+              for page in (1, 2, 3):
+                  batch = get(f"https://api.github.com/repos/{os.environ['REPO']}/issues?{query}&state=all&since={since}&per_page=100&page={page}")
+                  out += [i for i in batch if "pull_request" not in i and i["created_at"] >= since]
+                  if len(batch) < 100:
+                      break
+              return out
+          def trace_issues():
+              return sum(1 for i in issues("sort=created")
+                         if i["title"].startswith("[trace]") or "### Token mint address" in (i.get("body") or ""))
+          def relay_runs():
+              # every page: cancelled runs are listed too, and would push counted ones off page 1
+              seen, total = {}, 0
+              for page in range(1, 11):
+                  d = get(f"https://api.github.com/repos/{os.environ['REPO']}/actions/workflows/trace.yml/runs"
+                          f"?event=workflow_dispatch&per_page=100&page={page}&created=%3E%3D{since}")
+                  total = max(total, int(d.get("total_count") or 0))
+                  seen.update((r["id"], r) for r in d["workflow_runs"])
+                  if len(d["workflow_runs"]) < 100:
+                      break
+              if len(seen) < total:
+                  raise RuntimeError("more runs than were read")
+              # cancelled runs traced nothing
+              return [r for r in seen.values() if str(r.get("display_title", "")).startswith("trace ")
+                      and r.get("conclusion") != "cancelled"]
           if status == "ok" and os.environ.get("ISSUE_TITLE"):
-              now = datetime.now(timezone.utc)
-              since = (now - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-              api = f"https://api.github.com/repos/{os.environ['REPO']}/issues"
-              hdrs = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
-              def issues(query):
-                  out = []
-                  for page in (1, 2, 3):
-                      req = urllib.request.Request(f"{api}?{query}&state=all&since={since}&per_page=100&page={page}", headers=hdrs)
-                      batch = json.load(urllib.request.urlopen(req, timeout=20))
-                      out += [i for i in batch if "pull_request" not in i and i["created_at"] >= since]
-                      if len(batch) < 100:
-                          break
-                  return out
-              # all trace issues in the last 24h
+              # all trace issues (this one included) and relay traces in the last 24h
               try:
-                  n = sum(1 for i in issues("sort=created")
-                          if i["title"].startswith("[trace]") or "### Token mint address" in (i.get("body") or ""))
-                  if n > int(os.environ["DAILY_LIMIT"]):
+                  if trace_issues() + len(relay_runs()) > int(os.environ["DAILY_LIMIT"]):
                       status = "limit"
               except Exception as err:
                   print("daily check failed, refusing:", type(err).__name__)
@@ -114,25 +133,37 @@ jobs:
               except Exception as err:
                   print("per-user check failed, refusing:", type(err).__name__)
                   status = "limit"
-          # relay requests: the relay applies the limits; this is the backstop if it is raced
+          # relay requests: the relay applies the limits; this is the backstop if it is raced. Only
+          # runs created before this one count (ids rise with creation), as in the relay's re-count.
           if status == "ok" and os.environ.get("REQUESTER"):
               try:
-                  since = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-                  url = (f"https://api.github.com/repos/{os.environ['REPO']}/actions/workflows/trace.yml/runs"
-                         f"?event=workflow_dispatch&per_page=100&created=%3E%3D{since}")
-                  req = urllib.request.Request(url, headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
-                                                             "Accept": "application/vnd.github+json"})
-                  rs = json.load(urllib.request.urlopen(req, timeout=20))["workflow_runs"]
-                  n = sum(1 for r in rs if str(r.get("display_title", "")).startswith("trace ")
-                          and r.get("conclusion") != "cancelled" and str(r["id"]) != os.environ["RUN_ID"])
-                  if n >= int(os.environ["DAILY_LIMIT"]):
+                  own = int(os.environ["RUN_ID"])
+                  before = [r for r in relay_runs() if int(r["id"]) < own]
+                  # a failed trace (our side) does not use up the visitor's own three
+                  mine = [r for r in before if r.get("conclusion") != "failure"
+                          and str(r["display_title"]).endswith(" " + os.environ["REQUESTER"])]
+                  def active(r):
+                      at = datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00"))
+                      return r.get("status") != "completed" and now - at < timedelta(minutes=30)
+                  if len(before) + trace_issues() >= int(os.environ["DAILY_LIMIT"]) or len(mine) >= int(os.environ["PER_USER_LIMIT"]):
                       status = "limit"
+                  elif sum(1 for r in before if active(r)) >= int(os.environ["MAX_ACTIVE"]):
+                      status = "busy"
               except Exception as err:
                   print("relay daily check failed, refusing:", type(err).__name__)
                   status = "limit"
+          # a refused relay run tells the page why (the relay reads this annotation back); it ends
+          # as failed, so it does not use up one of the visitor's three
+          texts = {"limit": "The free daily limit is reached (3 traces a day per visitor, 40 in total). Please try again tomorrow.",
+                   "busy": "Other traces are running right now. Please try again in a few minutes.",
+                   "cached": "This token was traced less than 2 hours ago."}
+          if os.environ.get("REQUESTER") and status in texts:
+              print(f"::notice title=reply::{texts[status]}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"mint={mint}\nstatus={status}\n")
           print("request:", status, mint)
+          if os.environ.get("REQUESTER") and status in ("limit", "busy"):
+              raise SystemExit(1)
           PY
 
       - name: Checkout the private trading code
@@ -162,6 +193,12 @@ jobs:
           # the reason a trace failed, as a run annotation the site relay reads back
           if [ "$code" != "0" ] && [ -s "$RUNNER_TEMP/reply.md" ]; then
             echo "::notice title=reply::$(python3 -c 'import os; t=open(os.environ["RUNNER_TEMP"]+"/reply.md").read(); print(t.replace("%","%25").replace("\r","").replace("\n","%0A"))')"
+          fi
+          # a trace that failed on our side (the RPC node did not answer, a crash) ends the run as
+          # failed, so the relay does not count it against the visitor; a refused address (a wallet,
+          # a stablecoin, not on Solana) still counts. The reply is posted either way.
+          if [ "$code" != "0" ] && { [ "$code" != "2" ] || [ ! -s "$RUNNER_TEMP/reply.md" ] || grep -qi "try again later" "$RUNNER_TEMP/reply.md"; }; then
+            exit 1
           fi
 
       - name: Save the result to the radar

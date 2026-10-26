@@ -29,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: e7606988aaf9a21fda5cd1af95d2aea3a362a3f2  # private code commit
+  SOURCE_REF: 56c41704d41a5ea220db615091f7abe63b5818e1  # private code commit
 
 jobs:
   cycle:
@@ -71,23 +71,27 @@ jobs:
           restore-keys: |
             memecoin-book-
 
-      # a missing cache (service error, eviction) must never quietly restart the book from the seed
-      - name: Install the book (seed only when asked)
+      # The book lives in the Actions cache, and every finished cycle also publishes it to
+      # paper-seed/ in the same commit as data.json. A failed cache save is only a warning, so the
+      # restore can bring back the run-before-last's book: a book behind the published record would
+      # reopen closed trades and could revive a killed book. So the cycle runs on the cached book
+      # when it is readable and current, else on the published one; if neither is, the cycle, the
+      # live tranche and the cache save are skipped and the screener data stays as published.
+      - name: Install the book (cache, else the published book)
         id: book
         env:
           SEED: ${{ github.event.inputs.seed }}
         run: |
           mkdir -p paper-state
-          if [ ! -f paper-state/state.json ]; then
-            if [ "$SEED" != "yes" ]; then
-              echo "::error::no cached paper book was restored; the trading cycle is skipped this run (dispatch with seed=yes to start over from paper-seed/)"
-              echo "book=missing" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            echo "seeding paper-state/ from paper-seed/ (rebuilt from the published snapshot, seq 198)"
+          if python3 site/scripts/book-check.py paper-state site/data.json; then
+            echo "cached book restored"
+          elif python3 site/scripts/book-check.py site/paper-seed site/data.json || [ "$SEED" = "yes" ]; then
+            echo "::warning::the cached book is missing, unreadable or behind the published record; the cycle runs on the published book in paper-seed/"
             cp site/paper-seed/state.json site/paper-seed/cycle_meta.json site/paper-seed/flow_log.jsonl paper-state/
           else
-            echo "cached book restored"
+            echo "::error::neither the cached nor the published book is usable; the trading cycle is skipped this run"
+            echo "book=missing" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "book=ok" >> "$GITHUB_OUTPUT"
           rm -rf src/memecoin-trading/data
@@ -109,6 +113,8 @@ jobs:
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
           # trace the scanner's candidates too
           SCANNER_SNAPSHOT: ${{ github.workspace }}/site/fast.json
+          # the published record run.py refuses to fall behind (its default path, stated here)
+          PUBLISHED_DATA: ${{ github.workspace }}/site/data.json
         run: python3 scripts/run.py cycle
 
       # live tranche, off unless LIVE_ENABLED=1
@@ -157,10 +163,17 @@ jobs:
         run: |
           # pillow is only for the preview cards
           python3 -m pip install --quiet pillow || echo "pillow not installed: no preview cards"
+          # best effort like the rest: a build_site failure must not stop the radar sample below
           if [ "$CYCLE" = "success" ]; then
-            (cd src/memecoin-trading && python3 scripts/build_site.py)
-            cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
-               src/memecoin-trading/site/data.json site/
+            if (cd src/memecoin-trading && python3 scripts/build_site.py); then
+              cp src/memecoin-trading/site/index.html src/memecoin-trading/site/config.js \
+                 src/memecoin-trading/site/data.json site/ || echo "::warning::screener files not copied"
+              # the book behind this data.json, published with it: the fallback when the cache is behind
+              cp src/memecoin-trading/data/state.json src/memecoin-trading/data/cycle_meta.json \
+                 src/memecoin-trading/data/flow_log.jsonl site/paper-seed/ || echo "::warning::book not published to paper-seed/"
+            else
+              echo "::warning::screener not rebuilt (build_site failed): screener data left as published"
+            fi
           else
             echo "trading cycle did not finish ($CYCLE): screener data left as published"
           fi
@@ -174,7 +187,7 @@ jobs:
           (cd src/memecoin-trading && timeout 240 python3 scripts/radar_audit.py --audit "$GITHUB_WORKSPACE/site/radar.json" "$GITHUB_WORKSPACE/site/radar-audit.json") || echo "radar audit skipped"
           (cd src/memecoin-trading && python3 scripts/build_radar.py "$GITHUB_WORKSPACE/site/radar-requests,$GITHUB_WORKSPACE/site/radar-auto" "$GITHUB_WORKSPACE/site/radar-ledger.json" "$GITHUB_WORKSPACE/site/radar-wallets.json" "$GITHUB_WORKSPACE/site/radar-audit.json" "$GITHUB_WORKSPACE/site/radar-lp.json") || echo "radar not built"
           [ -d src/memecoin-trading/site/fonts ] && rm -rf site/fonts && cp -r src/memecoin-trading/site/fonts site/ || true
-          cp src/memecoin-trading/scripts/radar_audit.py site/verify.py
+          [ -f src/memecoin-trading/scripts/radar_audit.py ] && cp src/memecoin-trading/scripts/radar_audit.py site/verify.py || true
           [ -d src/memecoin-trading/site/t ] && rm -rf site/t && cp -r src/memecoin-trading/site/t site/ || true
           [ -f src/memecoin-trading/site/radar.json ] && cp src/memecoin-trading/site/radar.html src/memecoin-trading/site/radar.json src/memecoin-trading/site/radar-known.json src/memecoin-trading/site/radar-ledger.json src/memecoin-trading/site/radar-wallets.json src/memecoin-trading/site/radar-feed.xml src/memecoin-trading/site/radar-lp.json site/ || true
           [ -f src/memecoin-trading/data/cluster_verdicts.json ] && cp src/memecoin-trading/data/cluster_verdicts.json site/ || true
