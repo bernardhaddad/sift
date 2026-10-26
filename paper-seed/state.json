@@ -1568,11 +1568,11 @@
      "name": "Dacity / SOL",
      "mint": "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump",
      "entry_price": 0.009338407996029002,
-     "high_price": 0.00980191401068783,
+     "high_price": 0.01061745644086064,
      "opened_at": "2026-10-26T17:29:38+00:00",
      "entry_liq": 567046.1224,
-     "checked_at": "2026-10-26T21:35:00+00:00",
-     "high_at": "2026-10-26T20:09:30.558804+00:00"
+     "checked_at": "2026-10-26T22:50:00+00:00",
+     "high_at": "2026-10-26T22:51:46.737114+00:00"
     }
    },
    "closed": [
@@ -1637,9 +1637,7 @@
     "6Mix12LiHrQFojaQEnfPUC65Qkwd6X4Y5Qg93oFbordr": "2026-10-17T18:49:07+00:00",
     "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump": "2026-10-26T17:29:38+00:00"
    },
-   "rejects": {
-    "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": "2026-10-25T22:35:02+00:00"
-   }
+   "rejects": {}
   }
  }
 }
