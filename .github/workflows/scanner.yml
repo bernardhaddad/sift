@@ -90,6 +90,8 @@ jobs:
           case "$LIVE_BOOK" in
             M6E|M6Y) (cd lp_exec && npm install --silent --no-audit --no-fund) ;;
           esac
+          # GitHub skips scheduled runs when busy: every 10 minutes, start the hourly cycle if it is late
+          ( while sleep 600; do bash "$GITHUB_WORKSPACE/site/scripts/paper-heartbeat.sh" || true; done ) &
           python3 scripts/fast.py run --minutes "$RUN_MINUTES" --publish-every 15 \
             --publish "bash $GITHUB_WORKSPACE/site/scripts/publish-fast.sh $GITHUB_WORKSPACE"
 
