@@ -9,7 +9,7 @@ trace is saved, then hands the page the result.
   (with the reason), `limit`, `invalid` or `none`.
 
 Limits: 3 traces a day per visitor, 40 a day in total. Visitor addresses are only used as a
-salted, daily-changing hash in the run name.
+salted hash in the run name.
 
 ## Setup (once, free)
 

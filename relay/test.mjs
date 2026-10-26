@@ -10,10 +10,10 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.endsWith("/dispatches")) { state.dispatched.push(JSON.parse(init.body)); return new Response(null, { status: 204 }); }
   if (url.includes("/jobs")) return J({ jobs: [{ check_run_url: "https://api.github.com/repos/bernardhaddad/sift/check-runs/1" }] });
   if (url.endsWith("/annotations")) return J(state.notes);
-  if (url.includes("siteverify")) { const t = init.body.get("response"); return J({ success: t === "good", hostname: t === "good" ? "bernardhaddad.github.io" : undefined }); }
+  if (url.includes("siteverify")) { const t = init.body.get("response"); return J({ success: t !== "bad", hostname: t === "offsite" ? "evil.github.io" : "bernardhaddad.github.io", action: t === "otheraction" ? "login" : "trace" }); }
   throw new Error("unexpected " + url);
 };
-const env = { GH_TOKEN: "t", SALT: "a-long-salt" };
+const env = { GH_TOKEN: "t", SALT: "a-long-salt", PRODUCTION_ONLY: "off", TURNSTILE: "off" };
 const call = async (m, body, q = "", ip = "1.2.3.4", e = env) => (await w.fetch(new Request("https://r.dev/trace" + q, m === "POST" ? { method: "POST", body: JSON.stringify(body), headers: { "CF-Connecting-IP": ip } } : {}), e)).json();
 const eq = (a, b, l) => { if (JSON.stringify(a) !== JSON.stringify(b)) { console.log("FAIL", l, JSON.stringify(a)); process.exitCode = 1; } else console.log("ok", l); };
 const ago = (ms) => new Date(Date.now() - ms).toISOString();
@@ -48,13 +48,22 @@ state.runs = [];
 state.dispatched = [];
 await call("POST", { mint: OTHER }, "", "2001:db8:1:2:aaaa::1"); await call("POST", { mint: MINT }, "", "2001:db8:1:2:bbbb::2");
 eq(state.dispatched[0].inputs.requester === state.dispatched[1].inputs.requester, true, "IPv6 keyed by /64");
-eq((await call("POST", { mint: OTHER }, "", "1.2.3.4", { GH_TOKEN: "t" })).status, "error", "no SALT fails closed");
-const strict = { ...env, TURNSTILE_SECRET: "s" };
+state.runs = []; state.dispatched = [];
+await call("POST", { mint: OTHER }, "", "2001:db8::aaaa:1"); await call("POST", { mint: MINT }, "", "2001:db8:0:0:bbbb::9");
+eq(state.dispatched[0].inputs.requester === state.dispatched[1].inputs.requester, true, "compressed IPv6 keyed by the same /64");
+eq((await call("POST", { mint: OTHER }, "", "1.2.3.4", { GH_TOKEN: "t", PRODUCTION_ONLY: "off", TURNSTILE: "off" })).status, "error", "no SALT fails closed");
+const strict = { GH_TOKEN: "t", SALT: "a-long-salt", PRODUCTION_ONLY: "off", TURNSTILE_SECRET: "s" };
 state.runs = []; state.dispatched = [];
 eq((await call("POST", { mint: OTHER }, "", "9.9.9.9", strict)).status, "check", "no Turnstile token refused");
 eq((await call("POST", { mint: OTHER, token: "bad" }, "", "9.9.9.9", strict)).status, "check", "failed Turnstile token refused");
 eq(state.dispatched.length, 0, "nothing dispatched without the check");
+eq((await call("POST", { mint: OTHER, token: "offsite" }, "", "9.9.9.9", strict)).status, "check", "token from another site refused");
+eq((await call("POST", { mint: OTHER, token: "otheraction" }, "", "9.9.9.9", strict)).status, "check", "token for another action refused");
+eq((await call("POST", { mint: OTHER, token: "good" }, "", "9.9.9.9", { GH_TOKEN: "t", SALT: "a-long-salt", PRODUCTION_ONLY: "off" })).status, "check", "missing secret refuses");
 eq((await call("POST", { mint: OTHER, token: "good" }, "", "9.9.9.9", strict)).status, "queued", "passed Turnstile token accepted");
+const prod = { GH_TOKEN: "t", SALT: "a-long-salt", TURNSTILE: "off" };
+eq((await w.fetch(new Request("https://8ccf2c00.sift-trace.pages.dev/trace?mint=" + MINT), prod)).status, 404, "old or preview build address refused");
+eq((await w.fetch(new Request("https://sift-trace.pages.dev/trace?mint=bad"), prod)).status, 200, "production address answers");
 const pre = await w.fetch(new Request("https://r.dev/trace", { method: "OPTIONS" }), env);
 eq(pre.headers.get("Access-Control-Allow-Origin"), "https://bernardhaddad.github.io", "cors");
 const red = await w.fetch(new Request("https://r.dev/"), env); eq([red.status, red.headers.get("location")], [302, "https://bernardhaddad.github.io/sift/radar.html"], "browser visit redirected");

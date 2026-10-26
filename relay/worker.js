@@ -4,11 +4,13 @@
 //
 // Secrets: GH_TOKEN, a fine-grained token for this repository only with Actions read and write and
 // Contents read; SALT, any long random string (visitor addresses are only kept as salted hashes);
-// TURNSTILE_SECRET, optional: when set, a trace starts only with a passed Cloudflare Turnstile check.
+// TURNSTILE_SECRET: a trace starts only with a passed Cloudflare Turnstile check (variable TURNSTILE=off
+// with no secret switches the check off).
 
 const REPO = "bernardhaddad/sift";
 const WORKFLOW = "trace.yml";
 const ORIGIN = "https://bernardhaddad.github.io";
+const HOST = "sift-trace.pages.dev";  // only the production address answers: preview and old builds refuse
 const DAILY_LIMIT = 40;      // traces a day, all visitors together (same as trace.yml)
 const PER_VISITOR_LIMIT = 3; // traces a day per visitor
 const FRESH_MS = 2 * 3600e3; // a trace this recent is returned instead of a new one
@@ -31,8 +33,9 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin",
     };
-    if (req.method === "OPTIONS") return new Response(null, { headers: cors });
     const url = new URL(req.url);
+    if (env.PRODUCTION_ONLY !== "off" && url.hostname !== HOST) return reply({ error: "not found" }, 404, cors);
+    if (req.method === "OPTIONS") return new Response(null, { headers: cors });
     // opened in a browser rather than called by the page: send the visitor to the radar
     if (req.method === "GET" && (url.pathname !== "/trace" || !url.searchParams.has("mint"))) {
       return Response.redirect(`${ORIGIN}/sift/radar.html`, 302);
@@ -47,7 +50,7 @@ export default {
         try { body = await req.json(); } catch { /* empty body: handled as an invalid address */ }
         const ip = req.headers.get("CF-Connecting-IP") || "";
         // checked before anything else, so automated requests cost no GitHub call
-        if (env.TURNSTILE_SECRET && !(await human(env, String(body.token || ""), ip))) {
+        if (!(await human(env, String(body.token || ""), ip))) {
           return reply({ status: "check", reason: CHECK_TEXT }, 200, cors);
         }
         return reply(await start(env, String(body.mint || "").trim(), ip), 200, cors);
@@ -61,7 +64,8 @@ export default {
 
 // Cloudflare Turnstile: was this token issued to a person on the radar page, just now, once
 async function human(env, token, ip) {
-  if (!token || token.length > 2048) return false;
+  if (env.TURNSTILE_SECRET === undefined && env.TURNSTILE === "off") return true;  // explicitly switched off
+  if (!env.TURNSTILE_SECRET || !token || token.length > 2048) return false;  // a missing secret refuses, never waves through
   const form = new FormData();
   form.append("secret", env.TURNSTILE_SECRET);
   form.append("response", token);
@@ -69,7 +73,7 @@ async function human(env, token, ip) {
   try {
     const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
     const d = await res.json();
-    return d.success === true && (!d.hostname || d.hostname === new URL(ORIGIN).hostname);
+    return d.success === true && d.hostname === new URL(ORIGIN).hostname && d.action === "trace";
   } catch {
     return false;
   }
@@ -127,10 +131,18 @@ async function runs(env) {
 
 const recent = (r) => Date.now() - Date.parse(r.created_at) < RUN_WINDOW_MS;
 
+// the first four groups of an IPv6 address, with "::" expanded (2001:db8::1 -> 2001:db8:0:0)
+function v6prefix(ip) {
+  const [head, tail] = ip.split("::");
+  const a = head ? head.split(":") : [], b = tail !== undefined && tail ? tail.split(":") : [];
+  const full = tail === undefined ? a : [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill("0"), ...b];
+  return full.slice(0, 4).map((g) => (parseInt(g, 16) || 0).toString(16)).join(":");
+}
+
 // a salted hash of the visitor's address; IPv6 by its /64, the block one connection usually holds
 async function visitor(env, ip) {
   if (!env.SALT || env.SALT.length < 8) throw new Error("SALT is not set");  // never publish an unsalted hash
-  const key = ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip;
+  const key = ip.includes(":") ? v6prefix(ip) : ip;
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.SALT}|${key}`)));
   return [...hash.slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
