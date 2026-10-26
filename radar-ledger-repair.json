@@ -1159,5 +1159,36 @@
     }
    }
   }
- ]
+ ],
+ "audit": {
+  "repaired_at": "2026-10-26T09:02:27+00:00",
+  "method": "Every hourly audit run ever published (radar-audit.json history) counted once.",
+  "before": {
+   "runs": 311,
+   "totals": {
+    "verified": 3791,
+    "failed": 0,
+    "unreachable": 15
+   }
+  },
+  "after": {
+   "runs": 317,
+   "totals": {
+    "verified": 3863,
+    "failed": 0,
+    "unreachable": 15
+   }
+  }
+ },
+ "registry": {
+  "repaired_at": "2026-10-26T09:02:27+00:00",
+  "method": "Every funder-to-token link ever published in radar-wallets.json, with its earliest first_seen; then the usual scope, program-address and pruning rules.",
+  "links_restored": [
+   [
+    "A1eN4EyEtgKMUywJXefPgXgzwSw1BprsL9uEo8BvgGJi",
+    "2fk5eGwAch1wGhsK3XhRUZpopXFGyRbFUn6XL4Yxpump"
+   ]
+  ],
+  "first_seen_restored": 42
+ }
 }
