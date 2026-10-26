@@ -127,7 +127,8 @@ def sample(doc: dict, max_links: int, seed: int) -> list:
 
 
 def run(doc: dict, prior: dict | None, node: Node, now: datetime, max_links: int = MAX_LINKS) -> dict:
-    picked = sample(doc, max_links, seed=int(now.timestamp()) // 3600)
+    # a new sample every run: two runs in one hour must not re-count the same links
+    picked = sample(doc, max_links, seed=int(now.timestamp()))
     results = []
     for link in picked:
         try:
