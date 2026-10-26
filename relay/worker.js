@@ -10,7 +10,7 @@
 const REPO = "bernardhaddad/sift";
 const WORKFLOW = "trace.yml";
 const ORIGIN = "https://bernardhaddad.github.io";
-const HOST = "sift-trace.pages.dev";  // only the production address answers: preview and old builds refuse
+const HOST = "sift-trace.pages.dev";  // only the production address answers (RELAY_HOST to change it)
 const DAILY_LIMIT = 40;      // traces a day, all visitors together (same as trace.yml)
 const PER_VISITOR_LIMIT = 3; // traces a day per visitor
 const FRESH_MS = 2 * 3600e3; // a trace this recent is returned instead of a new one
@@ -34,7 +34,7 @@ export default {
       "Vary": "Origin",
     };
     const url = new URL(req.url);
-    if (env.PRODUCTION_ONLY !== "off" && url.hostname !== HOST) return reply({ error: "not found" }, 404, cors);
+    if (env.PRODUCTION_ONLY !== "off" && url.hostname !== (env.RELAY_HOST || HOST)) return reply({ error: "not found" }, 404, cors);
     if (req.method === "OPTIONS") return new Response(null, { headers: cors });
     // opened in a browser rather than called by the page: send the visitor to the radar
     if (req.method === "GET" && (url.pathname !== "/trace" || !url.searchParams.has("mint"))) {

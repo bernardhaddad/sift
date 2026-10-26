@@ -71,3 +71,4 @@ eq((await w.fetch(new Request("https://sift-trace.pages.dev/trace?mint=bad"), pr
 const pre = await w.fetch(new Request("https://r.dev/trace", { method: "OPTIONS" }), env);
 eq(pre.headers.get("Access-Control-Allow-Origin"), "https://bernardhaddad.github.io", "cors");
 const red = await w.fetch(new Request("https://r.dev/"), env); eq([red.status, red.headers.get("location")], [302, "https://bernardhaddad.github.io/sift/radar.html"], "browser visit redirected");
+eq((await w.fetch(new Request("https://sift-trace.x.workers.dev/trace?mint=bad"), { ...prod, RELAY_HOST: "sift-trace.x.workers.dev" })).status, 200, "RELAY_HOST moves the allowed address");
