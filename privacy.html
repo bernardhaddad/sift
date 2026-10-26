@@ -38,18 +38,18 @@
 <nav class="links"><a href="./">Screener</a><a href="radar.html">Insider Radar</a><a href="research.html">Research</a></nav></div></header>
 <main>
 <h1>Privacy</h1>
-<p class="date">Last updated 15 October 2026</p>
-<p>Sift is a free, static website. It has no accounts, no sign-up, no cookies, no analytics and no advertising trackers, and it does not collect, store or sell personal data.</p>
+<p class="date">Last updated 26 October 2026</p>
+<p>Sift is a free, static website. It has no accounts, no sign-up, no cookies, no analytics and no advertising trackers, and it does not sell personal data. The only exception to "collects nothing" is a trace request, described below.</p>
 <h2>What the pages do</h2>
 <ul>
-  <li>The pages load only Sift's own files (the page and its public data files, such as <a href="radar.json">radar.json</a>). They do not load fonts, scripts or images from other companies.</li>
+  <li>The pages load Sift's own files (the page and its public data files, such as <a href="radar.json">radar.json</a>). They load no fonts, images or tracking scripts from other companies. The one outside script is Cloudflare Turnstile, loaded on the radar page only when you start a trace.</li>
   <li>Searching the token list and checking a wallet happen in your browser. The wallet you paste is looked up in the public file <a href="radar-wallets.json">radar-wallets.json</a> and is never sent anywhere.</li>
   <li>Nothing is saved in your browser between visits.</li>
 </ul>
 <h2>Hosting</h2>
 <p>The site is hosted on GitHub Pages. GitHub may log technical data such as visitors' IP addresses to run and secure the service; see the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>. Sift has no access to those logs.</p>
 <h2>Trace requests</h2>
-<p>A trace requested on the radar page is sent through a small relay hosted on Cloudflare. The relay keeps no log of its own; to apply the daily limit it records a salted hash of your IP address (never the address itself) next to the token address in the public run list of the trace job on GitHub. Before a trace starts, the page may run a Cloudflare Turnstile check that you are a person, handled under the <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</a>. A trace can also be requested by opening an issue on the public <a href="https://github.com/bernardhaddad/sift">GitHub repository</a>; issues are public, so only post the token address.</p>
+<p>Starting a trace sends the token address to a small relay hosted on Cloudflare, which starts the trace on GitHub. Before that, Cloudflare Turnstile checks that you are a person; the relay passes your IP address to Cloudflare for that check, handled under the <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</a>. To apply the daily limit, the relay writes a salted hash of your IP address (for IPv6, of its first half) next to the token address in the public run list of the trace job on GitHub. The address itself is never written, but the hash stays the same, so traces from the same connection can be seen to come from one requester. Sift keeps no other record; Cloudflare may log requests to run its service. A trace can also be requested by opening an issue on the public <a href="https://github.com/bernardhaddad/sift">GitHub repository</a>; issues are public, so only post the token address.</p>
 <h2>Links to other sites</h2>
 <p>Trade and chart links open other services (trading terminals, Solscan, GeckoTerminal), which have their own privacy policies. Where a referral code is used, the screener page says so.</p>
 <h2>Contact</h2>

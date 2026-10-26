@@ -417,7 +417,7 @@
   function retrace(t) {
     if (trace.mint === t.mint && trace.state !== "done") return `<div class="note">${traceHtml()}</div>`;
     const age = Date.now() - Date.parse(t.traced_at || "");
-    if (!RELAY || t.live || !(age > 2 * 3600e3)) return "";
+    if (!RELAY || t.live || t.retraced || !(age > 2 * 3600e3)) return "";
     return `<div class="note">Traced ${esc(ago(t.traced_at))}. <button class="btn" data-trace="${esc(t.mint)}">Trace again now</button></div>`;
   }
 
@@ -454,11 +454,16 @@
       document.head.appendChild(sc);
     });
     return tsLoad.then(() => new Promise((ok, fail) => {
-      const no = () => fail(new Error("check"));
-      setTimeout(no, 180e3);  // a check left unanswered must not hold the trace forever
+      let timer = null;
+      const done = () => { clearTimeout(timer); if (tsWidget !== null) { window.turnstile.remove(tsWidget); tsWidget = null; } };
+      const no = () => { done(); fail(new Error("check")); };
+      timer = setTimeout(no, 180e3);  // a check left unanswered must not hold the trace forever
       if (tsWidget !== null) window.turnstile.remove(tsWidget);  // a token is good for one request
-      tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, appearance: "interaction-only", execution: "execute",
-        callback: ok, "error-callback": no, "expired-callback": no });
+      tsWidget = window.turnstile.render("#ts", { sitekey: TURNSTILE, action: "trace", appearance: "interaction-only",
+        execution: "execute", "refresh-expired": "never",
+        callback: (t) => { done(); ok(t); },  // removed once used, so it never pops up again mid-trace
+        "before-interactive-callback": () => $("ts").scrollIntoView({ behavior: "smooth", block: "center" }),
+        "error-callback": no, "expired-callback": no });
       window.turnstile.execute(tsWidget);
     }));
   }
@@ -484,6 +489,8 @@
         doc.counts = {};
         doc.tokens.forEach((t) => { const g = GRADE.has(t.grade) ? t.grade : "incomplete"; doc.counts[g] = (doc.counts[g] || 0) + 1; });
         counts();
+      } else {
+        had.retraced = true;  // the relay had nothing newer: do not offer the same trace again
       }
       trace.mint = null; trace.state = "done"; open = ans.row.mint; filter = "all"; $("q").value = ans.row.mint; tabs();
     } else if (s === "done") {
