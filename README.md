@@ -1,9 +1,9 @@
 # Sift
 
-Hourly Solana memecoin screener. It shows net buy flow and which top holders were funded by the same wallet, plus the paper-trading record.
+Sift's Insider Radar traces the top 20 holders of trending Solana tokens back to the wallets that funded them, grades each token by how much of its supply sits with linked wallets, and publishes the on-chain transaction behind every link. Each verdict is then followed for 7 days in a public track record, timestamped daily in Bitcoin, and a sample of the published links is re-checked on-chain every hour. The site also has a memecoin screener and a paper-trading record. Paper only: no real money is traded.
 
-- Site: https://bernardhaddad.github.io/sift/
 - Insider Radar: https://bernardhaddad.github.io/sift/radar.html
+- Screener: https://bernardhaddad.github.io/sift/
 - Research notes: https://bernardhaddad.github.io/sift/research.html
 
 ## What's on it
