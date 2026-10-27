@@ -1553,7 +1553,6 @@
     "7ZvTsPCzoypD1x4cwGDhWCLG61GbMCF18TXwcMPsYLxg": "2026-10-26T18:39:57+00:00",
     "BFKBQT4yFZPtzyttHQayNmjDJYduvFaPXuytMgnaqexV": "2026-10-27T08:09:18+00:00",
     "H37FsZxA5TzoMxXzwMe1HgsPB2FHyuDzK34UiXtfLhFX": "2026-10-27T08:09:18+00:00",
-    "5Dc4s9fxxQoPfaMUaxFKB5v1Nh6FPqest7usgyvGXwWw": "2026-10-26T12:47:07+00:00",
     "3ued9fQHLo5dyomDvhdPjmy5ET32e8YiCPUU3JwUx5Ja": "2026-10-26T21:40:05+00:00",
     "6DNxwecbtdNNstpB5tdnxZsfGe3HmsNgEUZhdue4b1PH": "2026-10-26T14:34:12+00:00",
     "2H2TNJuqivWWM87oZF3pgBa7KhH3ugo6qea5rjkFey2b": "2026-10-27T08:09:18+00:00",
@@ -1562,7 +1561,8 @@
     "BqDAoudSEa3qaLiJfxzBRdH4Sjy9VYMy29E7fvoEfdH3": "2026-10-27T08:09:18+00:00",
     "BbigMs57i6YREy8TNFpEFcZvbn2GjofY8pFjL3PVor5C": "2026-10-27T09:31:40+00:00",
     "BBNe6tSmvsKSc58CEHpRnH1PnkWhekTryKascaCUtDuJ": "2026-10-27T09:31:40+00:00",
-    "5Jv1UywFXEbKM73yHBvDJNTxkLMfKBDxMB26QzvpDeFL": "2026-10-27T12:11:53+00:00"
+    "5Jv1UywFXEbKM73yHBvDJNTxkLMfKBDxMB26QzvpDeFL": "2026-10-27T12:11:53+00:00",
+    "7ftn7EhRcEodfTdgo8CgM9fxHjJqSFvYc3VUk8dN4fCv": "2026-10-27T13:20:30+00:00"
    }
   },
   "M4": {
@@ -1575,7 +1575,7 @@
      "high_price": 0.01184062217607454,
      "opened_at": "2026-10-26T17:29:38+00:00",
      "entry_liq": 567046.1224,
-     "checked_at": "2026-10-27T12:10:00+00:00",
+     "checked_at": "2026-10-27T13:10:00+00:00",
      "high_at": "2026-10-27T00:01:49.366839+00:00"
     }
    },
