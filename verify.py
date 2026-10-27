@@ -100,7 +100,8 @@ def check_link(node: Node, link: dict) -> tuple[str, str]:
         if len(sigs) >= 1000:
             return "verified", "fee payer confirmed; 1,000+ transactions, first one not reachable"
         if not sigs:  # it took part in the proof, so it has history: this node does not serve it
-            return "verified", "fee payer confirmed; history not served by this node"
+            return "unreachable", ("fee payer confirmed; history not served by this node, "
+                                   "so first transaction not checked")
         ok = [s for s in sigs if s.get("err") is None]  # failed transactions prove nothing
         if not ok or ok[-1]["signature"] != sig:
             return "failed", "the proof is not the wallet's first successful transaction"
