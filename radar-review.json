@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-26T15:20:00+00:00",
+  "reviewed_at": "2026-10-27T08:00:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 19,
-    "links_checked": 383,
+    "verdicts": 20,
+    "links_checked": 393,
     "links_contradicted": 3,
     "young_tokens": 11,
-    "older_tokens": 8
+    "older_tokens": 9
   },
   "cases": [
     {
@@ -185,6 +185,15 @@
       "links": "18 of 18 verified after re-trace",
       "finding": "older",
       "note": "5 linked top holders with 18.7% of supply, 28.8% across three groups. The first trace also published two links resting on a transaction that failed on-chain (the self-check caught one); the token was re-traced with the corrected tracer and the groups held. Traded for over two years before the verdict."
+    },
+    {
+      "mint": "96egraTCizRpzNx4WvMMhPJf7TKS7W5kUHeenmd1XfuN",
+      "name": "XFEE",
+      "verdict_at": "2026-10-27T06:30:14+00:00",
+      "trading_since": "2026-05-08T17:42:40Z",
+      "links": "10 of 10 verified",
+      "finding": "older",
+      "note": "5 linked top holders with 12.2% of supply, in one group. Traded for 172 days before the verdict, so the group may be the project's own wallets."
     }
   ]
 }

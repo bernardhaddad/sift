@@ -272,7 +272,7 @@
     if (!f) return '<span class="sub">–</span>';
     const cls = f.net_usd > 0 ? "up" : f.net_usd < 0 ? "down" : "";
     const conc = f.top_buyer_share != null && f.top_buyer_share >= 0.25 ? ' <span class="warn" title="One address is ' + Math.round(f.top_buyer_share * 100) + '% of buy volume">⚠</span>' : "";
-    return `<span class="${cls}">${fmtSigned(f.net_usd)}</span><div class="sub">${esc(f.buyers)} buyers, ${esc(f.span_h)}h${conc}</div>`;
+    return `<span class="${cls}">${fmtSigned(f.net_usd)}</span><div class="sub">${int(f.buyers)} buyers, ${Number.isFinite(+f.span_h) ? (+f.span_h).toFixed(1) : "–"}h${conc}</div>`;
   }
   function tradeButtons(p) {
     const out = [];
