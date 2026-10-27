@@ -1546,7 +1546,17 @@
     "8RNUw4N655VSrZKuhGdywhbSMDTrheguFPfxbpE2NZHQ": "2026-09-09T21:56:30+00:00",
     "AGi2s9zPRPHs3zEDPhPTroumTEXK5ufymYSfEFndCSSW": "2026-09-10T21:11:51+00:00"
    },
-   "watch": {},
+   "watch": {
+    "3Ji3yw9W7K4LFicmramPjtnzM3VM9iAccoEaj2BBXtRN": {
+     "name": "\u2588\u2588\u2588 / SOL",
+     "holders": [
+      [
+       "2026-10-27T21:28:55+00:00",
+       12050
+      ]
+     ]
+    }
+   },
    "rejects": {
     "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": "2026-10-27T05:12:42+00:00",
     "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT": "2026-10-27T15:42:19+00:00",
@@ -1573,7 +1583,7 @@
      "high_price": 0.01184062217607454,
      "opened_at": "2026-10-26T17:29:38+00:00",
      "entry_liq": 567046.1224,
-     "checked_at": "2026-10-27T19:25:00+00:00",
+     "checked_at": "2026-10-27T21:25:00+00:00",
      "high_at": "2026-10-27T00:01:49.366839+00:00"
     }
    },

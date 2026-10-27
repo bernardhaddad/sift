@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-27T08:00:00+00:00",
+  "reviewed_at": "2026-10-27T21:00:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 20,
-    "links_checked": 393,
+    "verdicts": 21,
+    "links_checked": 394,
     "links_contradicted": 3,
     "young_tokens": 11,
-    "older_tokens": 9
+    "older_tokens": 10
   },
   "cases": [
     {
@@ -194,6 +194,15 @@
       "links": "10 of 10 verified",
       "finding": "older",
       "note": "5 linked top holders with 12.2% of supply, in one group. Traded for 172 days before the verdict, so the group may be the project's own wallets."
+    },
+    {
+      "mint": "3vgopg7xm3EWkXfxmWPUpcf7g939hecfqg18sLuXDzVt",
+      "name": "HAROLD",
+      "verdict_at": "2026-10-27T20:42:18+00:00",
+      "trading_since": "2024-11-19T13:55:26Z",
+      "links": "1 of 1 verified",
+      "finding": "older",
+      "note": "2 top holders with 36.3% of supply: one (17.2%, over 1,000 transactions) paid for the other's first transaction (19.1%, 472 transactions). Traded for 707 days before the verdict, so the pair may be one large holder's own wallets. 99.98% of the pool's LP tokens are burned."
     }
   ]
 }
