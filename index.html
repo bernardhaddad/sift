@@ -252,6 +252,7 @@
   const PAGE = 100;  // rows drawn at a time; "Show more" adds the next page
   let shown = PAGE;
   let fresh = true;  // data.json is from the last 75 minutes: only then is it "this hour"
+  let behind = false;  // over 95 minutes: a run was missed, not just a skipped schedule the heartbeat is covering
 
   function spark(vals) {
     const v = (vals || []).filter((x) => x != null && Number.isFinite(x));
@@ -349,13 +350,16 @@
     const c = data.counts || {};
     const at = Date.parse(data.snapshot_at || "");
     fresh = Number.isFinite(at) && Date.now() - at <= 75 * 60e3;  // one missed hourly run is no longer "this hour"
+    // GitHub often skips the hourly schedule; the heartbeat then starts the run about an hour after the last one,
+    // so a scan up to ~85 minutes old is normal. Warn only past that.
+    behind = !Number.isFinite(at) || Date.now() - at > 95 * 60e3;
     const dips = `${c.calm ?? 0} quiet ${c.calm === 1 ? "dip" : "dips"}`;
     $("summary").textContent = fresh
       ? `${c.pools ?? "–"} pools scanned this hour, ${dips} right now, ${c.cluster_refused ?? 0} refused for shared funding.`
       : `${c.pools ?? "–"} pools in the latest scan, ${dips}, ${c.cluster_refused ?? 0} refused for shared funding.`;
     // no routine age label (the header stays clean); a warning only when the hourly job is behind
-    $("stalenote").hidden = fresh;
-    $("stalenote").textContent = fresh ? "" : Number.isFinite(at)
+    $("stalenote").hidden = !behind;
+    $("stalenote").textContent = !behind ? "" : Number.isFinite(at)
       ? `The latest scan is from ${ago(data.snapshot_at)}. The hourly job is behind, so these figures may be out of date.`
       : "The time of the latest scan is unknown, so these figures may be out of date.";
     $("presets").innerHTML = PRESETS.map((p) => `<button class="preset" data-key="${p.key}">${p.label}</button>`).join("");
