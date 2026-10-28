@@ -1576,19 +1576,7 @@
    }
   },
   "M4": {
-   "open": {
-    "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S": {
-     "address": "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S",
-     "name": "Dacity / SOL",
-     "mint": "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump",
-     "entry_price": 0.009338407996029002,
-     "high_price": 0.01184062217607454,
-     "opened_at": "2026-10-26T17:29:38+00:00",
-     "entry_liq": 567046.1224,
-     "checked_at": "2026-10-28T18:55:00+00:00",
-     "high_at": "2026-10-27T00:01:49.366839+00:00"
-    }
-   },
+   "open": {},
    "closed": [
     {
      "address": "4iVHkn5WhmGwrKb2fYFNPnTkqhwYTEEezvsju9YEBY76",
@@ -1636,6 +1624,23 @@
      "reason": "trail",
      "pnl_usd": -12.32,
      "r": -0.411,
+     "win": false
+    },
+    {
+     "address": "31viZ3y3pWyiH6dC1G3NpHSDkgtLeX7hUSVQutu2F65S",
+     "name": "Dacity / SOL",
+     "mint": "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump",
+     "entry_price": 0.009338407996029002,
+     "high_price": 0.01184062217607454,
+     "opened_at": "2026-10-26T17:29:38+00:00",
+     "entry_liq": 567046.1224,
+     "checked_at": "2026-10-28T19:05:00+00:00",
+     "high_at": "2026-10-27T00:01:49.366839+00:00",
+     "closed_at": "2026-10-28T19:08:10+00:00",
+     "exit_price": 0.008288435523252178,
+     "reason": "trail",
+     "pnl_usd": -14.24,
+     "r": -0.475,
      "win": false
     }
    ],
