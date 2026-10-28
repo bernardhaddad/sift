@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-27T21:00:00+00:00",
+  "reviewed_at": "2026-10-28T05:00:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 21,
-    "links_checked": 394,
+    "verdicts": 22,
+    "links_checked": 430,
     "links_contradicted": 3,
-    "young_tokens": 11,
+    "young_tokens": 12,
     "older_tokens": 10
   },
   "cases": [
@@ -203,6 +203,15 @@
       "links": "1 of 1 verified",
       "finding": "older",
       "note": "2 top holders with 36.3% of supply: one (17.2%, over 1,000 transactions) paid for the other's first transaction (19.1%, 472 transactions). Traded for 707 days before the verdict, so the pair may be one large holder's own wallets. 99.98% of the pool's LP tokens are burned."
+    },
+    {
+      "mint": "28vWTtEwxoWp5MpHutAMSK5DeVf8xXk8jEEtbrtppump",
+      "name": "MOONX",
+      "verdict_at": "2026-10-28T03:09:13+00:00",
+      "trading_since": "2026-10-27T15:35:53Z",
+      "links": "36 of 36 verified",
+      "finding": "young",
+      "note": "18 top holders with 31.9% of supply. One wallet with 69 transactions funded all 18 and sent each its first tokens. Graded eleven and a half hours after the first pool opened. The pool's LP is fully burned."
     }
   ]
 }
