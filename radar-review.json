@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-28T05:00:00+00:00",
+  "reviewed_at": "2026-10-28T13:30:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 22,
-    "links_checked": 430,
+    "verdicts": 23,
+    "links_checked": 432,
     "links_contradicted": 3,
-    "young_tokens": 12,
+    "young_tokens": 13,
     "older_tokens": 10
   },
   "cases": [
@@ -212,6 +212,15 @@
       "links": "36 of 36 verified",
       "finding": "young",
       "note": "18 top holders with 31.9% of supply. One wallet with 69 transactions funded all 18 and sent each its first tokens. Graded eleven and a half hours after the first pool opened. The pool's LP is fully burned."
+    },
+    {
+      "mint": "DtJ1wrrgJidk3NgGFYi2WF4rCyFmcToVU4eGzccPeF6G",
+      "name": "ENVAR",
+      "verdict_at": "2026-10-28T11:08:39+00:00",
+      "trading_since": "2026-10-27T15:53:30Z",
+      "links": "2 of 2 verified",
+      "finding": "young",
+      "note": "2 top holders with 12.2% of supply: the larger one (11.7%, 125 transactions) paid for the other's first transaction (0.5%). The larger holder was itself funded by a wallet with over 1,000 transactions, which the page flags as high-volume; the direct link between the two holders does not depend on it. Graded 19 hours after the first pool opened."
     }
   ]
 }
