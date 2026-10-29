@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-28T17:15:00+00:00",
+  "reviewed_at": "2026-10-29T05:10:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 25,
-    "links_checked": 453,
+    "verdicts": 26,
+    "links_checked": 475,
     "links_contradicted": 3,
     "young_tokens": 14,
-    "older_tokens": 11
+    "older_tokens": 12
   },
   "cases": [
     {
@@ -239,6 +239,15 @@
       "links": "12 of 12 verified",
       "finding": "older",
       "note": "10 top holders with 17.4% of supply got their first tokens from one wallet that is not a holder itself (about 1,500 transactions, almost no SOL left). Traded for 204 days before the verdict, so the sender may be a distribution wallet rather than a launch insider."
+    },
+    {
+      "mint": "C4B97qAz4d6mg9a97ZcLU7QSeDYcFUKBzRQBU4Gpr1ew",
+      "name": "OTC",
+      "verdict_at": "2026-10-29T03:00:19+00:00",
+      "trading_since": "2026-09-14T11:46:46Z",
+      "links": "22 of 22 verified",
+      "finding": "older",
+      "note": "19 of the top 20 holders, with 96.0% of supply, are linked. The largest holder (60.0%) sent first tokens to three others with 16.0%, 10.0% and 10.0%, and the 16.0% holder then sent first tokens to 15 small holders. All four large holders are ordinary wallets. Traded for 44 days before the verdict, so the group is likely the project's own wallets; nearly the whole supply sits with one group either way. The pool is on Orca and has no LP token to burn."
     }
   ]
 }
