@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-29T05:10:00+00:00",
+  "reviewed_at": "2026-10-30T01:10:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 26,
-    "links_checked": 475,
+    "verdicts": 27,
+    "links_checked": 478,
     "links_contradicted": 3,
-    "young_tokens": 14,
+    "young_tokens": 15,
     "older_tokens": 12
   },
   "cases": [
@@ -248,6 +248,15 @@
       "links": "22 of 22 verified",
       "finding": "older",
       "note": "19 of the top 20 holders, with 96.0% of supply, are linked. The largest holder (60.0%) sent first tokens to three others with 16.0%, 10.0% and 10.0%, and the 16.0% holder then sent first tokens to 15 small holders. All four large holders are ordinary wallets. Traded for 44 days before the verdict, so the group is likely the project's own wallets; nearly the whole supply sits with one group either way. The pool is on Orca and has no LP token to burn."
+    },
+    {
+      "mint": "3n9bxBToD2v62FvZynpLUMLsVjHjubmn8BqfNbFHFcJy",
+      "name": "HYPERTAG",
+      "verdict_at": "2026-10-29T23:11:42+00:00",
+      "trading_since": "2026-10-29T18:20:29Z",
+      "links": "3 of 3 verified",
+      "finding": "young",
+      "note": "2 top holders with 13.2% of supply: the larger one (12.8%, 125 transactions) paid for the other's first transaction (0.4%). The larger holder was funded through a middle wallet with 14 transactions, from a wallet with 125; all four addresses start with \"7b\". Graded five hours after the first pool opened. The pool is Meteora DAMM v2 and has no LP token to burn."
     }
   ]
 }
