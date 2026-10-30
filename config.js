@@ -11,12 +11,15 @@ window.SIFT_CONFIG = {
   // token-page links; p is a pool row from data.json
   links: {
     gmgn: (p, ref) => p.mint ? `https://gmgn.ai/sol/token/${ref ? ref + "_" : ""}${p.mint}` : null,
-    axiom: (p) => p.mint ? `https://axiom.trade/t/${p.mint}` : null,
+    // Axiom pages are per pool, with the chain named (format copied from axiom.trade on 30 Oct 2026)
+    axiom: (p) => p.address ? `https://axiom.trade/meme/${p.address}?chain=sol` : null,
     photon: (p) => `https://photon-sol.tinyastro.io/en/lp/${p.address}`,
     jupiter: (p, ref, cfg) => {
-      if (!p.mint) return null;
-      const fee = cfg && cfg.jupiterFeeBps > 0 && ref ? `?referrer=${encodeURIComponent(ref)}&feeBps=${cfg.jupiterFeeBps}` : "";
-      return `https://jup.ag/swap/SOL-${p.mint}${fee}`;
+      const sol = "So11111111111111111111111111111111111111112";
+      if (!p.mint || p.mint === sol) return null;
+      const fee = cfg && cfg.jupiterFeeBps > 0 && ref ? `&referrer=${encodeURIComponent(ref)}&feeBps=${cfg.jupiterFeeBps}` : "";
+      // jup.ag/swap/SOL-<mint> now drops the token and opens SOL to USDC; sell/buy keeps it
+      return `https://jup.ag/swap?sell=${sol}&buy=${p.mint}${fee}`;
     },
     trojan: (p, ref) => p.mint ? `https://t.me/solana_trojanbot?start=${ref ? "r-" + ref + "-" : ""}${p.mint}` : null,
     gecko: (p) => `https://www.geckoterminal.com/solana/pools/${p.address}`,
