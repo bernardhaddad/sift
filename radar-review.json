@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-10-30T01:10:00+00:00",
+  "reviewed_at": "2026-11-01T21:15:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 27,
-    "links_checked": 478,
+    "verdicts": 29,
+    "links_checked": 482,
     "links_contradicted": 3,
-    "young_tokens": 15,
+    "young_tokens": 17,
     "older_tokens": 12
   },
   "cases": [
@@ -257,6 +257,24 @@
       "links": "3 of 3 verified",
       "finding": "young",
       "note": "2 top holders with 13.2% of supply: the larger one (12.8%, 125 transactions) paid for the other's first transaction (0.4%). The larger holder was funded through a middle wallet with 14 transactions, from a wallet with 125; all four addresses start with \"7b\". Graded five hours after the first pool opened. The pool is Meteora DAMM v2 and has no LP token to burn."
+    },
+    {
+      "mint": "AobkFUgdHpDM4g8dXVZt9H3nuNGner6FphrjjGTxpump",
+      "name": "FOMO",
+      "verdict_at": "2026-10-31T15:05:21+00:00",
+      "trading_since": "2026-10-31T14:02:35Z",
+      "links": "2 of 2 verified",
+      "finding": "young",
+      "note": "2 top holders with 27.4% of supply, funded by the same wallet. The same two wallets are top holders of both FOMO and fomo, with about 13% and 14% of each supply. Both were funded by one wallet that has since made over 1,000 transactions and kept almost no SOL; all three are ordinary wallets created on 31 October. The funder registry links the two tokens. Graded about an hour after the first pool opened."
+    },
+    {
+      "mint": "EUhvWbCR6zkPL2xW2zfiTLdahsakXZFyxeYCiSCtpump",
+      "name": "fomo",
+      "verdict_at": "2026-11-01T11:33:10+00:00",
+      "trading_since": "2026-11-01T07:18:30Z",
+      "links": "2 of 2 verified",
+      "finding": "young",
+      "note": "2 top holders with 27.4% of supply, funded by the same wallet. The same two wallets are top holders of both FOMO and fomo, with about 13% and 14% of each supply. Both were funded by one wallet that has since made over 1,000 transactions and kept almost no SOL; all three are ordinary wallets created on 31 October. The funder registry links the two tokens. Graded about four hours after the first pool opened."
     }
   ]
 }
