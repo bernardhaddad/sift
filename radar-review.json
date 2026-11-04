@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-04T09:30:00+00:00",
+  "reviewed_at": "2026-11-04T13:10:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,11 +8,11 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 33,
-    "links_checked": 563,
+    "verdicts": 34,
+    "links_checked": 564,
     "links_contradicted": 3,
     "young_tokens": 19,
-    "older_tokens": 14
+    "older_tokens": 15
   },
   "cases": [
     {
@@ -311,6 +311,15 @@
       "links": "41 of 41 verified",
       "finding": "young",
       "note": "All 20 top holders, 16.9% of supply, about 0.85% each. One wallet (562 transactions, active since 16 September) paid for each holder's first transaction and sent each its tokens; it was funded by a wallet active since 1 September. The public node did not answer verify.py on 2 links; both were checked by hand (finalized, paid by that wallet, the holder's first transaction). The token had traded for 11 days when graded."
+    },
+    {
+      "mint": "AFbX8oGjGpmVFywbVouvhQSRmiW2aR1mohfahi4Y2AdB",
+      "name": "GST",
+      "verdict_at": "2026-11-04T12:25:52+00:00",
+      "trading_since": "2022-04-28T09:51:02Z",
+      "links": "1 of 1 verified",
+      "finding": "older",
+      "note": "2 top holders with 16.8% of supply: the larger (15.6%, 11 transactions since November 2025) sent the smaller (1.2%) its tokens. One link, made by a token transfer, not by funding. The token had traded since April 2022, about four and a half years, when graded."
     }
   ]
 }
