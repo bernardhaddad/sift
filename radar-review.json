@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-03T17:20:00+00:00",
+  "reviewed_at": "2026-11-04T09:30:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 31,
-    "links_checked": 503,
+    "verdicts": 33,
+    "links_checked": 563,
     "links_contradicted": 3,
-    "young_tokens": 17,
+    "young_tokens": 19,
     "older_tokens": 14
   },
   "cases": [
@@ -293,6 +293,24 @@
       "links": "14 of 14 verified",
       "finding": "older",
       "note": "38.1% of supply in three linked groups. The largest holder (18.9%) paid for the first transaction of another (4.8%), which also received tokens from a wallet active since June 2025. In the second group (11.1%), one holder (5.5%) funded two others (2.9% and 2.7%) and sent them tokens; it was funded by a high-volume wallet (over 1,000 transactions since 29 October), marked as such, but the holders are linked directly. A third group of two holders (3.3%) shares a funding chain. The token had traded for 81 days when graded."
+    },
+    {
+      "mint": "9bz8ubx6D676wPJGeEwvgJHnB84mqR23KQ26zdsZpump",
+      "name": "AMC",
+      "verdict_at": "2026-11-04T04:54:05+00:00",
+      "trading_since": "2026-11-04T03:46:51Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 11.0% of supply, between 0.5% and 0.7% each, every one funded directly by the same wallet. That wallet was created the same day and had made over 1,000 transactions within hours. Graded about an hour after the first pool opened."
+    },
+    {
+      "mint": "PADr9C9X3oFiyD8hgdGcQYCLcWJmox7kXPs25BQsSv4",
+      "name": "PAD",
+      "verdict_at": "2026-11-04T07:14:15+00:00",
+      "trading_since": "2026-10-24T03:10:13Z",
+      "links": "41 of 41 verified",
+      "finding": "young",
+      "note": "All 20 top holders, 16.9% of supply, about 0.85% each. One wallet (562 transactions, active since 16 September) paid for each holder's first transaction and sent each its tokens; it was funded by a wallet active since 1 September. The public node did not answer verify.py on 2 links; both were checked by hand (finalized, paid by that wallet, the holder's first transaction). The token had traded for 11 days when graded."
     }
   ]
 }
