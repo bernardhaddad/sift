@@ -398,7 +398,7 @@
     $("fastbooks").innerHTML = (f.books || []).map((b) => {
       const v = b.verdict === "KILL" ? '<span class="chip bad">killed</span>' : (b.verdict || "").startsWith("PROMOTE") ? '<span class="chip ok">promote to review</span>' : '<span class="chip">running</span>';
       const tr = b.total_r > 0 ? "up" : b.total_r < 0 ? "down" : "";
-      const labels = { M5D: "M5D: flush", M5A: "M5A: new on trending", M5D2: "M5D2: flush, 12-hour hold", M6E: "M6E: liquidity, established pools", M6Y: "M6Y: liquidity, young pools" };
+      const labels = { M5D: "M5D: flush", M5A: "M5A: new on trending", M5D2: "M5D2: flush, 12-hour hold", M5B: "M5B: flush, break-even stop", M6E: "M6E: liquidity, established pools", M6Y: "M6Y: liquidity, young pools" };
       const label = labels[b.name] || b.name;
       const voided = b.void || [];
       const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
