@@ -60,6 +60,12 @@
   .btn.primary:hover { background: #1d3a66; }
   .ok { color: var(--green); } .bad { color: var(--red); }
   .flag-bad { font-size: 11.5px; font-weight: 600; color: var(--red); margin-left: 8px; }
+  .exits { margin-top: 16px; border: 1px solid var(--red); border-radius: 8px; background: var(--red-bg); padding: 10px 14px; }
+  .exits[hidden] { display: none; }
+  .exits b.t { color: var(--red); }
+  .exits ul { list-style: none; margin: 6px 0 0; padding: 0; }
+  .exits li { padding: 3px 0; font-size: 14px; }
+  .exits .when { color: var(--faint); font-size: 12.5px; margin-left: 6px; }
   .facts.auth { margin-top: 6px; }
 
   section { padding: 28px 0 4px; }
@@ -212,6 +218,7 @@
       </div>
       <div id="ts"></div>
       <div id="counts" class="proofs" aria-live="polite"></div>
+      <div id="exits" class="exits" hidden aria-live="polite"></div>
     </div>
   </div>
 
@@ -233,6 +240,8 @@
         <div class="scroll"><table class="rec"><thead><tr><th>Verdict</th><th>Followed</th><th>Finished</th><th>Collapsed</th><th>After 24 h</th><th>After 7 days</th></tr></thead><tbody id="scores"></tbody></table></div>
         <h4 style="margin-top:18px">Comparisons fixed in advance</h4>
         <div id="cmp"></div>
+        <h4 style="margin-top:18px">Exit warnings</h4>
+        <div id="exitrec"></div>
       </div></details>
 
       <details id="review"><summary>Case review</summary><div class="body">
@@ -272,6 +281,8 @@
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This is read on PumpSwap, Raydium AMM and Raydium CPMM pools. When not all of it is burned, the 20 largest LP accounts are read and the LP they hold is split by who holds it: a known lock (Raydium Burn &amp; Earn), program-controlled accounts (only a program can move the LP, but they are not checked to be locks), or wallets that can withdraw it, with the largest single wallet's share. LP in accounts the node could not read is shown apart. Position-based pools (Raydium CLMM, Orca, Meteora DLMM and DAMM v2, Byreal, DefiTuna) and Meteora DBC launch curves have no LP token to burn. Other pool types are marked as not checked.</p>
         <h4>Still held</h4>
         <p>For High and Watch tokens, the 20 largest accounts are read again every hour and matched to the linked wallets. A wallet that has dropped out of the top 20 isn't counted, so the figure is a minimum.</p>
+        <h4>Exit warnings</h4>
+        <p>When the linked wallets of a High or Watch token go from holding at least half of what they held at the verdict to holding less than half, from one hourly reading to the next, the token gets an exit warning: on this page, on its row and in the <a href="radar-feed.xml">RSS feed</a>. It fires once per token, within the 7 days after the verdict. A wallet that left the top 20 may still hold a little, and a crash inside the same hour can come before the warning. The warnings keep their own track record in the section above.</p>
         <h4>Token age</h4>
         <p>The date of the oldest trading pool found for the token. On a token that has traded for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than insiders from the launch. Those tokens keep their verdict, because the grading rules don't change after the fact, but the page points it out.</p>
         <h4>Self-audit</h4>
@@ -286,7 +297,7 @@
       </div></details>
 
       <details id="data"><summary>Data and alerts</summary><div class="body">
-        <p>Free to use, updated hourly: <a href="radar.json">radar.json</a>, <a href="radar-ledger.json">radar-ledger.json</a>, <a href="radar-wallets.json">radar-wallets.json</a>, <a href="radar-audit.json">radar-audit.json</a>. Alerts for new High and Watch verdicts by <a href="radar-feed.xml">RSS</a>.</p>
+        <p>Free to use, updated hourly: <a href="radar.json">radar.json</a>, <a href="radar-ledger.json">radar-ledger.json</a>, <a href="radar-wallets.json">radar-wallets.json</a>, <a href="radar-audit.json">radar-audit.json</a>. Alerts for new High and Watch verdicts, and exit warnings when their linked wallets sell, by <a href="radar-feed.xml">RSS</a>.</p>
       </div></details>
     </div>
   </section>
@@ -393,11 +404,23 @@
   }
 
   function heldLine(t) {  // linked supply still held, read from the 20 largest accounts each hour
+    const w = t.exit_warning;
+    const warn = w ? `<div class="facts auth"><span class="bad"><b>Exit warning</b> ${esc(ago(w.at))}: the linked wallets among the 20 largest holders went from ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply between two hourly readings.</span></div>` : "";
     const r = t.retained;
-    if (!r) return "";
+    if (!r) return warn;
     const gone = int(r.out_of_top), all = int(r.wallets);
     const tail = !r.out_of_top ? "" : num(r.below_pct) > 0 ? ` ${gone} of ${all} wallets are out of the top 20.` : ` ${gone} of ${all} wallets hold none.`;
-    return `<div class="facts auth"><span>Linked wallets now hold <b>${num(r.out_of_top) && num(r.below_pct) > 0 ? "at least " : ""}${pct(r.held_pct)}</b> of supply, ${pct(t.clustered_pct)} when traced.${tail}</span><span style="color:var(--faint)">checked ${ago(r.at)}</span></div>`;
+    return warn + `<div class="facts auth"><span>Linked wallets now hold <b>${num(r.out_of_top) && num(r.below_pct) > 0 ? "at least " : ""}${pct(r.held_pct)}</b> of supply, ${pct(t.clustered_pct)} when traced.${tail}</span><span style="color:var(--faint)">checked ${ago(r.at)}</span></div>`;
+  }
+
+  function exits() {  // live exit warnings: the last 7 days, newest first
+    const ew = doc.exit_warnings || {}, onPage = new Set(doc.tokens.map((t) => t.mint));
+    const live = (ew.recent || []).filter((w) => Date.now() - Date.parse(w.at) < 7 * DAY).slice(0, 8);
+    if (!live.length) { $("exits").hidden = true; return; }
+    const link = (w) => onPage.has(w.mint) ? `<a href="#${encodeURIComponent(w.mint)}">${esc(w.name)}</a>` : `<a href="https://solscan.io/token/${encodeURIComponent(w.mint)}" target="_blank" rel="noopener">${esc(w.name)}</a>`;
+    $("exits").innerHTML = `<b class="t">Exit warnings</b> <span style="color:var(--muted)">linked wallets sold half or more within 7 days of the verdict</span>
+      <ul>${live.map((w) => `<li>${link(w)}: linked wallets ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply<span class="when">${esc(ago(w.at))}</span></li>`).join("")}</ul>`;
+    $("exits").hidden = false;
   }
 
   function authority(t) {
@@ -413,7 +436,7 @@
   }
   const flags = (t) => {
     const a = t.authority || {};
-    return (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
+    return (t.exit_warning ? '<span class="flag-bad">exit warning</span>' : "") + (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
   };
 
   const DAY = 864e5;
@@ -609,6 +632,15 @@
       $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished High and Watch tokens by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together; this does not show which caused which.</p>
         <div class="scroll"><table class="rec"><thead><tr><th>Group</th><th>Finished</th><th>Collapsed</th></tr></thead><tbody>${block("Token age", cp.age || {}, "young", "older", "Young token", "Older token")}${block("Linked wallets", cp.exit || {}, "sold", "held", "Sold half or more", "Held")}</tbody></table></div>`;
     }
+    const ew = doc.exit_warnings;
+    if (ew && ew.definitions) {
+      const signed = (v) => num(v) == null ? "–" : `${num(v) >= 0 ? "+" : ""}${(num(v) * 100).toFixed(0)}%`;
+      const rec = ew.ready
+        ? `<div class="scroll"><table class="rec"><thead><tr><th>Finished warnings</th><th>7-day price lower</th><th>Median to 7 days</th><th>Median to the lowest</th><th>Collapsed</th><th>Warning came first</th></tr></thead><tbody><tr><td>${int(ew.closed)}</td><td><b>${int(ew.ended_lower)}</b></td><td>${signed(ew.median_7d)}</td><td>${signed(ew.median_low)}</td><td>${int(ew.collapsed)}</td><td>${int(ew.warned_first)}</td></tr></tbody></table></div>`
+        : `<p><b>${int(ew.fired)}</b> warning${num(ew.fired) === 1 ? "" : "s"} so far, ${int(ew.closed)} of ${int(ew.definitions.min_closed)} finished. The score appears at ${int(ew.definitions.min_closed)}.</p>`;
+      $("exitrec").innerHTML = `<p>Set on ${esc(ew.definitions.fixed_at)}, before the first warning, and counted only for tokens that entered from ${esc(when(ew.since))}. Changes are measured from the price at the warning. "Warning came first" counts collapses whose first hourly price 80% below the entry came after the warning.</p>${rec}
+        <p style="color:var(--muted)">Looking back over 14 October to 7 November, before these rules were set: 28 finished High and Watch tokens would have had a warning. From the warning hour, their lowest later price was a median 88% lower, and 23 of 28 ended their 7 days lower. In 14 of the 24 that collapsed, the warning came before the crash. For tokens whose linked wallets held, the lowest later price from a comparable point was a median 21% lower. That look-back was done on data already seen, which is why the record above counts only from now. <a href="research.html">Research notes</a></p>`;
+    }
     if (doc.registry_since) $("regsince").textContent = when(doc.registry_since);
     const rw = doc.repeat_wallets || [], onPage = new Set(doc.tokens.map((t) => t.mint));
     const tok = (t) => onPage.has(t.mint) ? `<a class="pill" href="#${encodeURIComponent(t.mint)}">${esc(t.name)}</a>` : `<a class="pill" href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">${esc(t.name)}</a>`;
@@ -716,7 +748,7 @@
     $("upd").title = when(d.generated_at);
     if (fromHash()) setTimeout(() => $("tokens").scrollIntoView(), 50);
     render();  // the list first: a fault in a secondary section leaves only that section empty
-    for (const part of [counts, tabs, track]) { try { part(); } catch { /* that section stays as it was */ } }
+    for (const part of [counts, exits, tabs, track]) { try { part(); } catch { /* that section stays as it was */ } }
   }).catch(() => {
     $("upd").textContent = "Offline";
     $("rows").innerHTML = `<div class="empty">The radar could not load its data. It updates every hour; please try again shortly.</div>`;
