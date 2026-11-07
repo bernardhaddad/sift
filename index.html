@@ -391,6 +391,9 @@
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", () => { shown = PAGE; render(); }));
   $("more").firstChild.addEventListener("click", () => { shown += PAGE; render(); if (!$("more").hidden) $("more").firstChild.focus(); });
 
+  const realR = (sh) => !sh || typeof sh !== "object" ? "–" : sh.measured && Number.isFinite(+sh.r)
+    ? `<span class="${+sh.r >= 0 ? "up" : "down"}">${+sh.r >= 0 ? "+" : ""}${(+sh.r).toFixed(2)}</span>` : sh.why === "no sell route" ? "no route" : "–";
+
   function renderFast(f) {
     const t = Date.parse(f.last_tick_at || "");
     const stale = !Number.isFinite(t) || Date.now() - t > 20 * 60 * 1000;  // an unreadable time is not a fresh one
@@ -403,8 +406,13 @@
       const voided = b.void || [];
       const voidTable = voided.length ? `<details><summary>${voided.length} void trades (defective trigger)</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${voided.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       const trades = b.trades || [];
-      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>cost</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
-      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${fmtR(b.total_r)}</div><div class="sub">${esc(b.closed)} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
+      const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>cost</th><th>R</th><th>real R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td>${t.cost_rt == null ? "–" : (t.cost_rt * 100).toFixed(2) + "%"}${t.cost_source === "fallback" ? "*" : ""}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td><td>${realR(t.shadow)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+      const sh = b.shadow && typeof b.shadow === "object" ? b.shadow : null;  // §13.4: real quotes at entry and exit
+      const n = sh ? Number(sh.measured) : NaN, noRoute = sh ? Number(sh.no_route) : NaN;
+      const real = !sh ? "" : Number.isFinite(n) && n > 0
+        ? `<div class="sub">Real fills: <b class="${+sh.real_r >= 0 ? "up" : "down"}">${fmtR(sh.real_r)}</b> on ${n} trade${n === 1 ? "" : "s"}, paper ${fmtR(sh.paper_r)} on the same${Number.isFinite(noRoute) && noRoute > 0 ? `, ${noRoute} with no sell route` : ""}</div>`
+        : `<div class="sub">Real-fill check: counts trades opened from 7 November</div>`;
+      return `<div class="card"><h3>${esc(label)} ${v}</h3><div class="big ${tr}">${fmtR(b.total_r)}</div><div class="sub">${esc(b.closed)} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${real}${voided.length ? `<div class="sub">${voided.length} void trades not counted</div>` : ""}${all}${voidTable}</div>`;
     }).join("");
   }
   fetch("fast.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(renderFast).catch(() => {
