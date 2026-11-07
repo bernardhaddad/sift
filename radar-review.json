@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-04T17:10:00+00:00",
+  "reviewed_at": "2026-11-07T01:40:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 35,
-    "links_checked": 583,
+    "verdicts": 37,
+    "links_checked": 619,
     "links_contradicted": 3,
-    "young_tokens": 20,
+    "young_tokens": 22,
     "older_tokens": 15
   },
   "cases": [
@@ -329,6 +329,24 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 17.6% of supply, about 0.7% to 1.0% each, every one funded directly by the same wallet. That wallet was created the same day, had made over 1,000 transactions within hours and held about 189 SOL. The same pattern as AMC earlier that day, through a different wallet; the radar found no shared funder between the two. Graded about two and a half hours after the first pool opened."
+    },
+    {
+      "mint": "5pdu9jrUf9ryLzCsv3S92ikoBiK3n2zA9tMN9Rr7pump",
+      "name": "DCAT",
+      "verdict_at": "2026-11-06T23:26:16+00:00",
+      "trading_since": "2026-11-06T22:50:01Z",
+      "links": "17 of 19 verified, 2 unconfirmed",
+      "finding": "young",
+      "note": "19 top holders with 16.0% of supply, about 0.6% to 1.0% each, every one funded directly by the same wallet, which was created that day, had made over 1,000 transactions and held about 60 SOL. On 2 links the public node confirmed the transaction succeeded and is the holder's first, but would not return its contents, so the fee payer is unconfirmed; nothing contradicts them. Graded about 35 minutes after the first pool opened."
+    },
+    {
+      "mint": "DKtofLM6bhb54GQy5YFSWQjQmGiZqAkjzkQJ1LTopump",
+      "name": "HODL",
+      "verdict_at": "2026-11-07T00:16:28+00:00",
+      "trading_since": "2026-11-06T23:09:39Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 14.1% of supply, about 0.72% to 0.77% each, every one funded directly by the same wallet, which was created that day, had made over 1,000 transactions and held about 333 SOL. The funder registry shows no shared wallet with DCAT, graded the same evening with the same pattern. Graded about an hour after the first pool opened."
     }
   ]
 }
