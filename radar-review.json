@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-07T01:40:00+00:00",
+  "reviewed_at": "2026-11-08T19:40:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 37,
-    "links_checked": 619,
+    "verdicts": 39,
+    "links_checked": 656,
     "links_contradicted": 3,
-    "young_tokens": 22,
+    "young_tokens": 24,
     "older_tokens": 15
   },
   "cases": [
@@ -347,6 +347,24 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 14.1% of supply, about 0.72% to 0.77% each, every one funded directly by the same wallet, which was created that day, had made over 1,000 transactions and held about 333 SOL. The funder registry shows no shared wallet with DCAT, graded the same evening with the same pattern. Graded about an hour after the first pool opened."
+    },
+    {
+      "mint": "4QmzE5EiVqGmy6UYA6gv7cQFKqZvhT8rHkbqYt5vpump",
+      "name": "FLOAT",
+      "verdict_at": "2026-11-08T02:41:05+00:00",
+      "trading_since": "2026-11-08T01:40:27Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 33.8% of supply, about 1.9% each, every one funded directly by the same wallet, created that day, with over 1,000 transactions and since emptied. The linked wallets went from 33.6% to 0% of supply by the next hourly reading, and the token got the radar's first exit warning at 04:00. Graded about an hour after the first pool opened."
+    },
+    {
+      "mint": "6su7bnRHedae92kCE98uyuN7nqYHdCkMK6G9Z3uhpump",
+      "name": "FLOATCAT",
+      "verdict_at": "2026-11-08T04:00:54+00:00",
+      "trading_since": "2026-11-08T02:04:26Z",
+      "links": "18 of 19 verified, 1 unconfirmed",
+      "finding": "young",
+      "note": "19 top holders with 13.9% of supply, about 0.3% to 0.9% each, every one funded directly by the same wallet, created that day, with over 1,000 transactions and since emptied. A different wallet from FLOAT's, launched the same night. The linked wallets already held nothing at the first hourly reading, so no exit warning could fire. All 19 transactions are confirmed successful on-chain; on one the public node would not return the contents, so its fee payer is unconfirmed. Graded about two hours after the first pool opened."
     }
   ]
 }
