@@ -35,7 +35,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 77e3d13e70894ddca096ef3abb63d43898308fdb  # private code commit
+  SOURCE_REF: 0e1e8f29256cc268eb293434963d2e7ef32124f7  # private code commit
   DAILY_LIMIT: "40"      # fresh traces a day, issue and relay requests together
   PER_USER_LIMIT: "3"    # requests a day per GitHub account or relay visitor
   MAX_ACTIVE: "2"        # relay traces queued or running at once (same as relay/worker.js)
