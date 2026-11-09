@@ -13,6 +13,7 @@ Sift's Insider Radar traces the top 20 holders of trending Solana tokens back to
 - The presets (quiet dips, deep survivors, aged 1–14 d) are bands measured on a 14-day panel of forward returns.
 - The paper record: every closed trade of the pre-registered strategies, the kill and promote rules, and the reviews. No strategy has passed its promotion gate so far.
 - `verify.py`: check the radar's published links for any token yourself, `python3 verify.py <mint>` (Python 3.11+, no key). The site runs the same file hourly on a sample.
+- `tracer/`: the radar's tracing code, MIT licensed. Run your own trace with `python3 tracer/trace.py <mint>`; see [tracer/README.md](tracer/README.md).
 - `proofs/`: a daily copy of the radar's track record and data with their SHA-256 hashes, timestamped in Bitcoin with OpenTimestamps. Check a day with `sha256sum -c manifest.txt`, then `ots verify manifest.txt.ots` if you run a Bitcoin node. Without one, `ots --no-bitcoin verify manifest.txt.ots` prints a block number and Merkle root to compare with any block explorer.
 
 ## How it runs
