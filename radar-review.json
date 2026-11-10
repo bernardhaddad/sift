@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-08T19:40:00+00:00",
+  "reviewed_at": "2026-11-10T05:30:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 39,
-    "links_checked": 656,
+    "verdicts": 40,
+    "links_checked": 675,
     "links_contradicted": 3,
-    "young_tokens": 24,
+    "young_tokens": 25,
     "older_tokens": 15
   },
   "cases": [
@@ -365,6 +365,15 @@
       "links": "18 of 19 verified, 1 unconfirmed",
       "finding": "young",
       "note": "19 top holders with 13.9% of supply, about 0.3% to 0.9% each, every one funded directly by the same wallet, created that day, with over 1,000 transactions and since emptied. A different wallet from FLOAT's, launched the same night. The linked wallets already held nothing at the first hourly reading, so no exit warning could fire. All 19 transactions are confirmed successful on-chain; on one the public node would not return the contents, so its fee payer is unconfirmed. Graded about two hours after the first pool opened."
+    },
+    {
+      "mint": "BAftaSb1HVqBn5723w72WLcXU7YASSgmVxQxJJAJpump",
+      "name": "OnlyCats",
+      "verdict_at": "2026-11-10T01:56:11+00:00",
+      "trading_since": "2026-11-10T00:06:09Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 30.0% of supply, about 0.8% to 1.7% each, every one funded directly by the same wallet in two transactions. That wallet was created that day, has over 1,000 transactions and still held about 314 SOL when checked. The linked wallets held 21.9% at the latest hourly reading, above half of the first, so no exit warning has fired. Graded about two hours after the first pool opened."
     }
   ]
 }
