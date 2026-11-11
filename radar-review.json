@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-10T05:30:00+00:00",
+  "reviewed_at": "2026-11-11T01:20:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 40,
-    "links_checked": 675,
+    "verdicts": 41,
+    "links_checked": 700,
     "links_contradicted": 3,
-    "young_tokens": 25,
+    "young_tokens": 26,
     "older_tokens": 15
   },
   "cases": [
@@ -374,6 +374,15 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 30.0% of supply, about 0.8% to 1.7% each, every one funded directly by the same wallet in two transactions. That wallet was created that day, has over 1,000 transactions and still held about 314 SOL when checked. The linked wallets held 21.9% at the latest hourly reading, above half of the first, so no exit warning has fired. Graded about two hours after the first pool opened."
+    },
+    {
+      "mint": "E2HPtLCsgb5fK3fxWBAJ4djqAejepWK6ZTqFazf5kgR6",
+      "name": "Looby",
+      "verdict_at": "2026-11-11T00:47:29+00:00",
+      "trading_since": "2026-11-10T18:58:24Z",
+      "links": "25 of 26 verified, 1 unconfirmed",
+      "finding": "young",
+      "note": "15 top holders with 52.2% of supply, the largest with 15.9%. One wallet, created on 1 November, sent the token to 13 of them and paid the first transaction of four. Two other linking wallets are busy (over 1,000 transactions each), one of them already seen behind five earlier radar tokens; the group does not depend on them, since the first wallet links both of their holders too. On one link the public node did not answer, so it is unconfirmed. Graded about six hours after the first pool opened."
     }
   ]
 }
