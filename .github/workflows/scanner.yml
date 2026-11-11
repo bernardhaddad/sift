@@ -4,7 +4,7 @@ name: memecoin minute scanner (M5, public host)
 # fast.json and starts the next run. the half-hourly schedule restarts it if that fails.
 # a SOURCE_REF change on main ends the run after its next publish and starts a fresh one.
 #
-# secrets: SOURCE_REPO, SOURCE_READ_TOKEN; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+# secrets: SOURCE_REPO, SOURCE_READ_TOKEN; optional TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SIFT_CHANNEL_BOT_TOKEN, SIFT_CHANNEL_ID
 
 on:
   schedule:
@@ -21,7 +21,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: bb356fb5ab5e887d46db0fb4de426702580603f4  # private code commit
+  SOURCE_REF: 08e699891bd09e285b77a52d72b2357542c2b550  # private code commit
   RUN_MINUTES: "330"
 
 jobs:
@@ -78,6 +78,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SIFT_CHANNEL_BOT_TOKEN: ${{ secrets.SIFT_CHANNEL_BOT_TOKEN }}
+          SIFT_CHANNEL_ID: ${{ secrets.SIFT_CHANNEL_ID }}
           GH_TOKEN: ${{ github.token }}
           LIVE_ENABLED: ${{ secrets.LIVE_ENABLED }}
           LIVE_BOOK: ${{ secrets.LIVE_BOOK }}

@@ -29,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: bb356fb5ab5e887d46db0fb4de426702580603f4  # private code commit
+  SOURCE_REF: 08e699891bd09e285b77a52d72b2357542c2b550  # private code commit
 
 jobs:
   cycle:
@@ -159,6 +159,8 @@ jobs:
         continue-on-error: true
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          SIFT_CHANNEL_BOT_TOKEN: ${{ secrets.SIFT_CHANNEL_BOT_TOKEN }}
+          SIFT_CHANNEL_ID: ${{ secrets.SIFT_CHANNEL_ID }}
           CYCLE: ${{ steps.cycle.outcome }}
         run: |
           # pillow is only for the preview cards
