@@ -404,8 +404,9 @@
   }
 
   function heldLine(t) {  // linked supply still held, read from the 20 largest accounts each hour
-    const w = t.exit_warning;
-    const warn = w ? `<div class="facts auth"><span class="bad"><b>Exit warning</b> ${esc(ago(w.at))}: the linked wallets among the 20 largest holders went from ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply between two hourly readings.</span></div>` : "";
+    const w = t.exit_warning, w5 = t.exit_warning_5m;
+    const warn = (w5 ? `<div class="facts auth"><span class="bad"><b>Exit warning</b> ${esc(ago(w5.at))}, 5-minute watch: the linked wallets held ${pct(w5.held_pct)} of supply, under half of the ${pct(w5.first_pct)} when the verdict was published (${pct(w5.prev_pct)} at the reading before).</span></div>` : "")
+      + (w ? `<div class="facts auth"><span class="bad"><b>Exit warning</b> ${esc(ago(w.at))}: the linked wallets among the 20 largest holders went from ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply between two hourly readings.</span></div>` : "");
     const r = t.retained;
     if (!r) return warn;
     const gone = int(r.out_of_top), all = int(r.wallets);
@@ -414,12 +415,18 @@
   }
 
   function exits() {  // live exit warnings: the last 7 days, newest first
-    const ew = doc.exit_warnings || {}, onPage = new Set(doc.tokens.map((t) => t.mint));
-    const live = (ew.recent || []).filter((w) => Date.now() - Date.parse(w.at) < 7 * DAY).slice(0, 8);
+    const ew = doc.exit_warnings || {}, ew5 = doc.exit_warnings_5m || {}, onPage = new Set(doc.tokens.map((t) => t.mint));
+    const first = new Map();  // one line per token: whichever clock warned first
+    for (const w of [...(ew5.recent || []).map((x) => ({ ...x, fast: true })), ...(ew.recent || [])]) {
+      const had = first.get(w.mint);
+      if (!had || Date.parse(w.at) < Date.parse(had.at)) first.set(w.mint, w);
+    }
+    const live = [...first.values()].filter((w) => Date.now() - Date.parse(w.at) < 7 * DAY)
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 8);
     if (!live.length) { $("exits").hidden = true; return; }
     const link = (w) => onPage.has(w.mint) ? `<a href="#${encodeURIComponent(w.mint)}">${esc(w.name)}</a>` : `<a href="https://solscan.io/token/${encodeURIComponent(w.mint)}" target="_blank" rel="noopener">${esc(w.name)}</a>`;
     $("exits").innerHTML = `<b class="t">Exit warnings</b> <span style="color:var(--muted)">linked wallets sold half or more within 7 days of the verdict</span>
-      <ul>${live.map((w) => `<li>${link(w)}: linked wallets ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply<span class="when">${esc(ago(w.at))}</span></li>`).join("")}</ul>`;
+      <ul>${live.map((w) => `<li>${link(w)}: linked wallets ${pct(w.first_pct)} to ${pct(w.held_pct)} of supply${w.fast ? ' <span style="color:var(--muted)">(5-minute watch)</span>' : ""}<span class="when">${esc(ago(w.at))}</span></li>`).join("")}</ul>`;
     $("exits").hidden = false;
   }
 
@@ -436,7 +443,7 @@
   }
   const flags = (t) => {
     const a = t.authority || {};
-    return (t.exit_warning ? '<span class="flag-bad">exit warning</span>' : "") + (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
+    return (t.exit_warning || t.exit_warning_5m ? '<span class="flag-bad">exit warning</span>' : "") + (a.mint_by === "wallet" ? '<span class="flag-bad">can mint</span>' : "") + (a.freeze_by === "wallet" ? '<span class="flag-bad">can freeze</span>' : "");
   };
 
   const DAY = 864e5;
@@ -640,6 +647,16 @@
         : `<p><b>${int(ew.fired)}</b> warning${num(ew.fired) === 1 ? "" : "s"} so far, ${int(ew.closed)} of ${int(ew.definitions.min_closed)} finished. The score appears at ${int(ew.definitions.min_closed)}.</p>`;
       $("exitrec").innerHTML = `<p>Set on ${esc(ew.definitions.fixed_at)}, before the first warning, and counted only for tokens that entered from ${esc(when(ew.since))}. Changes are measured from the price at the warning. "Warning came first" counts collapses whose first hourly price 80% below the entry came after the warning.</p>${rec}
         <p style="color:var(--muted)">Looking back over 14 October to 7 November, before these rules were set: 28 finished High and Watch tokens would have had a warning. From the warning hour, their lowest later price was a median 88% lower, and 23 of 28 ended their 7 days lower. In 14 of the 24 that collapsed, the warning came before the crash. For tokens whose linked wallets held, the lowest later price from a comparable point was a median 21% lower. That look-back was done on data already seen, which is why the record above counts only from now. <a href="research.html">Research notes</a></p>`;
+    }
+    const e5 = doc.exit_warnings_5m;
+    if (e5 && e5.definitions) {
+      const signed = (v) => num(v) == null ? "–" : `${num(v) >= 0 ? "+" : ""}${(num(v) * 100).toFixed(0)}%`;
+      const f = e5.first || {}, cw = e5.collapses_warned_before || {};
+      const rec5 = e5.ready
+        ? `<div class="scroll"><table class="rec"><thead><tr><th>Finished warnings</th><th>7-day price lower</th><th>Median to 7 days</th><th>Median to the lowest</th><th>Collapsed</th></tr></thead><tbody><tr><td>${int(e5.closed)}</td><td><b>${int(e5.ended_lower)}</b></td><td>${signed(e5.median_7d)}</td><td>${signed(e5.median_low)}</td><td>${int(e5.collapsed)}</td></tr></tbody></table></div>
+          <p>Warned first: 5-minute watch <b>${int(f["5m"])}</b>, hourly check <b>${int(f["1h"])}</b>${e5.median_lead_min == null ? "" : `; where both warned, the 5-minute watch was a median ${int(Math.round(num(e5.median_lead_min)))} minutes earlier`}. Of ${int(cw.collapses)} finished collapses, warned before the crash: 5-minute ${int(cw["5m"])}, hourly ${int(cw["1h"])}.</p>`
+        : `<p><b>${int(e5.fired)}</b> warning${num(e5.fired) === 1 ? "" : "s"} so far, ${int(e5.closed)} of ${int(e5.definitions.min_closed)} finished. The score appears at ${int(e5.definitions.min_closed)}.</p>`;
+      $("exitrec").insertAdjacentHTML("beforeend", `<h3 style="margin-top:1rem">On a 5-minute clock</h3><p>Set on ${esc(e5.definitions.fixed_at)}, before it first ran, and counted for tokens that entered from ${esc(when(e5.since))}. The same rule read every 5 minutes, from the same wallets. It decides one question: does the faster reading warn earlier, often enough to matter? If it does not, this record will show that.</p>${rec5}`);
     }
     if (doc.registry_since) $("regsince").textContent = when(doc.registry_since);
     const rw = doc.repeat_wallets || [], onPage = new Set(doc.tokens.map((t) => t.mint));
