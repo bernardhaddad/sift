@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-12T05:10:00+00:00",
+  "reviewed_at": "2026-11-12T09:15:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 42,
-    "links_checked": 718,
+    "verdicts": 43,
+    "links_checked": 736,
     "links_contradicted": 3,
-    "young_tokens": 27,
+    "young_tokens": 28,
     "older_tokens": 15
   },
   "cases": [
@@ -392,6 +392,15 @@
       "links": "18 of 19 verified, 1 unconfirmed",
       "finding": "young",
       "note": "19 top holders with 19.6% of supply, about 0.7% to 1.1% each, every one funded directly by the same wallet. That wallet was created the same day, has over 1,000 transactions and was emptied. The linked wallets sold within an hour of the verdict: the 5-minute watch warned at 02:58 UTC (9.8% left), the hourly check at 03:20 (4.6%). On one link the public node did not answer, so it is unconfirmed. Graded about an hour and a half after the first pool opened."
+    },
+    {
+      "mint": "Eh5zz6vrPK66MHzhBLrzEFHvATE7Z1SqoALzcNu4pump",
+      "name": "BITCOINU",
+      "verdict_at": "2026-11-12T07:26:31+00:00",
+      "trading_since": "2026-11-12T05:21:48Z",
+      "links": "18 of 19 verified, 1 unconfirmed",
+      "finding": "young",
+      "note": "19 top holders with 27.2% of supply, about 0.3% to 1.7% each, every one funded directly by the same wallet. That wallet was created the same day, has over 1,000 transactions and was emptied. The linked wallets already held nothing at the first hourly reading, so no exit warning could fire. On one link the public node did not answer, so it is unconfirmed. Graded about two hours after the first pool opened."
     }
   ]
 }
