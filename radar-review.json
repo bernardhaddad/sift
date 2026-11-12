@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-11T01:20:00+00:00",
+  "reviewed_at": "2026-11-12T05:10:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 41,
-    "links_checked": 700,
+    "verdicts": 42,
+    "links_checked": 718,
     "links_contradicted": 3,
-    "young_tokens": 26,
+    "young_tokens": 27,
     "older_tokens": 15
   },
   "cases": [
@@ -383,6 +383,15 @@
       "links": "25 of 26 verified, 1 unconfirmed",
       "finding": "young",
       "note": "15 top holders with 52.2% of supply, the largest with 15.9%. One wallet, created on 1 November, sent the token to 13 of them and paid the first transaction of four. Two other linking wallets are busy (over 1,000 transactions each), one of them already seen behind five earlier radar tokens; the group does not depend on them, since the first wallet links both of their holders too. On one link the public node did not answer, so it is unconfirmed. Graded about six hours after the first pool opened."
+    },
+    {
+      "mint": "H57bUBka6sBfPQph6f58TsQvUvxugJQmqMANFV1mpump",
+      "name": "Rex",
+      "verdict_at": "2026-11-12T02:10:15+00:00",
+      "trading_since": "2026-11-12T00:47:39Z",
+      "links": "18 of 19 verified, 1 unconfirmed",
+      "finding": "young",
+      "note": "19 top holders with 19.6% of supply, about 0.7% to 1.1% each, every one funded directly by the same wallet. That wallet was created the same day, has over 1,000 transactions and was emptied. The linked wallets sold within an hour of the verdict: the 5-minute watch warned at 02:58 UTC (9.8% left), the hourly check at 03:20 (4.6%). On one link the public node did not answer, so it is unconfirmed. Graded about an hour and a half after the first pool opened."
     }
   ]
 }
