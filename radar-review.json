@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-12T09:15:00+00:00",
+  "reviewed_at": "2026-11-13T01:00:00+00:00",
   "scope": "Every High risk verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 43,
-    "links_checked": 736,
+    "verdicts": 44,
+    "links_checked": 774,
     "links_contradicted": 3,
-    "young_tokens": 28,
+    "young_tokens": 29,
     "older_tokens": 15
   },
   "cases": [
@@ -401,6 +401,15 @@
       "links": "18 of 19 verified, 1 unconfirmed",
       "finding": "young",
       "note": "19 top holders with 27.2% of supply, about 0.3% to 1.7% each, every one funded directly by the same wallet. That wallet was created the same day, has over 1,000 transactions and was emptied. The linked wallets already held nothing at the first hourly reading, so no exit warning could fire. On one link the public node did not answer, so it is unconfirmed. Graded about two hours after the first pool opened."
+    },
+    {
+      "mint": "E8qaeXz7CF2auJebXaQkLZyrFPfRQft3KrGgvRvwpump",
+      "name": "DOGGLE",
+      "verdict_at": "2026-11-12T20:06:24+00:00",
+      "trading_since": "2026-11-12T16:54:02Z",
+      "links": "38 of 39 verified, 1 unconfirmed",
+      "finding": "young",
+      "note": "17 top holders with 30.2% of supply, about 1.5% to 2.5% each, every one funded directly by the same wallet, which also sent each its first tokens. That wallet was created the same day and has 71 transactions. Two more holders with 4.0% were funded by a second wallet, itself funded by a third, both created the same day. None of these funders is a busy or known address. At the latest hourly reading the linked wallets still held 32.7% against 34.3% at the verdict, so no exit warning has fired. On one link the public node did not answer, so it is unconfirmed. Graded about three hours after the first pool opened."
     }
   ]
 }
