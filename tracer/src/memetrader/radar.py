@@ -15,34 +15,40 @@ and a clean grade is not a safety guarantee: only the 20 largest accounts are sa
 wallets are not traced (cluster.py, "Known limits").
 """
 
+import html
 import json
 import pathlib
 import re
+import unicodedata
 from datetime import UTC, datetime, timedelta
 
-from memetrader import cluster, filters
+from memetrader import cluster, filters, ledger
 
 MINT_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")  # base58, the length range of a Solana address
 SCHEMA = 1  # radar.json format: raised when a field is renamed or removed, never for additions
 MAX_WALLETS_SHOWN = 20
 MAX_FUNDERS_SHOWN = 8
 
-GRADES = {  # code -> (label, order on the page, one-line meaning)
+# code -> (label, order on the page, one-line meaning). The labels say what was measured, not what it
+# means for anyone holding the token. They were renamed for display only (site/radar.html dates it):
+# the codes, the thresholds and every frozen verdict are unchanged, and the definitions fixed in
+# ledger.py keep the earlier names word for word (site/radar.html says so beside the grades).
+GRADES = {
     "high": (
-        "High risk",
+        "High linked share",
         0,
         "Top holders funded by the same private wallet hold over 10% of supply in one group, or over "
         "20% across groups. Sift's own paper books refuse to trade above that line.",
     ),
     "watch": (
-        "Watch",
+        "Linked 5%+",
         1,
         "Linked groups hold 5% of supply or more but stay under that line. Also used when the only "
         "links over the line run through a high-volume wallet (possibly an exchange or a bot) or through "
         "a wallet seen behind holders of several tokens.",
     ),
     "low": (
-        "Low risk",
+        "Under 5% linked",
         2,
         "Linked groups hold under 5% of the supply that could be traced.",
     ),
@@ -55,6 +61,7 @@ GRADES = {  # code -> (label, order on the page, one-line meaning)
 WATCH_CLUSTERED_PCT = 5.0  # any linked groups at or above this share of supply are worth a look
 REQUEST_TTL = timedelta(days=7)  # requested traces are shown for a week, with their date
 MAX_EDGES_SHOWN = 120  # 20 holders x (funding hop, second hop, token transfer), all of them
+CARD_VERSION = 2  # preview card look (cards.py); 2: grey badge, renamed labels, safe names
 
 
 def valid_mint(text: str) -> bool:
@@ -93,19 +100,49 @@ ESTABLISHED_DAYS = 30
 
 
 def established(t: dict) -> str:
-    """The date a token has traded since (its oldest pool seen), when that was more than
-    ESTABLISHED_DAYS before the trace; else empty. Linked top holders of an older token are often
+    """The date a token has traded since (its oldest pool seen), when it was over ESTABLISHED_DAYS
+    old at the verdict (older_token); else empty. Linked top holders of an older token are often
     the project's own wallets (treasury, vesting, market making) rather than launch insiders: the
-    links stay true, the grade is unchanged, and the page says so beside it."""
+    links stay true and the grade is unchanged, but what is shared shows OLDER_TOKEN instead."""
     try:
         since = datetime.fromisoformat(str(t["trading_since"]).replace("Z", "+00:00"))
-        traced = datetime.fromisoformat(str(t["traced_at"]).replace("Z", "+00:00"))
     except (KeyError, TypeError, ValueError):
         return ""
-    return since.date().isoformat() if traced - since > timedelta(days=ESTABLISHED_DAYS) else ""
+    return since.date().isoformat() if older_token(t) else ""
 
 
-ESTABLISHED_NOTE = "on a token this old, the linked holders may be the project's own wallets"
+OLDER_TOKEN = "Older token: links may be the project's own wallets"
+
+
+def older_token(t: dict) -> bool:
+    """Over ESTABLISHED_DAYS old at the verdict: ledger.age_band is "over_30d", read at a ledger
+    entry's entered_at, or at a radar row's traced_at. An unknown age is not older. The share page
+    title, the card, the feed items and the trace reply of such a token carry OLDER_TOKEN and no
+    grade word when it has linked holders (older_note); the grade itself, the ledger and the radar
+    row are unchanged."""
+    at = t.get("entered_at") or t.get("traced_at")
+    return ledger.age_band({"trading_since": t.get("trading_since"), "entered_at": at}) == "over_30d"
+
+
+def older_note(t: dict) -> bool:
+    """Whether what is shared of a radar row (share page, card, trace reply) shows OLDER_TOKEN in
+    place of its label: an older token (older_token) whose trace found a linked group, which the
+    note is about. Every High and Watch grade rests on one. An older token with no linked group
+    shows its label, as the radar page does: saying its links may be the project's own wallets
+    would suggest links that were not found."""
+    return older_token(t) and (grade_code(t) in ("high", "watch") or bool(t.get("clusters")))
+
+
+def grade_code(t: dict) -> str:
+    """A row's or entry's grade code; incomplete for anything unknown."""
+    g = t.get("grade")
+    return g if isinstance(g, str) and g in GRADES else "incomplete"
+
+
+def grade_label(t: dict) -> str:
+    """The label of a row's or entry's grade, read from its code (an unknown code reads Incomplete),
+    so a row saved before the labels were renamed shows today's."""
+    return GRADES[grade_code(t)][0]
 
 
 def _num(v) -> float:
@@ -225,6 +262,44 @@ def current(result) -> bool:
 def display_name(name: str | None) -> str | None:
     """The token ticker: scanner names are pool names such as "IDLE / SOL"."""
     return name.split(" / ")[0].strip() or None if name else None
+
+
+SAFE_NAME_MAX = 32
+_NAME_SIGNS = frozenset("$._-")
+_BLANK_LETTERS = frozenset(map(chr, (0x115F, 0x1160, 0x3164, 0xFFA0)))  # Hangul fillers: show nothing
+_LINK_LIKE = re.compile(  # possessive and anchored to a word start, so a long name stays linear
+    r"://|www\.|t\.me/|(?<![\w-])[\w-]++\.[^\W\d_]{2,}+(?![^\W_]|-)",  # the last: x.com/abc, site.io
+    re.IGNORECASE,
+)
+_HANDLE = re.compile(r"@\w")
+
+
+def safe_name(name: str | None, mint: str) -> str:
+    """A token's name as public text may show it: Unicode letters, digits, spaces and $ . _ - only
+    (after HTML entities are read, as some price services send S&amp;P500, and after NFKC, so
+    fullwidth and styled letters read as plain ones), spaces collapsed, at most 32 characters.
+    Whoever launches a token chooses its name, so a name that looks like a link (://, www., t.me/
+    or a dotted host such as x.com/abc or site.io), an @handle, or one holding a line break or
+    control character, is replaced by the first 6 characters of the mint, as is a name with
+    nothing left. Expects the display name (display_name), not a pool name."""
+    fallback = str(mint or "")[:6]
+    if not isinstance(name, str):
+        return fallback
+    name = html.unescape(name)  # &#64;handle and &#10; are an @handle and a line break
+    text = unicodedata.normalize("NFKC", name)
+    if any(unicodedata.category(ch) in ("Cc", "Zl", "Zp") for ch in name + text):
+        return fallback
+    if _LINK_LIKE.search(text) or _HANDLE.search(text):
+        return fallback
+    kept = []
+    for ch in text:
+        kind = unicodedata.category(ch)
+        if ch in _NAME_SIGNS or kind == "Nd" or (kind[0] == "L" and ch not in _BLANK_LETTERS):
+            kept.append(ch)
+        elif kind == "Zs":
+            kept.append(" ")
+    out = " ".join("".join(kept).split())[:SAFE_NAME_MAX].strip()
+    return out if out and not _LINK_LIKE.search(out) else fallback  # x.c/om would leave x.com
 
 
 def entry(mint: str, name: str | None, result: dict, at: str | None, source: str) -> dict:
@@ -397,19 +472,25 @@ def load_requests(directory: pathlib.Path | None) -> list:
 
 
 def report_markdown(e: dict) -> str:
-    """The reply posted on a trace request issue."""
+    """The reply posted on a trace request issue. A token over 30 days old at the trace with a
+    linked group (older_note) is headed OLDER_TOKEN instead of its grade, and carries no grade word."""
+    if older_note(e):
+        head = [
+            f"## {OLDER_TOKEN}",
+            "",
+            f"`{e['mint']}` has traded since {established(e)}, more than "
+            f"{ESTABLISHED_DAYS} days before this trace.",
+        ]
+    else:
+        head = [f"## {grade_label(e)}: `{e['mint']}`", "", GRADES[grade_code(e)][2]]
     lines = [
-        f"## {e['label']}: `{e['mint']}`",
-        "",
-        GRADES[e["grade"]][2],
+        *head,
         "",
         f"- Largest linked group: {e['cluster_pct'] or 0:.1f}% of supply",
         f"- All linked groups: {e['clustered_pct'] or 0:.1f}% of supply",
         f"- Could not be traced: {e['unknown_pct'] or 0:.1f}% of supply",
         f"- Top 20 accounts hold {e['top_pct'] or 0:.1f}% of supply",
     ]
-    if established(e):
-        lines.append(f"- Trading since {established(e)}: {ESTABLISHED_NOTE}")
     auth = e.get("authority")
     if auth:
         for key, power in (("mint", "can mint new tokens"), ("freeze", "can freeze tokens")):
@@ -576,40 +657,56 @@ def _rfc822(stamp: str | None) -> str:
         return ""
 
 
-def feed_xml(doc: dict, ledger: dict | None, registry: dict | None) -> str:
-    """RSS 2.0 alerts, newest first: tokens that entered the track record as High or Watch (the
-    verdict they were published with), exit warnings on those tokens (ledger.exit_warnings), and
-    funder wallets the moment they are seen behind a second token. Built from the same published
-    files, so it never says more than the page does."""
+EXIT_HEADLINE = "Linked wallets sold half"  # an exit warning's headline, as in channel posts
+
+
+def feed_xml(doc: dict, book: dict | None, registry: dict | None) -> str:
+    """RSS 2.0 alerts, newest first: tokens that entered the track record (`book`, the ledger) as
+    high or watch (titled with the label of the verdict they were published with), exit warnings
+    on those tokens (ledger.exit_warnings), titled EXIT_HEADLINE, and funder wallets the moment
+    they are seen behind a second token. Built from the same published files, so it never says
+    more than the page does. Names are safe_name()s. The items of a token over 30 days old at its
+    verdict (older_token, its age read from the ledger entry, or from its radar row when the entry
+    has none) carry OLDER_TOKEN and no grade word; so does a re-grade traced after that age."""
     rows = {t["mint"]: t for t in doc.get("tokens") or []}
     items = []
-    entries = (ledger or {}).get("entries")
+    entries = (book or {}).get("entries")
     for e in entries.values() if isinstance(entries, dict) else []:
         if not isinstance(e, dict) or not e.get("mint"):
             continue
         if e.get("grade") not in ("high", "watch") or e.get("out_of_scope"):
             continue
-        t = rows.get(e["mint"]) or {}
-        label = GRADES[e["grade"]][0]
+        mint = e["mint"]
+        t = rows.get(mint) or {}
+        name = safe_name(e.get("name"), mint)
+        aged = {**e, "trading_since": e.get("trading_since") or t.get("trading_since")}
+        older = older_token(aged)
         # the title keeps the verdict it entered with; the numbers are today's, so a re-grade is said
         regraded = t.get("grade") != e["grade"]
-        since = f"since re-graded {GRADES.get(t.get('grade'), ('?',))[0]}; " if t and regraded else ""
-        why = f" Graded Watch because {weak_link(t)}." if t and not regraded and weak_link(t) else ""
-        detail = (
-            f"{since}largest linked group {'now ' if since else ''}{float(t['cluster_pct'] or 0):.1f}% "
-            f"of supply, {float(t['clustered_pct'] or 0):.1f}% across all groups.{why}"
+        changed = "now " if regraded and not older else ""
+        numbers = (
+            f"largest linked group {changed}{_num(t.get('cluster_pct')):.1f}% of supply, "
+            f"{_num(t.get('clustered_pct')):.1f}% across all groups."
             if t
             else "no longer on the radar page."
         )
-        items.append(
-            (
-                e.get("entered_at") or "",
-                f"{label}: {e.get('name') or e['mint'][:6]}",
-                f"{SITE}radar.html#{e['mint']}",
-                f"{e.get('name')} ({e['mint']}): {detail}",
-                f"verdict-{e['mint']}",
+        if older:  # no grade word: neither the one it entered with nor a re-grade since
+            title = f"{name} | {OLDER_TOKEN}"
+            aged_text = (
+                f"{OLDER_TOKEN}. {name} ({mint}) had traded for over {ESTABLISHED_DAYS} days at the "
+                f"verdict, since {established(aged)}."
             )
-        )
+            detail = f"{aged_text} {numbers[0].upper()}{numbers[1:]}" if t else f"{aged_text} It is {numbers}"
+        else:
+            title = f"{grade_label(e)}: {name}"
+            regrade = f"re-graded {grade_label(t)}" if not older_token(t) else "re-graded"  # traced older
+            since = f"since {regrade}; " if t and regraded else ""
+            reason = weak_link(t) if t and not regraded else ""
+            why = f" {reason[0].upper()}{reason[1:]}." if reason else ""
+            detail = f"{name} ({mint}): {since}{numbers}{why}"
+        link = f"{SITE}radar.html#{mint}"
+        items.append((e.get("entered_at") or "", title, link, detail, f"verdict-{mint}"))
+        note = f"{OLDER_TOKEN}. " if older else ""
         w = e.get("exit_warning")
         if isinstance(w, dict) and w.get("at") and w.get("first_pct"):
             held, first = float(w.get("held_pct") or 0), float(w["first_pct"])
@@ -617,13 +714,26 @@ def feed_xml(doc: dict, ledger: dict | None, registry: dict | None) -> str:
             items.append(
                 (
                     w["at"],
-                    f"Exit warning: {e.get('name') or e['mint'][:6]}",
-                    f"{SITE}radar.html#{e['mint']}",
-                    f"{e.get('name')} ({e['mint']}): the linked wallets among its 20 largest holders "
+                    f"{EXIT_HEADLINE}: {name}",
+                    link,
+                    f"{note}{name} ({mint}): the linked wallets among its 20 largest holders "
                     f"now hold {held:.1f}% of supply, against {first:.1f}% when the verdict was "
                     f"published ({drop:.0f}% less). A wallet that left the 20 largest may still hold "
                     "a little.",
-                    f"exit-{e['mint']}",
+                    f"exit-{mint}",
+                )
+            )
+        w5 = e.get("exit_warning_5m")
+        if isinstance(w5, dict) and w5.get("at") and w5.get("first_pct"):
+            held, first = float(w5.get("held_pct") or 0), float(w5["first_pct"])
+            items.append(
+                (
+                    w5["at"],
+                    f"{EXIT_HEADLINE} (5-minute watch): {name}",
+                    link,
+                    f"{note}{name} ({mint}): on the 5-minute watch, the linked wallets now hold "
+                    f"{held:.1f}% of supply, under half of the {first:.1f}% when the verdict was published.",
+                    f"exit5-{mint}",
                 )
             )
     wallets = (registry or {}).get("wallets")
@@ -635,7 +745,7 @@ def feed_xml(doc: dict, ledger: dict | None, registry: dict | None) -> str:
         )
         if len(toks) < 2:
             continue
-        names = ", ".join(r.get("name") or m[:6] for m, r in toks)
+        names = ", ".join(safe_name(r.get("name"), m) for m, r in toks)
         shared = " Flagged as a possible shared service (bot, relayer or exchange)." if w.get("flags") else ""
         items.append(
             (
@@ -663,33 +773,78 @@ def feed_xml(doc: dict, ledger: dict | None, registry: dict | None) -> str:
     )
 
 
+# The visit counter's beacon (sift relay/worker.js, POST /hit; site/privacy.html, "Visit counts"), the
+# same on every page: the page, the link's ?s= tag and the referring host, sent once when the page opens
+# on the site's own address. A token page sends it before it forwards to the token's radar row, and that
+# row then sends none: a token link counts once, as "t", with the site that linked to it. site/404.html
+# sends its own path instead of the address it is shown at (tests/test_counter_beacon.py).
+BEACON = """<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: location.pathname, s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
+</script>"""
+
+
+def _js(text) -> str:
+    """A JavaScript string literal that cannot end the <script> element it sits in."""
+    return json.dumps(str(text)).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 def share_page(t: dict, image: bool = False) -> str:
     """A tiny page per token whose only job is a correct link preview (title, verdict, key numbers)
-    when the link is pasted into X, Telegram or Discord; it forwards readers to the radar row. With
-    `image`, it points the preview at the card t/<mint>.png (memetrader.cards) published beside it."""
-    mint, name = t["mint"], t.get("name") or t["mint"][:6]
+    when the link is pasted into X, Telegram or Discord. It forwards readers to the radar row and
+    keeps the link's query string, so a source tag (?s=x) reaches the radar page; without
+    JavaScript, a refresh inside <noscript> forwards them without it. With `image`, it points the
+    preview at the card t/<mint>.png (memetrader.cards) published beside it, with the card version
+    in the address, so a preview service that keeps images by address fetches a redrawn card once.
+    The name is safe_name(). A token over 30 days old at the trace with a linked group (older_note)
+    is previewed with OLDER_TOKEN in place of its grade, and no grade word. Before it forwards, it
+    counts the visit (BEACON), as page "t" with the site that linked to it."""
+    mint = t["mint"]
+    name = safe_name(t.get("name"), mint)
     groups = t.get("clusters") or []
     held = sum(int(c.get("holders") or 0) for c in groups)
-    why = f" ({weak_link(t)})" if weak_link(t) else ""
-    if groups and established(t):
-        why += f" (trading since {established(t)}, so the linked wallets may be the project's own)"
-    desc = (
-        f"{t['label']}{why}. Largest linked group {float(t.get('cluster_pct') or 0):.1f}% of supply, "
-        f"all linked groups {float(t.get('clustered_pct') or 0):.1f}% ({held} top holders linked). "
-        "Wallets and proof txs are on the radar page. Not financial advice."
-        if groups
-        else f"{t['label']}: no two top holders lead back to the same private wallet. "
-        "Not financial advice."
-    )
-    title = f"{name}: {t['label']} | Sift Insider Radar"
-    target = f"../radar.html#{mint}"
+    reason = weak_link(t)
+    if groups:
+        found = (
+            f"Largest linked group {float(t.get('cluster_pct') or 0):.1f}% of supply, "
+            f"all linked groups {float(t.get('clustered_pct') or 0):.1f}% ({held} top holders linked). "
+            "Wallets and proof txs are on the radar page."
+        )
+    elif grade_code(t) == "incomplete":  # no group found, but not every holder could be traced
+        found = GRADES["incomplete"][2]
+    else:
+        found = "No two top holders lead back to the same private wallet."
+    if older_note(t):
+        head = f"{OLDER_TOKEN}. Trading since {established(t)}" + (f"; {reason}" if reason else "")
+        desc = f"{head}. {found} Not financial advice."
+        title = f"{name} | {OLDER_TOKEN} | Sift Insider Radar"
+    else:
+        label = grade_label(t)
+        if groups:
+            desc = f"{label}{f' ({reason})' if reason else ''}. {found} Not financial advice."
+        else:
+            desc = f"{label}: {found[0].lower()}{found[1:]} Not financial advice."
+        title = f"{name}: {label} | Sift Insider Radar"
+    target, fragment = "../radar.html", f"#{mint}"
     url = f"{SITE}t/{mint}.html"
-    card = (
-        f'<meta property="og:image" content="{_xml(f"{SITE}t/{mint}.png")}">'
-        '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
-        if image
-        else ""
-    )
+    card = ""
+    if image:
+        card = (
+            f'<meta property="og:image" content="{_xml(f"{SITE}t/{mint}.png?v={CARD_VERSION}")}">'
+            '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
+        )
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -703,12 +858,13 @@ def share_page(t: dict, image: bool = False) -> str:
         f'<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}">'
         f'<meta name="twitter:title" content="{_xml(title)}">'
         f'<meta name="twitter:description" content="{_xml(desc)}">'
-        f"{card}"
-        f'<meta http-equiv="refresh" content="0; url={_xml(target)}">'
+        f"{card}{BEACON}"
+        f"<script>location.replace({_js(target)}+location.search+{_js(fragment)})</script>"
+        f'<noscript><meta http-equiv="refresh" content="0; url={_xml(target + fragment)}"></noscript>'
         "<style>body{font:16px/1.6 -apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:50px auto;"
         "max-width:640px;padding:0 20px;color:#1c1e21;background:#fff}a{color:#1f5bb8}</style>"
         f"</head><body><p>{_xml(desc)}</p>"
-        f'<p><a href="{_xml(target)}">Open the evidence on Sift Insider Radar</a></p>'
+        f'<p><a href="{_xml(target + fragment)}">Open the evidence on Sift Insider Radar</a></p>'
         "</body></html>"
     )
 

@@ -29,7 +29,7 @@ concurrency:
 
 env:
   SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
-  SOURCE_REF: 6f132ddbca350988abe2132220b7fe538ea4e0ad  # private code commit
+  SOURCE_REF: 296fe76a1a0da903937b07904268bc1de19c82b8  # private code commit
 
 jobs:
   cycle:
@@ -181,7 +181,9 @@ jobs:
           fi
           (cd src/memecoin-trading && python3 scripts/build_research.py) || echo "research page not built"
           [ -f src/memecoin-trading/site/research.html ] && cp src/memecoin-trading/site/research.html site/ || true
-          for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json sift.css; do
+          # every run, whatever the cycle did: links.js (the screener's referral check) is there before
+          # the index.html that loads it; a file the pinned private code does not have yet is skipped
+          for f in 404.html privacy.html terms.html sitemap.xml og.png radar-review.json sift.css links.js; do
             [ -f "src/memecoin-trading/site/$f" ] && cp "src/memecoin-trading/site/$f" site/ || true
           done
           # radar: trending feed, audit, build (all best effort)
