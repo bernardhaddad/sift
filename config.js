@@ -1,25 +1,23 @@
-// referral codes and link templates; an empty code gives a plain link
+// referral codes and link templates; an empty code gives a plain link, and every code is empty
+// (links.js tells the page which links a code would change)
 window.SIFT_CONFIG = {
   referrals: {
     gmgn: "",
     axiom: "",
     photon: "",
-    jupiter: "",   // referral account public key from referral.jup.ag
     trojan: "",
   },
-  jupiterFeeBps: 0,  // >0 adds a fee to Jupiter swaps (shown on the page)
   // token-page links; p is a pool row from data.json
   links: {
     gmgn: (p, ref) => p.mint ? `https://gmgn.ai/sol/token/${ref ? ref + "_" : ""}${p.mint}` : null,
     // Axiom pages are per pool, with the chain named (format copied from axiom.trade on 30 Oct 2026)
     axiom: (p) => p.address ? `https://axiom.trade/meme/${p.address}?chain=sol` : null,
     photon: (p) => `https://photon-sol.tinyastro.io/en/lp/${p.address}`,
-    jupiter: (p, ref, cfg) => {
+    jupiter: (p) => {
       const sol = "So11111111111111111111111111111111111111112";
       if (!p.mint || p.mint === sol) return null;
-      const fee = cfg && cfg.jupiterFeeBps > 0 && ref ? `&referrer=${encodeURIComponent(ref)}&feeBps=${cfg.jupiterFeeBps}` : "";
       // jup.ag/swap/SOL-<mint> now drops the token and opens SOL to USDC; sell/buy keeps it
-      return `https://jup.ag/swap?sell=${sol}&buy=${p.mint}${fee}`;
+      return `https://jup.ag/swap?sell=${sol}&buy=${p.mint}`;
     },
     trojan: (p, ref) => p.mint ? `https://t.me/solana_trojanbot?start=${ref ? "r-" + ref + "-" : ""}${p.mint}` : null,
     gecko: (p) => `https://www.geckoterminal.com/solana/pools/${p.address}`,

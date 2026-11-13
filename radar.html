@@ -67,6 +67,13 @@
   .exits li { padding: 3px 0; font-size: 14px; }
   .exits .when { color: var(--faint); font-size: 12.5px; margin-left: 6px; }
   .facts.auth { margin-top: 6px; }
+  .base { margin: 16px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink); max-width: 760px; }
+  .base[hidden] { display: none; }
+  .base b { font-weight: 600; }
+  .base .nw { white-space: nowrap; }
+  .base .sub { display: block; font-size: 13px; color: var(--faint); margin-top: 2px; }
+  .extra .body p.renamed { font-size: 13.5px; border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin: 10px 0 6px; }
+  .extra ul.frozen { margin-bottom: 4px; font-size: 13.5px; }
 
   section { padding: 28px 0 4px; }
   .seg { display: flex; flex-wrap: wrap; gap: 0 22px; border-bottom: 1px solid var(--line); }
@@ -77,7 +84,7 @@
   .hint { font-size: 13.5px; color: var(--faint); margin: 12px 0 10px; }
 
   .list { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .lh, .tok { display: grid; grid-template-columns: minmax(0, 2.2fr) 120px minmax(0, 2fr) 90px 52px; gap: 16px; align-items: center; padding: 13px 18px; }
+  .lh, .tok { display: grid; grid-template-columns: minmax(0, 2.2fr) 150px minmax(0, 2fr) 90px 52px; gap: 16px; align-items: center; padding: 13px 18px; }
   .lh { font-size: 12.5px; font-weight: 600; color: var(--faint); background: var(--soft); border-bottom: 1px solid var(--line); }
   .tok { border-bottom: 1px solid var(--line-2); cursor: pointer; }
   .tok:last-child { border-bottom: 0; }
@@ -89,7 +96,7 @@
   .tmeta { font: 12px var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .badge { display: inline-block; font-weight: 600; font-size: 12.5px; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
   .b-high { color: var(--red); background: var(--red-bg); } .b-watch { color: var(--amber); background: var(--amber-bg); }
-  .b-low { color: var(--green); background: var(--green-bg); } .b-incomplete { color: var(--muted); background: var(--soft); }
+  .b-low { color: var(--muted); background: var(--soft); } .b-incomplete { color: var(--muted); background: var(--soft); }
   .meter { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .track { flex: 1; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line-2); display: flex; max-width: 240px; }
   .track span { height: 100%; }
@@ -218,6 +225,7 @@
       </div>
       <div id="ts"></div>
       <div id="counts" class="proofs" aria-live="polite"></div>
+      <div id="base" class="base" hidden></div>
       <div id="exits" class="exits" hidden aria-live="polite"></div>
     </div>
   </div>
@@ -245,7 +253,7 @@
       </div></details>
 
       <details id="review"><summary>Case review</summary><div class="body">
-        <p>Each High risk verdict is checked a second time, apart from the tracer: every link re-read on the chain, the token's age, and how active each linking wallet is. Reviews don't change verdicts. <a href="radar-review.json">radar-review.json</a></p>
+        <p>Each High linked share verdict is checked a second time, apart from the tracer: every link re-read on the chain, the token's age, and how active each linking wallet is. Reviews don't change verdicts. <a href="radar-review.json">radar-review.json</a></p>
         <div id="rv"><p style="color:var(--muted)">Loading…</p></div>
       </div></details>
 
@@ -260,8 +268,10 @@
       <details id="how"><summary>How it works</summary><div class="body">
         <p>For the 20 largest holders of a token, Sift finds who paid for each holder's first transaction (two hops back) and who sent it its first tokens. Holders that lead to the same private wallet form a linked group. Exchanges, pools and programs link nobody.</p>
         <h4>Verdicts</h4><ul id="meanings"></ul>
+        <p class="renamed">Labels renamed on 13 Nov 2026. Grades and thresholds are unchanged; the frozen definitions below still use the old names.</p>
+        <ul id="frozen" class="frozen"></ul>
         <h4>Weaker evidence</h4><ul>
-          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) is not enough for a "High risk" verdict.</li>
+          <li>A link through a private wallet with over 3,000 transactions but a small balance (possibly an exchange withdrawal wallet or a bot) is not enough for a "High linked share" verdict.</li>
           <li>A wallet seen behind top holders of several tokens is flagged: it can be a shared service, or one deployer behind several tokens.</li>
         </ul>
         <h4>Track record rules</h4><ul>
@@ -270,8 +280,8 @@
           <li>From 15 October the ledger also records the first hour a token is 50% and 80% below its entry price. It is extra information and changes no score; tokens already below a line by then have an unknown time.</li>
           <li>Verdicts are not a controlled test, so a difference between them does not prove the verdict caused it. An entry whose prices could not be checked for over 6 hours in a row is not scored.</li>
           <li>The radar covers memecoins. On 23 October stablecoins, wrapped coins, staking tokens, tokenized stocks and large protocol tokens (listed by exact address) were taken out of its scope. Their linked holders are usually the issuer's own wallets. The 8 such entries already in the track record are kept in the file, marked out of scope, and left out of the scores.</li>
-          <li>On 26 October a fault was found and fixed: an hourly run that waited behind another could publish an older copy of the track record over a newer one. 67 entries from 14 to 26 October, 6 audit runs and one funder link were rebuilt from the published history by the same rules; Low risk went from 60 of 104 collapsed to 65 of 113, High risk and Watch did not change. Every change is listed in <a href="radar-ledger-repair.json">radar-ledger-repair.json</a>.</li>
-          <li>Also on 26 October, the self-check found that the tracer had counted transactions that failed on-chain as proof. A failed transaction moves nothing and needs no signature from the wallets it names. 8 of 1,238 published links, on 5 tokens, rested on one. The tracer and verify.py now reject failed transactions, and the 5 tokens were traced again: Shinagami moved from Watch to Low risk, Kefen, PP, ORC and SOLCEX kept their grade. Shinagami's earlier Watch entry stays in the track record as it was published.</li>
+          <li>On 26 October a fault was found and fixed: an hourly run that waited behind another could publish an older copy of the track record over a newer one. 67 entries from 14 to 26 October, 6 audit runs and one funder link were rebuilt from the published history by the same rules; Under 5% linked went from 60 of 104 collapsed to 65 of 113, High linked share and Linked 5%+ did not change. Every change is listed in <a href="radar-ledger-repair.json">radar-ledger-repair.json</a>.</li>
+          <li>Also on 26 October, the self-check found that the tracer had counted transactions that failed on-chain as proof. A failed transaction moves nothing and needs no signature from the wallets it names. 8 of 1,238 published links, on 5 tokens, rested on one. The tracer and verify.py now reject failed transactions, and the 5 tokens were traced again: Shinagami moved from Linked 5%+ to Under 5% linked, Kefen, PP, ORC and SOLCEX kept their grade. Shinagami's earlier Linked 5%+ entry stays in the track record as it was published.</li>
           <li>The same review found that a token whose 7-day window closed while the price service was unreachable could be counted as vanished (-100%) instead of void. Only hours the service answered "no price" now count toward vanished.</li>
           <li>Until 21 October, the price requests ran into the price service's rate limit, and many entries went over 6 hours without a price. Those entries stay unscored. Since then the oldest unchecked entries are asked first and refused requests are retried. The 6-hour rule itself has not changed.</li>
         </ul>
@@ -280,11 +290,11 @@
         <h4>LP burn</h4>
         <p>For each token's main pool (the one with the most liquidity), the share of LP tokens burned: the pool's record of LP ever minted against the LP mint's current supply, read every hour. This is read on PumpSwap, Raydium AMM and Raydium CPMM pools. When not all of it is burned, the 20 largest LP accounts are read and the LP they hold is split by who holds it: a known lock (Raydium Burn &amp; Earn), program-controlled accounts (only a program can move the LP, but they are not checked to be locks), or wallets that can withdraw it, with the largest single wallet's share. LP in accounts the node could not read is shown apart. Position-based pools (Raydium CLMM, Orca, Meteora DLMM and DAMM v2, Byreal, DefiTuna) and Meteora DBC launch curves have no LP token to burn. Other pool types are marked as not checked.</p>
         <h4>Still held</h4>
-        <p>For High and Watch tokens, the 20 largest accounts are read again every hour and matched to the linked wallets. A wallet that has dropped out of the top 20 isn't counted, so the figure is a minimum.</p>
+        <p>For tokens graded High linked share or Linked 5%+, the 20 largest accounts are read again every hour and matched to the linked wallets. A wallet that has dropped out of the top 20 isn't counted, so the figure is a minimum.</p>
         <h4>Exit warnings</h4>
-        <p>When the linked wallets of a High or Watch token go from holding at least half of what they held at the verdict to holding less than half, from one hourly reading to the next, the token gets an exit warning: on this page, on its row and in the <a href="radar-feed.xml">RSS feed</a>. It fires once per token, within the 7 days after the verdict. A wallet that left the top 20 may still hold a little, and a crash inside the same hour can come before the warning. The warnings keep their own track record in the section above.</p>
+        <p>When the linked wallets of a token graded High linked share or Linked 5%+ go from holding at least half of what they held at the verdict to holding less than half, from one hourly reading to the next, the token gets an exit warning: on this page, on its row and in the <a href="radar-feed.xml">RSS feed</a>, where it reads "Linked wallets sold half". It fires once per token, within the 7 days after the verdict. A wallet that left the top 20 may still hold a little, and a crash inside the same hour can come before the warning. The warnings keep their own track record in the section above.</p>
         <h4>Token age</h4>
-        <p>The date of the oldest trading pool found for the token. On a token that has traded for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than insiders from the launch. Those tokens keep their verdict, because the grading rules don't change after the fact, but the page points it out.</p>
+        <p>The date of the oldest trading pool found for the token. On a token that has traded for more than 30 days, a linked group is often the project's own wallets (treasury, vesting, market making) rather than insiders from the launch. Those tokens keep their verdict here, because the grading rules don't change after the fact, and the page points it out. When such a token has a linked group, its share link, preview card and feed items show "Older token: links may be the project's own wallets" in place of the label.</p>
         <h4>Self-audit</h4>
         <p>Each hour a sample of published links is re-checked on a separate Solana node with separate code. A link the node could not answer for is never counted as passed. You can run the same check yourself on any token: download <a href="verify.py">verify.py</a> (Python 3.11+, no key or packages) and run <code>python3 verify.py &lt;mint&gt;</code>. It checks every published link of that token against the public Solana node, or your own with <code>SOLANA_RPC_URL</code>.</p>
         <h4>Limits</h4><ul>
@@ -297,7 +307,7 @@
       </div></details>
 
       <details id="data"><summary>Data and alerts</summary><div class="body">
-        <p>Free to use, updated hourly: <a href="radar.json">radar.json</a>, <a href="radar-ledger.json">radar-ledger.json</a>, <a href="radar-wallets.json">radar-wallets.json</a>, <a href="radar-audit.json">radar-audit.json</a>. Alerts for new High and Watch verdicts, and exit warnings when their linked wallets sell, by <a href="radar-feed.xml">RSS</a>.</p>
+        <p>Free to use, updated hourly: <a href="radar.json">radar.json</a>, <a href="radar-ledger.json">radar-ledger.json</a>, <a href="radar-wallets.json">radar-wallets.json</a>, <a href="radar-audit.json">radar-audit.json</a>. Alerts for new High linked share and Linked 5%+ verdicts, and when their linked wallets sell half, by <a href="radar-feed.xml">RSS</a>.</p>
       </div></details>
     </div>
   </section>
@@ -329,10 +339,17 @@
   const short = (a) => { a = String(a ?? ""); return `${a.slice(0, 4)}…${a.slice(-4)}`; };
   const acct = (a) => `<a class="addr" href="https://solscan.io/account/${encodeURIComponent(a)}" target="_blank" rel="noopener" title="${esc(a)}">${esc(short(a))}</a>`;
   const GRADE = new Set(["high", "watch", "low", "incomplete"]);
-  const SHORT = { high: "High risk", watch: "Watch", low: "Low risk", incomplete: "Incomplete" };
+  // the labels of radar.GRADES (tests/test_labels.py keeps the two equal), and the short forms narrow screens show
+  const LABEL = { high: "High linked share", watch: "Linked 5%+", low: "Under 5% linked", incomplete: "Incomplete" };
+  const SHORT = { high: "High linked", watch: "Linked 5%+", low: "Under 5%", incomplete: "Incomplete" };
   let doc = null, filter = "all", open = null, shown = 30;
 
-  const badge = (g, label, compact) => `<span class="badge b-${g}" title="${esc(label)}">${esc(compact || window.innerWidth < 560 ? SHORT[g] : label)}</span>`;
+  // read from the grade code, never from saved text: a row can come from an older copy of the tracer, and a
+  // radar.json cached from before the rename still carries the old labels
+  const known = (g) => GRADE.has(g) ? LABEL[g] : "";
+  const labelOf = (g) => known(g) || String((((doc || {}).grades || {})[g] || {}).label || g);
+  const narrow = () => window.innerWidth < 560;
+  const badge = (g, label) => `<span class="badge b-${g}" title="${esc(label)}">${esc(narrow() ? SHORT[g] : label)}</span>`;
 
   function meter(t, g) {
     const a = Math.max(0, num(t.cluster_pct) || 0), all = Math.max(a, num(t.clustered_pct) || 0), u = Math.max(0, num(t.unknown_pct) || 0);
@@ -464,7 +481,7 @@
     const s = since(t);
     const clusters = Array.isArray(t.clusters) ? t.clusters : [];
     const older = s && s.old && clusters.length
-      ? `<div class="note">Trading since ${s.day}. On a token this old, the linked holders may be the project's own wallets.</div>` : "";
+      ? `<div class="note">Older token: links may be the project's own wallets. Trading since ${esc(s.day)}.</div>` : "";
     const groups = older + (clusters.length ? clusters.map(groupHtml).join("") : `<div class="group" style="display:block"><b>No linked group.</b> <span style="color:var(--muted)">No two top holders lead back to the same private wallet.</span></div>`);
     return `<div class="detail"><div class="facts"><span>Traced <b>${esc(when(t.traced_at))}</b></span><span><b>${int(t.holders)}</b> top holders checked</span><span><b>${int(t.wallets)}</b> private wallets</span><span>top 20 hold <b>${pct(t.top_pct)}</b></span><span>untraced <b>${pct(t.unknown_pct)}</b></span>${s ? `<span>trading since <b>${esc(s.day)}</b></span>` : ""}${t.truncated ? "<span>trace ran out of time</span>" : ""}<a href="https://solscan.io/token/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">Solscan</a></div>
       ${retrace(t)}
@@ -596,7 +613,7 @@
       const g = GRADE.has(t.grade) ? t.grade : "incomplete";
       const row = `<div class="tok${open === t.mint ? " open" : ""}" data-m="${esc(t.mint)}" role="button" tabindex="0" aria-expanded="${open === t.mint}">
         <div class="id"><div class="tname">${esc(t.name)}${flags(t)}</div><div class="tmeta">${esc(short(t.mint))}</div></div>
-        <div>${badge(g, t.label, true)}</div>${meter(t, g)}<div class="when" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</div>
+        <div>${badge(g, labelOf(g))}</div>${meter(t, g)}<div class="when" title="${esc(when(t.traced_at))}">${ago(t.traced_at)}</div>
         <span class="chev"></span></div>`;
       return open === t.mint ? row + detail(t) : row;
     }).join("") + (list.length > page.length ? `<div class="more"><button class="btn" id="more">Show ${list.length - page.length} more</button></div>` : "");
@@ -605,9 +622,32 @@
 
   function tabs() {
     const c = doc.counts || {};
-    const items = [["all", doc.tokens.length, "All"], ["high", c.high || 0, "High risk"], ["watch", c.watch || 0, "Watch"], ["low", c.low || 0, "Low risk"], ["incomplete", c.incomplete || 0, "Incomplete"]];
-    $("tabs").innerHTML = items.map(([g, v, l]) => `<button class="${filter === g ? "on" : ""}" data-g="${g}" aria-pressed="${filter === g}">${esc(l)} <span class="n">${int(v)}</span></button>`).join("");
-    $("meanings").innerHTML = Object.values(doc.grades || {}).map((g) => `<li><b>${esc((g || {}).label)}</b>: ${esc((g || {}).meaning)}</li>`).join("");
+    const items = [["all", doc.tokens.length, "All"], ...[...GRADE].map((g) => [g, c[g] || 0, narrow() ? SHORT[g] : labelOf(g)])];
+    $("tabs").innerHTML = items.map(([g, v, l]) => `<button class="${filter === g ? "on" : ""}" data-g="${g}" aria-pressed="${filter === g}"${g === "all" ? "" : ` title="${esc(labelOf(g))}"`}>${esc(l)} <span class="n">${int(v)}</span></button>`).join("");
+    $("meanings").innerHTML = Object.entries(doc.grades || {}).map(([g, v]) => `<li><b>${esc(known(g) || (v || {}).label)}</b>: ${esc((v || {}).meaning)}</li>`).join("");
+  }
+
+  // the definitions fixed in advance, word for word as radar.json publishes them: they keep the labels of their day
+  function frozen() {
+    const fixed = [["Comparisons", (doc.comparisons || {}).definitions, "scope"], ["Exit warnings", (doc.exit_warnings || {}).definitions, "rule"]];
+    $("frozen").innerHTML = fixed.filter(([, d, key]) => d && typeof d[key] === "string")
+      .map(([name, d, key]) => `<li>${esc(name)}${d.fixed_at ? `, fixed on ${esc(d.fixed_at)}` : ""}: <q>${esc(d[key])}</q></li>`).join("");
+  }
+
+  // how often tokens of each age fell 80% or more within 7 days, every grade together (radar.json age_base_rates)
+  const BANDS = [["under_1d", "under 1 day old"], ["1_7d", "1 to 7 days old"], ["7_30d", "7 to 30 days old"], ["over_30d", "over 30 days old"]];
+  function baseRates() {
+    const bands = ((doc.age_base_rates || {}).bands) || {};
+    const seen = BANDS.map(([key, age]) => {
+      const n = num((bands[key] || {}).closed), c = num((bands[key] || {}).collapsed);
+      return Number.isInteger(n) && Number.isInteger(c) && n > 0 && c >= 0 && c <= n ? { age, n, c } : null;
+    }).filter(Boolean);
+    if (!seen.length) { $("base").innerHTML = ""; $("base").hidden = true; return; }
+    const [first, ...rest] = seen;
+    $("base").innerHTML = `Of tokens ${esc(first.age)} that Sift traced, <b class="nw">${esc(int(first.c))} of ${esc(int(first.n))}</b> fell 80% or more within 7 days.`
+      + rest.map((r) => ` <span class="nw">${esc(r.age.charAt(0).toUpperCase() + r.age.slice(1))}: ${esc(int(r.c))} of ${esc(int(r.n))}.</span>`).join("")
+      + ` <span class="sub">Every grade together, by age when the token entered the track record. A token that stopped trading counts as fallen.</span>`;
+    $("base").hidden = false;
   }
 
   function counts() {
@@ -624,7 +664,7 @@
     $("since").textContent = doc.ledger_since ? `Recording since ${when(doc.ledger_since)}.` : "";
     const sign = (v) => num(v) == null ? "–" : `${num(v) >= 0 ? "+" : ""}${(num(v) * 100).toFixed(0)}%`;
     $("scores").innerHTML = ["high", "watch", "low", "incomplete"].map((g) => {
-      const c = sc[g] || {}, label = ((doc.grades || {})[g] || {}).label || g;
+      const c = sc[g] || {}, label = labelOf(g);
       const n24 = num(c.median_24h) != null ? `${sign(c.median_24h)} <span style="color:var(--faint)">(${int(c.n_24h)})</span>` : "–";
       // void entries are part of the followed count and never of the finished one
       const voided = num(c.void) ? `<br><span style="color:var(--faint);font-size:12px">${int(c.void)} not scored</span>` : "";
@@ -636,7 +676,7 @@
       const d = cp.definitions;
       const row = (name, side) => `<tr><td>${esc(name)}</td><td>${int(side.closed)}</td><td>${side.rate == null ? "–" : `<b>${pct(num(side.rate) * 100)}</b> <span style="color:var(--faint)">(${int(side.collapsed)})</span>`}</td></tr>`;
       const block = (title, c, a, b, la, lb) => `<tr><td colspan="3" style="text-align:left;font-weight:600">${esc(title)}${c.ready ? "" : ` <span style="color:var(--faint);font-weight:400">(needs ${int(d.min_each)} finished on each side)</span>`}</td></tr>${row(la, c[a] || {})}${row(lb, c[b] || {})}`;
-      $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished High and Watch tokens by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together; this does not show which caused which.</p>
+      $("cmp").innerHTML = `<p>Set on ${esc(d.fixed_at)}, before any token had finished its 7 days, and included in the daily proofs. Both compare finished tokens graded High linked share or Linked 5%+ by how often they collapsed (fell to 20% of the entry price, or vanished). A young token had traded for 30 days or less. Sold means the linked wallets' holdings fell by half or more. Selling and falling prices often happen together; this does not show which caused which.</p>
         <div class="scroll"><table class="rec"><thead><tr><th>Group</th><th>Finished</th><th>Collapsed</th></tr></thead><tbody>${block("Token age", cp.age || {}, "young", "older", "Young token", "Older token")}${block("Linked wallets", cp.exit || {}, "sold", "held", "Sold half or more", "Held")}</tbody></table></div>`;
     }
     const ew = doc.exit_warnings;
@@ -646,7 +686,7 @@
         ? `<div class="scroll"><table class="rec"><thead><tr><th>Finished warnings</th><th>7-day price lower</th><th>Median to 7 days</th><th>Median to the lowest</th><th>Collapsed</th><th>Warning came first</th></tr></thead><tbody><tr><td>${int(ew.closed)}</td><td><b>${int(ew.ended_lower)}</b></td><td>${signed(ew.median_7d)}</td><td>${signed(ew.median_low)}</td><td>${int(ew.collapsed)}</td><td>${int(ew.warned_first)}</td></tr></tbody></table></div>`
         : `<p><b>${int(ew.fired)}</b> warning${num(ew.fired) === 1 ? "" : "s"} so far, ${int(ew.closed)} of ${int(ew.definitions.min_closed)} finished. The score appears at ${int(ew.definitions.min_closed)}.</p>`;
       $("exitrec").innerHTML = `<p>Set on ${esc(ew.definitions.fixed_at)}, before the first warning, and counted only for tokens that entered from ${esc(when(ew.since))}. Changes are measured from the price at the warning. "Warning came first" counts collapses whose first hourly price 80% below the entry came after the warning.</p>${rec}
-        <p style="color:var(--muted)">Looking back over 14 October to 7 November, before these rules were set: 28 finished High and Watch tokens would have had a warning. From the warning hour, their lowest later price was a median 88% lower, and 23 of 28 ended their 7 days lower. In 14 of the 24 that collapsed, the warning came before the crash. For tokens whose linked wallets held, the lowest later price from a comparable point was a median 21% lower. That look-back was done on data already seen, which is why the record above counts only from now. <a href="research.html">Research notes</a></p>`;
+        <p style="color:var(--muted)">Looking back over 14 October to 7 November, before these rules were set: 28 finished tokens graded High linked share or Linked 5%+ would have had a warning. From the warning hour, their lowest later price was a median 88% lower, and 23 of 28 ended their 7 days lower. In 14 of the 24 that collapsed, the warning came before the crash. For tokens whose linked wallets held, the lowest later price from a comparable point was a median 21% lower. That look-back was done on data already seen, which is why the record above counts only from now. <a href="research.html">Research notes</a></p>`;
     }
     const e5 = doc.exit_warnings_5m;
     if (e5 && e5.definitions) {
@@ -681,14 +721,14 @@
       .sort((a, b) => String(a.entered_at).localeCompare(String(b.entered_at)));
     const pending = todo.length
       ? `<p class="note">Not reviewed yet: ${todo.map((e) => `<a href="https://solscan.io/token/${encodeURIComponent(e.mint)}" target="_blank" rel="noopener">${esc(e.name || short(e.mint))}</a> (${esc(when(e.entered_at))})`).join(", ")}.</p>`
-      : `<p style="color:var(--muted)">Every High risk verdict in the track record is reviewed.</p>`;
+      : `<p style="color:var(--muted)">Every High linked share verdict in the track record is reviewed.</p>`;
     const sm = r.summary || {}, cases = r.cases || [];
     const age = (c) => {
       const d = (Date.parse(c.verdict_at) - Date.parse(c.trading_since)) / DAY;
       return isNaN(d) ? "–" : d < 1 ? `${Math.max(1, Math.round(d * 24))} h` : d < 60 ? `${Math.round(d)} days` : `${Math.round(d / 30.4)} months`;
     };
     const kind = (f) => f === "young" ? "Young token" : f === "older" ? "Older token" : esc(f);
-    $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High risk verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} were young tokens and ${int(sm.older_tokens)} had traded for more than 30 days.</p>
+    $("rv").innerHTML = `<p><b>${int(sm.verdicts)}</b> High linked share verdicts reviewed ${esc(when(r.reviewed_at))}: <b>${int(sm.links_checked)}</b> links checked, <b>${int(sm.links_contradicted)}</b> contradicted. ${int(sm.young_tokens)} were young tokens and ${int(sm.older_tokens)} had traded for more than 30 days.</p>
       <div class="scroll"><table class="rec rv"><thead><tr><th>Token</th><th>Age at verdict</th><th>Links</th><th>Finding</th><th>Notes</th></tr></thead><tbody>${cases.map((c) => `<tr><td><a href="https://solscan.io/token/${encodeURIComponent(c.mint)}" target="_blank" rel="noopener">${esc(c.name)}</a></td><td>${esc(age(c))}</td><td>${esc(c.links)}</td><td>${kind(c.finding)}</td><td class="why">${esc(c.note)}</td></tr>`).join("")}</tbody></table></div>
       ${pending}
       `;
@@ -709,7 +749,7 @@
     if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered.</div>`; return; }
     const toks = Object.entries(w.tokens || {}).sort((x, y) => String(y[1].last_seen).localeCompare(String(x[1].last_seen)));
     const flag = (w.flags || []).length ? ` <span class="flag">(${w.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : "";
-    $("wres").innerHTML = `<div class="box">${acct(a)} funded or supplied top holders of <b>${int(toks.length)}</b> traced token${toks.length === 1 ? "" : "s"}${flag}<ul>${toks.map(([m, r]) => `<li><a href="https://solscan.io/token/${encodeURIComponent(m)}" target="_blank" rel="noopener" >${esc(r.name || short(m))}</a>, ${esc(((doc.grades || {})[r.grade] || {}).label || r.grade || "–")}, last seen ${esc(when(r.last_seen))}</li>`).join("")}</ul></div>`;
+    $("wres").innerHTML = `<div class="box">${acct(a)} funded or supplied top holders of <b>${int(toks.length)}</b> traced token${toks.length === 1 ? "" : "s"}${flag}<ul>${toks.map(([m, r]) => `<li><a href="https://solscan.io/token/${encodeURIComponent(m)}" target="_blank" rel="noopener" >${esc(r.name || short(m))}</a>, ${esc(known(r.grade) || r.grade || "–")}, last seen ${esc(when(r.last_seen))}</li>`).join("")}</ul></div>`;
   }
 
   function fromHash() {
@@ -765,12 +805,28 @@
     $("upd").title = when(d.generated_at);
     if (fromHash()) setTimeout(() => $("tokens").scrollIntoView(), 50);
     render();  // the list first: a fault in a secondary section leaves only that section empty
-    for (const part of [counts, exits, tabs, track]) { try { part(); } catch { /* that section stays as it was */ } }
+    for (const part of [counts, baseRates, exits, tabs, frozen, track]) { try { part(); } catch { /* that section stays as it was */ } }
   }).catch(() => {
     $("upd").textContent = "Offline";
     $("rows").innerHTML = `<div class="empty">The radar could not load its data. It updates every hour; please try again shortly.</div>`;
   });
 })();
+</script>
+<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: location.pathname, s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
 </script>
 </body>
 </html>

@@ -101,4 +101,21 @@ hr{border:0;border-top:1px solid var(--line);margin:26px 0}
 <p>None of this is financial advice. Memecoins often go to zero.</p></article>
 </div></main>
 <footer class="foot"><a href="./">Screener</a> | <a href="radar.html">Insider Radar</a> |
-  <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer></body></html>
+  <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer>
+<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: location.pathname, s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
+</script>
+</body></html>

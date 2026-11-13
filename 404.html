@@ -48,5 +48,21 @@
 </ul>
 </main>
 <footer><a href="/sift/">Screener</a> | <a href="/sift/radar.html">Insider Radar</a> | <a href="/sift/research.html">Research</a> | <a href="/sift/privacy.html">Privacy</a> | <a href="/sift/terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer>
+<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: "/sift/404.html", s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
+</script>
 </body>
 </html>

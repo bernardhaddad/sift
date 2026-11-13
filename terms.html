@@ -39,14 +39,14 @@
 <nav class="links"><a href="./">Screener</a><a href="radar.html">Insider Radar</a><a href="research.html">Research</a></nav></div></header>
 <main>
 <h1>Terms of use</h1>
-<p class="date">Last updated 26 October 2026</p>
+<p class="date">Last updated 13 November 2026</p>
 <p>By using Sift you accept these terms. If you do not accept them, please do not use the site.</p>
 <h2>Information only</h2>
 <p>Sift publishes on-chain data and research about Solana tokens. Nothing on it is financial, investment, legal or tax advice, or an offer or recommendation to buy or sell anything. Memecoins often go to zero. You are responsible for your own trades.</p>
 <h2>No guarantee</h2>
 <ul>
   <li>The data comes from public sources (Solana nodes, GeckoTerminal) and automated analysis. It can be incomplete, delayed or wrong, and the site can be unavailable. It is provided as is, without any warranty.</li>
-  <li>A verdict is about who funded a token's top holders. It doesn't predict what anyone will do, and "Low risk" doesn't mean safe.</li>
+  <li>A verdict is about who funded a token's top holders. It doesn't predict what anyone will do, and "Under 5% linked" doesn't mean safe.</li>
   <li>The paper-trading records are simulated. Past results do not predict future results.</li>
 </ul>
 <h2>Liability</h2>
@@ -59,5 +59,21 @@
 <p>These terms may change; the date above shows the latest version.</p>
 </main>
 <footer><a href="./">Screener</a> | <a href="radar.html">Insider Radar</a> | <a href="research.html">Research</a> | <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a> | <a href="https://github.com/bernardhaddad/sift">GitHub</a></footer>
+<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: location.pathname, s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
+</script>
 </body>
 </html>

@@ -160,7 +160,7 @@
       </select></label>
     <label>age
       <select id="age">
-        <option value="any">any</option><option value="lt1">&lt; 24h (sniper zone)</option>
+        <option value="any">any</option><option value="lt1">&lt; 24h</option>
         <option value="1-14" selected>1–14 d</option><option value="7-30">7–30 d</option><option value="gt30">&gt; 30 d</option>
       </select></label>
     <label><input id="memeonly" type="checkbox" checked> memecoins only</label>
@@ -179,7 +179,7 @@
 
   <section id="refused-sec">
     <h2>Refused for shared funding</h2>
-    <p>Tokens refused because one funder's wallets hold more than <span id="cap1"></span> of supply (or all such groups more than <span id="cap2"></span>). The <a href="radar.html">radar</a> shows some of them as Watch when the link runs through a high-volume wallet; the paper books refuse them anyway.</p>
+    <p>Tokens refused because one funder's wallets hold more than <span id="cap1"></span> of supply (or all such groups more than <span id="cap2"></span>). The <a href="radar.html">radar</a> shows some of them as Linked 5%+ when the link runs through a high-volume wallet; the paper books refuse them anyway.</p>
     <div id="refused"></div>
   </section>
 
@@ -212,9 +212,21 @@
 </div></main>
 
 <script src="config.js"></script>
+<script src="links.js"></script>
 <script>
 (function () {
   const CFG = window.SIFT_CONFIG || { referrals: {}, links: {}, signup: {}, buttons: [] };
+  // the platforms whose trade link changes with a referral code (links.js): only those links get their
+  // code, and the disclosure names exactly them. Without links.js, or if it fails, none do.
+  const CODED = (() => {
+    try {
+      const L = window.SIFT_LINKS;
+      const named = L && typeof L.codedPlatforms === "function" ? L.codedPlatforms(CFG, L.SAMPLE_ROW) : [];
+      return Array.isArray(named) ? named.filter((k) => typeof k === "string") : [];
+    } catch (err) {
+      return [];
+    }
+  })();
   const $ = (id) => document.getElementById(id);
   const fmtUsd = (v) => v == null ? "–" : v >= 1e9 ? "$" + (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(0) + "K" : "$" + v.toFixed(0);
   const fmtSigned = (v) => v == null ? "–" : (v >= 0 ? "+" : "−") + fmtUsd(Math.abs(v));
@@ -264,7 +276,7 @@
   }
   function clusterChip(c) {
     if (!c) return '<span class="chip na" title="Not traced in the last two weeks. The paper system only traces tokens that reach its entry gates.">not traced</span>';
-    if (c.verdict === "admitted") return `<span class="chip ok" title="Largest cluster ${p1(c.cluster_pct)}%, all clusters ${p1(c.clustered_pct)}%, unknown ${p1(c.unknown_pct)}%, ${int(c.wallets)}/${int(c.holders)} top holders resolved">clean ${p1(c.cluster_pct)}%</span>`;
+    if (c.verdict === "admitted") return `<span class="chip" title="Largest cluster ${p1(c.cluster_pct)}%, all clusters ${p1(c.clustered_pct)}%, unknown ${p1(c.unknown_pct)}%, ${int(c.wallets)}/${int(c.holders)} top holders resolved">largest group ${p1(c.cluster_pct)}%</span>`;
     if (c.reason === "wallet_authority") return `<span class="chip bad" title="A wallet can still mint or freeze this token, ${ago(c.at)}">wallet authority</span>`;
     if (c.verdict === "refused") return `<span class="chip bad" title="Largest cluster ${p1(c.cluster_pct)}%, all clusters ${p1(c.clustered_pct)}%, ${ago(c.at)}">cluster ${p1(c.cluster_pct)}%</span>`;
     return `<span class="chip warn" title="${esc(c.reason)}, ${ago(c.at)}">no data</span>`;
@@ -279,7 +291,8 @@
     const out = [];
     for (const k of CFG.buttons || []) {
       const fn = CFG.links[k]; if (!fn) continue;
-      const url = fn(p, (CFG.referrals || {})[k] || "", CFG);
+      let url = null;  // a broken template costs its own link, never the table
+      try { url = fn(p, CODED.includes(k) ? (CFG.referrals || {})[k] || "" : "", CFG); } catch (err) { url = null; }
       if (url) out.push(`<a href="${esc(url)}" target="_blank" rel="noopener nofollow">${esc(k)}</a>`);
     }
     if (CFG.links.gecko) out.push(`<a href="${esc(CFG.links.gecko(p))}" target="_blank" rel="noopener" title="chart">chart</a>`);
@@ -379,14 +392,11 @@
       const all = trades.length ? `<details><summary>all ${trades.length} closed trades</summary><div class="tablewrap"><table><thead><tr><th>trade</th><th>opened (UTC)</th><th>closed (UTC)</th><th>exit</th><th>R</th></tr></thead><tbody>${trades.map((t) => `<tr><td>${esc(t.name)}</td><td>${esc((t.opened_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc((t.closed_at || "").slice(5, 16).replace("T", " "))}</td><td>${esc(t.reason || "")}</td><td class="${t.r >= 0 ? "up" : "down"}">${t.r >= 0 ? "+" : ""}${Number(t.r).toFixed(2)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
       return `<div class="card"><h3>${esc(b.name)} ${v}</h3><div class="big ${tr}">${fmtR(b.total_r)}</div><div class="sub">${esc(b.closed)} closed, win rate ${b.win_rate == null ? "–" : Math.round(b.win_rate * 100) + "%"}</div>${all}</div>`;
     }).join("");
-    const refs = CFG.referrals || {};
-    const shareRefs = ["gmgn", "axiom", "photon", "trojan"].filter((k) => refs[k]);
-    const jupFee = CFG.jupiterFeeBps > 0 && refs.jupiter ? CFG.jupiterFeeBps : 0;
     const parts = ["Trade links open the token in a trading terminal."];
-    if (shareRefs.length) parts.push(`The ${shareRefs.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`);
-    if (jupFee) parts.push(`Jupiter swaps opened here add a ${(jupFee / 100).toFixed(2)}% referral fee; use jup.ag directly to avoid it.`);
-    if (!shareRefs.length && !jupFee) parts.push("Sift takes no cut.");
-    $("disclosure").innerHTML = parts.join(" ");
+    parts.push(CODED.length
+      ? `The ${CODED.join(", ")} links carry a referral code: you pay the same fee and the terminal shares part of it with Sift. It never changes what the table shows.`
+      : "Sift takes no cut.");
+    $("disclosure").textContent = parts.join(" ");
   }
   ["q", "minliq", "age", "memeonly"].forEach((id) => $(id).addEventListener("input", () => { shown = PAGE; render(); }));
   $("more").firstChild.addEventListener("click", () => { shown += PAGE; render(); if (!$("more").hidden) $("more").firstChild.focus(); });
@@ -426,6 +436,22 @@
     $("hint").textContent = "data.json is missing or unreadable (" + err + "). The hourly build has not published a snapshot to this site yet.";
   });
 })();
+</script>
+<script>
+try {
+  if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
+    let r = "", forwarded = false;
+    try {
+      const u = new URL(document.referrer), token = "/sift/t/" + location.hash.slice(1);
+      r = u.hostname;
+      forwarded = u.origin === location.origin && location.hash.length > 1
+        && [token + ".html", token].includes(u.pathname);
+    } catch (e) {}
+    const s = new URLSearchParams(location.search).get("s") || "";
+    const visit = JSON.stringify({ p: location.pathname, s, r });
+    if (!forwarded) navigator.sendBeacon("https://sift-trace.pages.dev/hit", visit);
+  }
+} catch (e) {}
 </script>
 </body>
 </html>
