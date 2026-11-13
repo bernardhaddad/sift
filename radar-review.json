@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-13T01:00:00+00:00",
+  "reviewed_at": "2026-11-13T21:10:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 44,
-    "links_checked": 774,
+    "verdicts": 45,
+    "links_checked": 792,
     "links_contradicted": 3,
-    "young_tokens": 29,
+    "young_tokens": 30,
     "older_tokens": 15
   },
   "cases": [
@@ -410,6 +410,15 @@
       "links": "38 of 39 verified, 1 unconfirmed",
       "finding": "young",
       "note": "17 top holders with 30.2% of supply, about 1.5% to 2.5% each, every one funded directly by the same wallet, which also sent each its first tokens. That wallet was created the same day and has 71 transactions. Two more holders with 4.0% were funded by a second wallet, itself funded by a third, both created the same day. None of these funders is a busy or known address. At the latest hourly reading the linked wallets still held 32.7% against 34.3% at the verdict, so no exit warning has fired. On one link the public node did not answer, so it is unconfirmed. Graded about three hours after the first pool opened."
+    },
+    {
+      "mint": "Cc9QdrC3wSh3d9GNTpe1Q7yosEtbKfCERiGxnzMPGBaH",
+      "name": "USPR",
+      "verdict_at": "2026-11-13T17:07:50+00:00",
+      "trading_since": "2026-11-07T11:41:59Z",
+      "links": "18 of 18 verified",
+      "finding": "young",
+      "note": "One wallet holds 99.9% of supply. It was funded through two newer wallets (first active on 5 Nov) and sent the first tokens to two other top holders, so the three form one linked group with 99.97%. One of those two was funded by a busy wallet with over 1,000 transactions, possibly an exchange or a bot. Eleven more holders with almost no tokens were all funded by one wallet first active on 7 Nov; together they hold 0.0% and do not change the grade. Mint and freeze authority are renounced. The price has not moved from the verdict price at any reading since, so the pool may barely trade. Graded six days after its first pool opened."
     }
   ]
 }
