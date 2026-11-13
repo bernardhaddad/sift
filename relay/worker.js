@@ -6,6 +6,11 @@
 // Contents read; SALT, any long random string (visitor addresses are only kept as salted hashes);
 // TURNSTILE_SECRET: a trace starts only with a passed Cloudflare Turnstile check (variable TURNSTILE=off
 // with no secret switches the check off).
+//
+// Visit counter: POST /hit adds one to a daily total per page, link tag, referring site and country
+// in the D1 database bound as STATS_DB. It reads nothing that tells visitors apart: no IP address,
+// user agent, cookie or other identifier. GET /stats gives the totals to the holder of the secret
+// STATS_KEY. COUNTER=off, or no STATS_DB, counts nothing.
 
 const REPO = "bernardhaddad/sift";
 const WORKFLOW = "trace.yml";
@@ -28,8 +33,30 @@ const BUSY_TEXT = "Other traces are running right now. Please try again in a few
 const CHECK_TEXT = "The check that you are a person did not pass. Please try again.";
 const API = `https://api.github.com/repos/${REPO}/`;
 
+// the visit counter
+const MAX_HIT_BYTES = 512;   // a beacon body is under 100 bytes; a longer one is not read further
+const STATS_DAYS = 14, STATS_MAX_DAYS = 90;
+const MIN_KEY = 16;          // a shorter STATS_KEY counts as not set
+const SITE_PAGE = /^\/sift\/(?:(index|radar|research|privacy|terms|404)(?:\.html)?)?$/;
+const TOKEN_PAGE = /^\/sift\/t\/[1-9A-HJ-NP-Za-km-z]{32,44}(?:\.html)?$/;  // every token page counts as "t"
+const SOURCES = new Set(["", "x", "tg", "rss", "reddit", "gh", "hn", "mail"]);  // the ?s= tags of Sift's own links
+const REFERRERS = new Set(["t.me", "x.com", "twitter.com", "t.co", "reddit.com", "old.reddit.com", "news.ycombinator.com",
+  "github.com", "bing.com", "duckduckgo.com", "bernardhaddad.github.io"]);  // kept without "www."; any other host is "other"
+// google.com, google.de, google.co.uk, google.com.br: every one is kept as the single value "google", so a
+// forged beacon cannot add a row per made-up domain (google.zz, google.co.qq, ...)
+const GOOGLE = /^google\.(?:com|[a-z]{2}|(?:co|com)\.[a-z]{2})$/;
+const COUNTRY = /^[A-Z][A-Z0-9]$/;  // ISO 3166 alpha-2 as Cloudflare reports it, with its XX (unknown) and T1 (Tor)
+const HITS_TABLE = "CREATE TABLE IF NOT EXISTS hits (day TEXT NOT NULL, page TEXT NOT NULL, src TEXT NOT NULL, " +
+  "ref TEXT NOT NULL, country TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, page, src, ref, country))";
+const ADD_HIT = "INSERT INTO hits (day, page, src, ref, country, n) VALUES (?, ?, ?, ?, ?, 1) " +
+  "ON CONFLICT (day, page, src, ref, country) DO UPDATE SET n = n + 1";
+// what /stats reads: sums made by D1 over the window, so the answer and the work stay small however many
+// rows the table holds (a row per day, page, tag, referrer and country)
+const SUM_BY = (cols) => `SELECT ${cols}, SUM(n) AS n FROM hits WHERE day >= ? AND day <= ? GROUP BY ${cols}`;
+const DAILY = ["page", "src", "ref"];  // per day; the country only over the whole window
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const cors = {
       "Access-Control-Allow-Origin": ORIGIN,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -39,6 +66,9 @@ export default {
     const url = new URL(req.url);
     if (env.PRODUCTION_ONLY !== "off" && url.hostname !== (env.RELAY_HOST || HOST)) return reply({ error: "not found" }, 404, cors);
     if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+    // the visit counter, before the trace routes (a GET /hit is a browser visit like any other)
+    if (req.method === "POST" && url.pathname === "/hit") return hit(req, env, ctx, cors);
+    if (req.method === "GET" && url.pathname === "/stats") return stats(req, env, url);
     // opened in a browser rather than called by the page: send the visitor to the radar
     if (req.method === "GET" && (url.pathname !== "/trace" || !url.searchParams.has("mint"))) {
       return Response.redirect(`${ORIGIN}/sift/radar.html`, 302);
@@ -269,4 +299,130 @@ async function status(env, mint, since) {
   if (rec && Date.parse(rec.at) >= Date.parse(run.created_at) - 60e3) return done(rec);
   if (run.conclusion === "cancelled") return { status: "failed", reason: BUSY_TEXT };
   return { status: "failed", reason: (await reason(env, run)) || "The trace did not finish. Please try again in a few minutes." };
+}
+
+// POST /hit, a page's beacon: {p: location.pathname, s: the link's ?s= tag, r: the referrer's host}.
+// Only the Origin and Content-Length headers and the country Cloudflare reports are read. The answer
+// is always 204 with no body, also when nothing is counted, and does not wait for the write.
+async function hit(req, env, ctx, cors) {
+  if (env.COUNTER !== "off" && env.STATS_DB) {
+    try {
+      const row = req.headers.get("Origin") === ORIGIN ? visit(await smallBody(req, MAX_HIT_BYTES), req.cf) : null;
+      if (row) {
+        const write = count(env.STATS_DB, row);
+        if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(write); else await write;
+      }
+    } catch { /* not counted, and the answer is the same */ }
+  }
+  return new Response(null, { status: 204, headers: { ...cors, "Cache-Control": "no-store" } });
+}
+
+// the request body as text, or null when it is longer than `max` bytes (read no further than that)
+async function smallBody(req, max) {
+  const declared = req.headers.get("Content-Length");
+  if (declared !== null && !(Number(declared) <= max)) return null;
+  if (!req.body) return "";
+  const reader = req.body.getReader(), parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) { reader.cancel().catch(() => {}); return null; }
+    parts.push(value);
+  }
+  const all = new Uint8Array(size);
+  parts.reduce((at, part) => (all.set(part, at), at + part.byteLength), 0);
+  return new TextDecoder().decode(all);
+}
+
+// the row a beacon body counts toward, [day, page, src, ref, country], or null when it is not a
+// visit to a known page with a known tag
+function visit(text, cf) {
+  if (text === null) return null;
+  let b;
+  try { b = JSON.parse(text); } catch { return null; }
+  if (!b || typeof b !== "object" || Array.isArray(b)) return null;
+  const page = pageOf(b.p), src = b.s ?? "", ref = b.r ?? "";
+  if (!page || typeof src !== "string" || !SOURCES.has(src) || typeof ref !== "string") return null;
+  const country = cf?.country;
+  return [new Date().toISOString().slice(0, 10), page, src, referrer(ref), typeof country === "string" && COUNTRY.test(country) ? country : "XX"];
+}
+
+// a site page by its name (the screener is "index"), every token page as "t", anything else null
+function pageOf(p) {
+  if (typeof p !== "string") return null;
+  if (TOKEN_PAGE.test(p)) return "t";
+  const m = SITE_PAGE.exec(p);
+  return m ? m[1] || "index" : null;
+}
+
+// the referring site as counted: a host from the short list (without "www."), "google" for any Google search
+// domain, "" for none, else "other"
+function referrer(r) {
+  if (r === "") return "";
+  const host = r.toLowerCase().replace(/^www\./, "");
+  if (GOOGLE.test(host)) return "google";
+  return REFERRERS.has(host) ? host : "other";
+}
+
+// one more visit on the row's daily total; the table is made the first time. A failed write is dropped.
+async function count(db, row) {
+  try {
+    await db.batch([db.prepare(HITS_TABLE), db.prepare(ADD_HIT).bind(...row)]);
+  } catch { /* not counted */ }
+}
+
+// GET /stats?days=N (1 to 90, default 14) with "Authorization: Bearer <STATS_KEY>": the visits counted
+// in the last N days, today included: in total, by day, page, link tag, referring site and country, and per
+// day by page, by link tag and by referring site (by_day_page and so on, every day of the window listed).
+// D1 makes the sums, so the answer has a few hundred numbers at most and lists no rows.
+async function stats(req, env, url) {
+  const key = typeof env.STATS_KEY === "string" && env.STATS_KEY.length >= MIN_KEY ? env.STATS_KEY : "";
+  const auth = /^Bearer (.+)$/i.exec(req.headers.get("Authorization") || "");
+  if (!key || !auth || !(await sameSecret(auth[1], key))) return reply({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
+  if (!env.STATS_DB) return reply({ error: "the counter is not set up (no STATS_DB binding)" }, 503, {});
+  const q = url.searchParams.get("days") || "";
+  const days = /^\d+$/.test(q) && Number(q) >= 1 ? Math.min(Number(q), STATS_MAX_DAYS) : STATS_DAYS;
+  const now = Date.now(), dayAgo = (i) => new Date(now - i * 864e5).toISOString().slice(0, 10);
+  const byDay = {}, daily = Object.fromEntries(DAILY.map((name) => [name, {}]));
+  for (let i = days - 1; i >= 0; i--) {
+    byDay[dayAgo(i)] = 0;
+    for (const name of DAILY) daily[name][dayAgo(i)] = {};
+  }
+  const from = dayAgo(days - 1), to = dayAgo(0);
+  let sums;
+  try {
+    const db = env.STATS_DB;
+    const out = await db.batch([db.prepare(HITS_TABLE), ...[...DAILY.map((name) => `day, ${name}`), "country"].map((cols) => db.prepare(SUM_BY(cols)).bind(from, to))]);
+    sums = out.slice(1).map((r) => r?.results || []);
+  } catch {
+    return reply({ error: "the counts could not be read" }, 502, {});
+  }
+  const by = { page: new Map(), src: new Map(), ref: new Map(), country: new Map() };
+  const add = (m, k, c) => m.set(k, (m.get(k) || 0) + c);
+  let total = 0;
+  DAILY.forEach((name, i) => {
+    for (const row of sums[i]) {
+      const day = row.day, k = String(row[name] ?? ""), c = Number(row.n) || 0;
+      if (!Object.hasOwn(byDay, day)) continue;
+      daily[name][day][k] = (daily[name][day][k] || 0) + c;
+      add(by[name], k, c);
+      if (name === "page") { total += c; byDay[day] += c; }  // every visit has exactly one page
+    }
+  });
+  for (const row of sums[DAILY.length]) add(by.country, String(row.country ?? ""), Number(row.n) || 0);
+  const ranked = (m) => Object.fromEntries([...m].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)));
+  const perDay = (name) => Object.fromEntries(Object.entries(daily[name]).map(([day, m]) => [day, ranked(Object.entries(m))]));
+  return reply({ days, from, to, total, by_day: byDay, by_page: ranked(by.page), by_src: ranked(by.src), by_ref: ranked(by.ref),
+    by_country: ranked(by.country), by_day_page: perDay("page"), by_day_src: perDay("src"), by_day_ref: perDay("ref") }, 200, {});
+}
+
+// two secrets compared in constant time: their SHA-256 digests, every byte, whatever the lengths
+async function sameSecret(a, b) {
+  const enc = new TextEncoder();
+  const [x, y] = await Promise.all([a, b].map(async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)))));
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
 }
