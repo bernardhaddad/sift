@@ -1546,7 +1546,17 @@
     "8RNUw4N655VSrZKuhGdywhbSMDTrheguFPfxbpE2NZHQ": "2026-09-09T21:56:30+00:00",
     "AGi2s9zPRPHs3zEDPhPTroumTEXK5ufymYSfEFndCSSW": "2026-09-10T21:11:51+00:00"
    },
-   "watch": {},
+   "watch": {
+    "6H9LwRBATqsFTXtsiMmZhwncpXTezk1KLSJ4BC7jz1NU": {
+     "name": "timmy / SOL",
+     "holders": [
+      [
+       "2026-11-14T08:06:53+00:00",
+       3966
+      ]
+     ]
+    }
+   },
    "rejects": {
     "91iHWaWXneUyoNDJhSno7ezxQg1VW5P6PdarNGyFfPCz": "2026-11-14T04:26:33+00:00",
     "6H9LwRBATqsFTXtsiMmZhwncpXTezk1KLSJ4BC7jz1NU": "2026-11-14T01:02:40+00:00",
