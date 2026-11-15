@@ -7,7 +7,9 @@ Needs only Python 3.11+ and network access: no key, no account, no dependencies.
     python3 verify.py all                every published link (slow on the public node)
     SOLANA_RPC_URL=<url> python3 verify.py <mint>    use your own node
 
-It reads radar.json from the site and checks what each link claims:
+It reads radar.json from the site and checks what each link claims. For a token no longer on the
+radar, it checks the links its verdict rested on instead, as frozen when the token entered the track
+record (radar-evidence/<mint>.json on the site):
 
 - "funded" (A paid for B's first transaction): the proof transaction's fee payer is A, B takes
   part in it, and it is B's oldest transaction (when B has fewer than 1,000, so the oldest is
@@ -28,11 +30,13 @@ import pathlib
 import random
 import sys
 import time
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 
 PUBLIC_RPC = "https://api.mainnet-beta.solana.com"
 RADAR_URL = "https://bernardhaddad.github.io/sift/radar.json"
+EVIDENCE_URL = "https://bernardhaddad.github.io/sift/radar-evidence/{}.json"  # frozen at the verdict
 MAX_LINKS = 12
 HISTORY = 200
 TX_OPTS = {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 1}
@@ -189,6 +193,25 @@ def all_links(doc: dict, mint: str | None = None) -> list:
     ]
 
 
+def evidence_links(ev) -> list:
+    """The links of a token's evidence file (its groups' links, as frozen at the verdict), shaped as
+    all_links() gives them; [] for anything that is not one."""
+    if not isinstance(ev, dict):
+        return []
+    return [
+        {**k, "mint": ev.get("mint"), "name": ev.get("name")}
+        for g in ev.get("groups") or []
+        if isinstance(g, dict)
+        for k in g.get("links") or []
+        if isinstance(k, dict)
+    ]
+
+
+def _fetch(url: str):
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        return json.loads(resp.read())
+
+
 def check_all(node: Node, links: list) -> dict:
     counts = {"verified": 0, "failed": 0, "unreachable": 0, "skipped": 0}
     for link in links:
@@ -206,13 +229,29 @@ def check_all(node: Node, links: list) -> dict:
 
 def verify(argv: list[str]) -> int:
     target = argv[1]
-    with urllib.request.urlopen(RADAR_URL, timeout=30) as resp:
-        doc = json.loads(resp.read())
+    doc = _fetch(RADAR_URL)
     links = all_links(doc, None if target == "all" else target)
+    source = f"radar.json of {doc.get('generated_at') or doc.get('updated')}"
+    on_radar = any(t.get("mint") == target for t in doc.get("tokens") or [])
+    ev = None
+    if not links and target != "all" and not on_radar:  # off the radar: the links its verdict rested on
+        try:
+            ev = _fetch(EVIDENCE_URL.format(urllib.parse.quote(target, safe="")))
+        except (OSError, ValueError):  # no evidence file (HTTPError is an OSError too)
+            ev = None
+        links = evidence_links(ev)
+        if links:
+            source = f"the evidence frozen at the verdict ({ev.get('frozen_at')})"
     if not links:
-        print(f"no published links for {target} (not on the radar, or no linked holders)")
+        if target == "all" or on_radar:
+            why = "on the radar with no linked group now" if on_radar else "no token on the radar has one"
+        else:
+            why = "not on the radar, and " + (
+                "its evidence has no linked group" if isinstance(ev, dict) else "no evidence file was found"
+            )
+        print(f"no published links for {target} ({why})")
         return 1
-    print(f"radar.json of {doc.get('generated_at') or doc.get('updated')}: {len(links)} links to check")
+    print(f"{source}: {len(links)} links to check")
     counts = check_all(Node(os.environ.get("SOLANA_RPC_URL") or PUBLIC_RPC), links)
     print(", ".join(f"{n} {s}" for s, n in counts.items() if n))
     return 1 if counts["failed"] else 0

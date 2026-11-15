@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-13T21:10:00+00:00",
+  "reviewed_at": "2026-11-15T05:05:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 45,
-    "links_checked": 792,
+    "verdicts": 46,
+    "links_checked": 811,
     "links_contradicted": 3,
-    "young_tokens": 30,
+    "young_tokens": 31,
     "older_tokens": 15
   },
   "cases": [
@@ -419,6 +419,15 @@
       "links": "18 of 18 verified",
       "finding": "young",
       "note": "One wallet holds 99.9% of supply. It was funded through two newer wallets (first active on 5 Nov) and sent the first tokens to two other top holders, so the three form one linked group with 99.97%. One of those two was funded by a busy wallet with over 1,000 transactions, possibly an exchange or a bot. Eleven more holders with almost no tokens were all funded by one wallet first active on 7 Nov; together they hold 0.0% and do not change the grade. Mint and freeze authority are renounced. The price has not moved from the verdict price at any reading since, so the pool may barely trade. Graded six days after its first pool opened."
+    },
+    {
+      "mint": "CiMyaPC9icicJxkFqvqpgL2YT2FjEQmGx1YVdG78pump",
+      "name": "WANTED",
+      "verdict_at": "2026-11-15T04:21:21+00:00",
+      "trading_since": "2026-11-15T01:51:54Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 30.7% of supply when traced, about 0.7% to 1.8% each. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8). That wallet holds about 528 SOL and made over 1,000 transactions in the 2 hours 20 minutes before this review, about seven a minute, so it may be a bot or a service; it was not marked as a high-volume wallet when the token was traced. At the verdict, about 90 minutes after the trace, the linked wallets held 20.5% of supply among the 20 largest accounts. Mint and freeze authority are renounced. Graded about two and a half hours after the first pool opened."
     }
   ]
 }

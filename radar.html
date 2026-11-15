@@ -454,6 +454,7 @@
       const by = a[key + "_by"];
       if (by === "none") return "revoked";
       if (by === "program") return `held by a program ${acct(a[key])}`;
+      if (!a[key]) return `<span class="bad">held by a wallet (address withdrawn on request), which ${power}</span>`;
       return `<span class="bad">held by wallet ${acct(a[key])}, which ${power}</span>`;
     };
     return `<div class="facts auth"><span>Mint authority: ${one("mint", "can mint new tokens")}</span><span>Freeze authority: ${one("freeze", "can freeze tokens")}</span>${lpLine(t)}<span style="color:var(--faint)">checked ${ago(a.at)}</span></div>${heldLine(t)}`;
@@ -487,7 +488,7 @@
       ${retrace(t)}
       ${authority(t)}
       ${groups}
-      <div class="share">${t.live ? "" : `<a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Share link</a>`}<button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
+      <div class="share">${t.live ? "" : `<a class="btn" href="t/${encodeURIComponent(t.mint)}.html">Permanent page</a>`}<button class="btn" data-copy="${esc(t.mint)}">Copy mint</button></div></div>`;
   }
 
   // on-demand trace through the relay: start it, then ask every 15 s until it is done
@@ -746,7 +747,7 @@
     catch { registryLoad = null; if ($("wq").value.trim() === a) $("wres").innerHTML = `<div class="box">The wallet list could not be loaded. Please try again shortly.</div>`; return; }
     if ($("wq").value.trim() !== a) return;  // a newer lookup owns the box
     const w = (registry.wallets || {})[a];
-    if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} has not funded or supplied the top holders of any token traced since ${esc(when(registry.since))}. Only traced tokens are covered.</div>`; return; }
+    if (!w) { $("wres").innerHTML = `<div class="box">${acct(a)} is not in the funder registry, which lists the wallets seen funding or supplying the top holders of tokens traced since ${esc(when(registry.since))}. A wallet seen behind one token leaves it 30 days after it was last seen, and an address withdrawn on request is not listed.</div>`; return; }
     const toks = Object.entries(w.tokens || {}).sort((x, y) => String(y[1].last_seen).localeCompare(String(x[1].last_seen)));
     const flag = (w.flags || []).length ? ` <span class="flag">(${w.flags.includes("busy") ? "high-volume wallet" : "seen behind several tokens"}, possibly a shared service)</span>` : "";
     $("wres").innerHTML = `<div class="box">${acct(a)} funded or supplied top holders of <b>${int(toks.length)}</b> traced token${toks.length === 1 ? "" : "s"}${flag}<ul>${toks.map(([m, r]) => `<li><a href="https://solscan.io/token/${encodeURIComponent(m)}" target="_blank" rel="noopener" >${esc(r.name || short(m))}</a>, ${esc(known(r.grade) || r.grade || "–")}, last seen ${esc(when(r.last_seen))}</li>`).join("")}</ul></div>`;
