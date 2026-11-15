@@ -17,6 +17,7 @@ wallets are not traced (cluster.py, "Known limits").
 
 import html
 import json
+import math
 import pathlib
 import re
 import unicodedata
@@ -61,7 +62,10 @@ GRADES = {
 WATCH_CLUSTERED_PCT = 5.0  # any linked groups at or above this share of supply are worth a look
 REQUEST_TTL = timedelta(days=7)  # requested traces are shown for a week, with their date
 MAX_EDGES_SHOWN = 120  # 20 holders x (funding hop, second hop, token transfer), all of them
-CARD_VERSION = 2  # preview card look (cards.py); 2: grey badge, renamed labels, safe names
+# preview card look (cards.py); 2: grey badge, renamed labels, safe names; 3: drawn once more, from the
+# evidence frozen at entry (the hourly build no longer redraws cards, and 88 of the 319 published on 13 Nov
+# showed a later trace than their token page, 21 of them with another grade)
+CARD_VERSION = 3
 
 
 def valid_mint(text: str) -> bool:
@@ -272,6 +276,9 @@ _LINK_LIKE = re.compile(  # possessive and anchored to a word start, so a long n
     re.IGNORECASE,
 )
 _HANDLE = re.compile(r"@\w")
+# letters that render as a dot or colon (NFKC keeps them): a name such as axiom<U+A4F8>trade must read as a
+# dotted host to _LINK_LIKE, and none of them is ever kept in a name
+_DOT_LIKE = {ord(c): "." for c in "\u02d0\u02d1\u1427\u16eb\u2e31\ua4f8\ua4f9\ua4fa\ua4fb\ua789\u0701\u0702"}
 
 
 def safe_name(name: str | None, mint: str) -> str:
@@ -289,8 +296,9 @@ def safe_name(name: str | None, mint: str) -> str:
     text = unicodedata.normalize("NFKC", name)
     if any(unicodedata.category(ch) in ("Cc", "Zl", "Zp") for ch in name + text):
         return fallback
-    if _LINK_LIKE.search(text) or _HANDLE.search(text):
+    if _LINK_LIKE.search(text.translate(_DOT_LIKE)) or _HANDLE.search(text):
         return fallback
+    text = text.translate({k: None for k in _DOT_LIKE})
     kept = []
     for ch in text:
         kind = unicodedata.category(ch)
@@ -500,6 +508,8 @@ def report_markdown(e: dict) -> str:
                 text = "revoked"
             elif by == "program":
                 text = f"held by a program address `{a}` (bridges and minting programs work this way)"
+            elif a is None:  # its holder's address was withdrawn on request; the power is still shown
+                text = f"held by a wallet (address withdrawn on request), which {power}"
             else:
                 text = f"held by wallet `{a}`, which {power}"
             lines.append(f"- {key.capitalize()} authority: {text}")
@@ -660,21 +670,27 @@ def _rfc822(stamp: str | None) -> str:
 EXIT_HEADLINE = "Linked wallets sold half"  # an exit warning's headline, as in channel posts
 
 
-def feed_xml(doc: dict, book: dict | None, registry: dict | None) -> str:
+def feed_xml(doc: dict, book: dict | None, registry: dict | None, suppressed: dict | None = None) -> str:
     """RSS 2.0 alerts, newest first: tokens that entered the track record (`book`, the ledger) as
     high or watch (titled with the label of the verdict they were published with), exit warnings
     on those tokens (ledger.exit_warnings), titled EXIT_HEADLINE, and funder wallets the moment
     they are seen behind a second token. Built from the same published files, so it never says
     more than the page does. Names are safe_name()s. The items of a token over 30 days old at its
     verdict (older_token, its age read from the ledger entry, or from its radar row when the entry
-    has none) carry OLDER_TOKEN and no grade word; so does a re-grade traced after that age."""
+    has none) carry OLDER_TOKEN and no grade word; so does a re-grade traced after that age. A token's
+    items link to its permanent page, tagged as a visit from the feed (t/<mint>.html?s=rss).
+
+    Nothing withdrawn (`suppressed`, suppression()) is in it: a withdrawn token has no item and is
+    left out of the tokens a wallet item names, and a withdrawn wallet has no item (an item about that
+    wallet alone would say nothing once its address is gone); no other item names a wallet."""
     rows = {t["mint"]: t for t in doc.get("tokens") or []}
+    gone_tokens, gone_wallets = withdrawn_tokens(suppressed), withdrawn_wallets(suppressed)
     items = []
     entries = (book or {}).get("entries")
     for e in entries.values() if isinstance(entries, dict) else []:
         if not isinstance(e, dict) or not e.get("mint"):
             continue
-        if e.get("grade") not in ("high", "watch") or e.get("out_of_scope"):
+        if e.get("grade") not in ("high", "watch") or e.get("out_of_scope") or e["mint"] in gone_tokens:
             continue
         mint = e["mint"]
         t = rows.get(mint) or {}
@@ -704,7 +720,7 @@ def feed_xml(doc: dict, book: dict | None, registry: dict | None) -> str:
             reason = weak_link(t) if t and not regraded else ""
             why = f" {reason[0].upper()}{reason[1:]}." if reason else ""
             detail = f"{name} ({mint}): {since}{numbers}{why}"
-        link = f"{SITE}radar.html#{mint}"
+        link = f"{SITE}t/{mint}.html?s=rss"
         items.append((e.get("entered_at") or "", title, link, detail, f"verdict-{mint}"))
         note = f"{OLDER_TOKEN}. " if older else ""
         w = e.get("exit_warning")
@@ -739,8 +755,14 @@ def feed_xml(doc: dict, book: dict | None, registry: dict | None) -> str:
     wallets = (registry or {}).get("wallets")
     for a, w in wallets.items() if isinstance(wallets, dict) else []:
         recs = w.get("tokens") if isinstance(w, dict) else None
+        if a in gone_wallets:
+            continue
         toks = sorted(
-            ((m, r) for m, r in (recs if isinstance(recs, dict) else {}).items() if isinstance(r, dict)),
+            (
+                (m, r)
+                for m, r in (recs if isinstance(recs, dict) else {}).items()
+                if isinstance(r, dict) and m not in gone_tokens
+            ),
             key=lambda kv: kv[1].get("first_seen") or "",
         )
         if len(toks) < 2:
@@ -775,9 +797,10 @@ def feed_xml(doc: dict, book: dict | None, registry: dict | None) -> str:
 
 # The visit counter's beacon (sift relay/worker.js, POST /hit; site/privacy.html, "Visit counts"), the
 # same on every page: the page, the link's ?s= tag and the referring host, sent once when the page opens
-# on the site's own address. A token page sends it before it forwards to the token's radar row, and that
-# row then sends none: a token link counts once, as "t", with the site that linked to it. site/404.html
-# sends its own path instead of the address it is shown at (tests/test_counter_beacon.py).
+# on the site's own address. A token page (token_page) sends it as page "t", with the site that linked to
+# it; the token's radar row opened from it (its "Open it on the Insider Radar" link) sends none, the rule
+# that kept a token link counted once when token pages still forwarded to that row. site/404.html sends
+# its own path instead of the address it is shown at (tests/test_counter_beacon.py).
 BEACON = """<script>
 try {
   if (navigator.sendBeacon && location.origin === "https://bernardhaddad.github.io") {
@@ -796,53 +819,555 @@ try {
 </script>"""
 
 
-def _js(text) -> str:
-    """A JavaScript string literal that cannot end the <script> element it sits in."""
-    return json.dumps(str(text)).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+# --- permanent token pages, the sitemap and the private suppression list (money plan rank 1, BUILD 8, 9) --
+#
+# A token page (t/<mint>.html) is built from what does not move: the token's ledger entry, of which it
+# reads the milestones only, the evidence frozen at its entry (radar-evidence/<mint>.json, written once)
+# and its hand review. So the hourly build leaves it byte for byte as it was until a milestone happens,
+# and writes it to the site only then (scripts/build_radar.py).
+
+WITHDRAWN = "withdrawn"  # what a withdrawn wallet reads on a page, with no link
+EVIDENCE_NOT_SAVED = "Evidence not saved for this verdict."
+NOT_A_CLAIM = "A linked group is not a claim that anyone broke a law."
+OBJECTIONS = "privacy.html#objections"  # the objection notice (site/privacy.html)
+REPLY_DAYS = 7
+NOT_ADVICE = "Not advice."
+OLDER_METHOD = "traced with an older method"  # the words of memetrader.evidence.OLDER_METHOD
+HISTORY_URL = "https://github.com/bernardhaddad/sift/commits/main/radar-ledger.json"  # every hourly copy
+VOID_NOTE = (
+    "Void: the price readings for this entry were interrupted for over 6 hours, so it is left out of every "
+    "score."
+)
+OUT_OF_SCOPE = (
+    "Outside the radar's scope: stablecoins, wrapped and staking tokens, tokenized stocks and large "
+    "protocol tokens are taken out of it by exact address (the list began on 23 Oct 2026 and grows as "
+    "such tokens appear). The entry stays in the track record, left out of its scores."
+)
+MAIN_PAGES = (  # (path under SITE, changefreq): the site's own pages, first in the sitemap
+    ("", "hourly"),
+    ("radar.html", "hourly"),
+    ("research.html", "weekly"),
+    ("privacy.html", "weekly"),
+    ("terms.html", "weekly"),
+)
+_TX = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{64,90}$")  # a transaction signature (radar.html's SIG)
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
-def share_page(t: dict, image: bool = False) -> str:
-    """A tiny page per token whose only job is a correct link preview (title, verdict, key numbers)
-    when the link is pasted into X, Telegram or Discord. It forwards readers to the radar row and
-    keeps the link's query string, so a source tag (?s=x) reaches the radar page; without
-    JavaScript, a refresh inside <noscript> forwards them without it. With `image`, it points the
-    preview at the card t/<mint>.png (memetrader.cards) published beside it, with the card version
-    in the address, so a preview service that keeps images by address fetches a redrawn card once.
-    The name is safe_name(). A token over 30 days old at the trace with a linked group (older_note)
-    is previewed with OLDER_TOKEN in place of its grade, and no grade word. Before it forwards, it
-    counts the visit (BEACON), as page "t" with the site that linked to it."""
-    mint = t["mint"]
-    name = safe_name(t.get("name"), mint)
-    groups = t.get("clusters") or []
-    held = sum(int(c.get("holders") or 0) for c in groups)
-    reason = weak_link(t)
-    if groups:
-        found = (
-            f"Largest linked group {float(t.get('cluster_pct') or 0):.1f}% of supply, "
-            f"all linked groups {float(t.get('clustered_pct') or 0):.1f}% ({held} top holders linked). "
-            "Wallets and proof txs are on the radar page."
+def _address(a) -> bool:
+    return isinstance(a, str) and valid_mint(a)
+
+
+def _instant(text) -> datetime | None:
+    """A stored stamp or date as an aware UTC datetime; None when it cannot be read."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    at = _when(text.strip().replace("Z", "+00:00"))
+    return at.astimezone(UTC) if at else None
+
+
+def _day_words(text) -> str:
+    """'10 Nov 2026' for a stored stamp; '' when it cannot be read (fixed month names, no locale)."""
+    at = _instant(text)
+    return f"{at.day} {_MONTHS[at.month - 1]} {at.year}" if at else ""
+
+
+def _utc(text) -> str:
+    """'10 Nov 2026 08:00 UTC' for a stored stamp; '' when it cannot be read."""
+    at = _instant(text)
+    return f"{_day_words(text)} {at:%H:%M} UTC" if at else ""
+
+
+def suppression(doc) -> dict:
+    """The private suppression list (site/radar-suppress.json, never published) as the build applies it:
+    {"tokens": {mint: day}, "wallets": {address: day}}, each day the UTC date (YYYY-MM-DD) of the row's
+    "since". `doc` is the file's JSON, {"tokens": [{"mint", "since", "reason"}], "wallets": [{"address",
+    "since"}]}, where a "reason" is the owner's own note and is never read here. None (no file) is an
+    empty list; anything else that is not that shape raises ValueError, so a damaged list is never
+    applied as a shorter one."""
+    out: dict = {"tokens": {}, "wallets": {}}
+    if doc is None:
+        return out
+    if not isinstance(doc, dict):
+        raise ValueError("the suppression list is not an object")
+    for kind, key in (("tokens", "mint"), ("wallets", "address")):
+        rows = doc.get(kind, [])
+        if not isinstance(rows, list):
+            raise ValueError(f"{kind} is not a list")
+        for i, r in enumerate(rows):
+            address = r.get(key) if isinstance(r, dict) else None
+            if not _address(address):
+                raise ValueError(f"{kind}[{i}] has no valid {key}")
+            at = _instant(r.get("since"))
+            if at is None:
+                raise ValueError(f"{kind}[{i}] has no readable since date")
+            out[kind][address] = at.date().isoformat()
+    return out
+
+
+def withdrawn_tokens(suppressed) -> dict:
+    """mint -> the day its page was withdrawn (suppression()); empty for None."""
+    found = suppressed.get("tokens") if isinstance(suppressed, dict) else None
+    return found if isinstance(found, dict) else {}
+
+
+def withdrawn_wallets(suppressed) -> dict:
+    """address -> the day it was withdrawn (suppression()); empty for None."""
+    found = suppressed.get("wallets") if isinstance(suppressed, dict) else None
+    return found if isinstance(found, dict) else {}
+
+
+def _gone(a, wallets) -> bool:
+    return isinstance(a, str) and a in wallets
+
+
+def _named(t: dict) -> set:
+    """Every address a radar row names: its groups' holders, links, funders, busy and known wallets, and
+    the holders of its mint and freeze authority."""
+    found: set = set()
+    for c in t.get("clusters") or []:
+        if not isinstance(c, dict):
+            continue
+        found.update(w.get("address") for w in c.get("wallets") or [] if isinstance(w, dict))
+        for k in c.get("links") or []:
+            if isinstance(k, dict):
+                found.update((k.get("from"), k.get("to")))
+        for key in ("funders", "busy", "known"):
+            found.update(c.get(key) or [])
+    auth = t.get("authority")
+    if isinstance(auth, dict):
+        found.update((auth.get("mint"), auth.get("freeze")))
+    return {a for a in found if isinstance(a, str)}
+
+
+def withdraw_row(t: dict, wallets) -> dict:
+    """The radar row `t` (entry()) without the withdrawn wallets (addresses): they leave each group's
+    holders, links, funders, busy and known lists, and an authority one of them holds takes the row's
+    authority with it. The numbers stay as traced: a group's holders and share still count a withdrawn
+    holder. `t` itself when it names none of them."""
+    if not wallets or not (_named(t) & set(wallets)):
+        return t
+    groups = []
+    for c in t.get("clusters") or []:
+        if not isinstance(c, dict):
+            groups.append(c)
+            continue
+        c = dict(c)
+        if isinstance(c.get("wallets"), list):
+            c["wallets"] = [
+                w for w in c["wallets"] if not (isinstance(w, dict) and _gone(w.get("address"), wallets))
+            ]
+        if isinstance(c.get("links"), list):
+            kept = [
+                k
+                for k in c["links"]
+                if not (
+                    isinstance(k, dict) and (_gone(k.get("from"), wallets) or _gone(k.get("to"), wallets))
+                )
+            ]
+            if "links_total" in c:
+                c["links_total"] = max(len(kept), int(_num(c["links_total"])) - (len(c["links"]) - len(kept)))
+            c["links"] = kept
+        for key in ("funders", "busy", "known"):
+            if isinstance(c.get(key), list):
+                c[key] = [a for a in c[key] if not _gone(a, wallets)]
+        groups.append(c)
+    out = {**t, "clusters": groups}
+    auth = t.get("authority")
+    if isinstance(auth, dict) and (_gone(auth.get("mint"), wallets) or _gone(auth.get("freeze"), wallets)):
+        # the risk stays on the page ("can mint", "can freeze"): only the withdrawn address goes
+        out["authority"] = {**auth, **{k: None for k in ("mint", "freeze") if _gone(auth.get(k), wallets)}}
+    return out
+
+
+def withdraw_rows(tokens: list, suppressed) -> list:
+    """radar.json's token rows as published: withdrawn tokens left out, withdrawn wallets taken out of
+    the others (withdraw_row). `tokens` itself when nothing is withdrawn."""
+    mints, wallets = withdrawn_tokens(suppressed), withdrawn_wallets(suppressed)
+    if not (mints or wallets):
+        return tokens
+    return [withdraw_row(t, wallets) for t in tokens if t.get("mint") not in mints]
+
+
+def withdraw_registry(registry, suppressed):
+    """radar-wallets.json as published (update_registry): a withdrawn wallet left out, a withdrawn token
+    left out of every wallet's tokens, and a wallet left with no token dropped. `registry` itself when
+    nothing is withdrawn."""
+    mints, wallets = withdrawn_tokens(suppressed), withdrawn_wallets(suppressed)
+    kept = registry.get("wallets") if isinstance(registry, dict) else None
+    if not (mints or wallets) or not isinstance(kept, dict):
+        return registry
+    out = {}
+    for a, w in kept.items():
+        if a in wallets:
+            continue
+        if mints and isinstance(w, dict) and isinstance(w.get("tokens"), dict):
+            toks = {m: r for m, r in w["tokens"].items() if m not in mints}
+            if not toks:
+                continue
+            w = {**w, "tokens": toks}
+        out[a] = w
+    return {**registry, "wallets": out}
+
+
+def without_withdrawn(items: list, suppressed) -> list:
+    """The records of `items` (dicts with a "mint", such as the recent exit warnings) whose token is not
+    withdrawn; `items` itself when none is."""
+    mints = withdrawn_tokens(suppressed)
+    if not mints:
+        return items
+    return [r for r in items if not (isinstance(r, dict) and r.get("mint") in mints)]
+
+
+def frozen_groups(ev) -> list | None:
+    """The linked groups of a token's evidence (memetrader.evidence) when it has a group section from the
+    current trace method; None otherwise: no section, or an older method, whose groups are never shown."""
+    if not isinstance(ev, dict) or not isinstance(ev.get("groups"), list):
+        return None
+    try:
+        outdated = cluster.outdated({"method": ev.get("method")})
+    except (TypeError, ValueError):
+        outdated = True
+    return None if outdated else [c for c in ev["groups"] if isinstance(c, dict)]
+
+
+YOUNG_BANDS = ("under_1d", "1_7d", "7_30d")  # ledger.age_band's bands of 30 days or less
+
+
+def token_indexable(entry, evidence, suppressed) -> bool:
+    """Whether search engines may index a token's page (money plan rank 1, BUILD 8): only when its
+    evidence exists with linked groups from the current method, its grade is High or Watch or it was
+    warned on either clock, it is known to have traded for 30 days or less at entry (ledger.age_band in
+    YOUNG_BANDS, from the entry's or the evidence's age as the page shows it; an unknown age is not
+    indexed), it is in the radar's scope and it is not withdrawn. Every other page carries noindex."""
+    if not (isinstance(entry, dict) and isinstance(evidence, dict)):
+        return False
+    mint = entry.get("mint")
+    if not _address(mint) or evidence.get("mint") != mint or mint in withdrawn_tokens(suppressed):
+        return False
+    if entry.get("out_of_scope") or not frozen_groups(evidence):
+        return False
+    warned = bool(entry.get("exit_warning") or entry.get("exit_warning_5m"))
+    if grade_code(entry) not in ("high", "watch") and not warned:
+        return False
+    since = entry.get("trading_since") or evidence.get("trading_since")  # the age token_page shows
+    band = ledger.age_band({"trading_since": since, "entered_at": entry.get("entered_at")})
+    return band in YOUNG_BANDS  # an unknown age is not known to be young
+
+
+def page_lastmod(entry) -> str | None:
+    """The sitemap date of a token page (YYYY-MM-DD, UTC): that of the entry's last milestone (its 24-hour
+    and 7-day prices, its first hourly prices 50% and 80% down, its exit warnings, the hour it closed as
+    vanished), or the day it entered when it has none. None when none of them can be read."""
+    if not isinstance(entry, dict):
+        return None
+    stamps = [entry.get("entered_at")]
+    for key in ("p24", "p7d", "exit_warning", "exit_warning_5m", "dd50", "dd80"):
+        rec = entry.get(key)
+        if isinstance(rec, dict):
+            stamps.append(rec.get("at") or rec.get("before"))
+    if entry.get("vanished"):
+        stamps.append(entry.get("asked_at"))  # never moved again once the entry closed
+    times = [at for at in map(_instant, stamps) if at is not None]
+    return max(times).date().isoformat() if times else None
+
+
+def sitemap_xml(pages: dict) -> str:
+    """pub/sitemap.xml: the site's own pages (MAIN_PAGES), then every indexable token page by mint, with
+    its lastmod (`pages`: mint -> page_lastmod, None for none)."""
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        *(
+            f"  <url><loc>{SITE}{path}</loc><changefreq>{freq}</changefreq></url>"
+            for path, freq in MAIN_PAGES
+        ),
+    ]
+    for mint in sorted(pages):
+        lastmod = f"<lastmod>{_xml(pages[mint])}</lastmod>" if pages[mint] else ""
+        lines.append(f"  <url><loc>{_xml(f'{SITE}t/{mint}.html')}</loc>{lastmod}</url>")
+    return "\n".join([*lines, "</urlset>"]) + "\n"
+
+
+def _price_of(v) -> float | None:
+    """A price as recorded: a finite number above zero, else None (never a guess)."""
+    if isinstance(v, bool):
+        return None
+    try:
+        p = float(v)
+    except (TypeError, ValueError):
+        return None
+    return p if math.isfinite(p) and p > 0 else None
+
+
+def _usd(p: float) -> str:
+    """A USD price with 4 significant digits and no exponent: $0.00001234, $0.5, $12.35."""
+    if p >= 1000:
+        return f"${p:,.0f}"
+    if p >= 1:
+        return f"${p:.4g}"
+    digits = min(20, 3 - math.floor(math.log10(p)))
+    return "$" + f"{p:.{digits}f}".rstrip("0").rstrip(".")
+
+
+def _against(price, p0) -> str | None:
+    """A recorded price and how far it is from the verdict price p0, in whole percent (as the channel
+    posts say it); None when either is missing. Never "100% below": a price still quoted is above zero."""
+    now, then = _price_of(price), _price_of(p0)
+    if now is None or then is None:
+        return None
+    change = now / then - 1
+    n = int(abs(change) * 100 + 0.5)
+    if n == 0:
+        return f"{_usd(now)}, within 1% of the verdict price"
+    if change < 0 and n >= 100:
+        return f"{_usd(now)}, over 99% below the verdict price"
+    return f"{_usd(now)}, {n}% {'below' if change < 0 else 'above'} the verdict price"
+
+
+def _after(rec: dict, entered) -> str:
+    """', 24.3 hours after the verdict', from the record's own hours, else from its time and entered_at."""
+    hours = rec.get("hours")
+    if isinstance(hours, bool) or not isinstance(hours, int | float) or not math.isfinite(hours):
+        at, start = _instant(rec.get("at")), _instant(entered)
+        hours = (at - start).total_seconds() / 3600 if at and start else None
+    return f", {hours:.1f} hours after the verdict" if hours is not None else ""
+
+
+def _pct(v) -> str:
+    return f"{_num(v):.1f}%"
+
+
+def _check_price(w: dict, p0) -> str:
+    """The price at a warning's own check against p0. An hourly warning keeps the last price the ledger
+    held (price, read at price_at): an earlier hour's when this hour's went unanswered, which is not
+    this check's price, so it reads as not read."""
+    at = w.get("price_at")
+    found = _against(w.get("price"), p0) if at is None or at == w.get("at") else None
+    return f"Price at this check: {found}." if found else "Price not read at this check."
+
+
+def _left_top(w: dict) -> str:
+    n = w.get("out_of_top")
+    if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+        return ""
+    if n == 1:
+        return " 1 linked wallet was no longer among the 20 largest, so what it still held is not counted."
+    return f" {n} linked wallets were no longer among the 20 largest, so what they still held is not counted."
+
+
+def _timeline(e: dict) -> list:
+    """The entry's milestones as HTML, oldest first: the verdict price, the first hourly prices at or
+    under half and a fifth of it, the 24-hour and 7-day prices, each exit warning with its price, and
+    vanished. Nothing that moves every hour (last_price, min_price, the lowest price after a warning)
+    is read."""
+    p0, entered = e.get("p0"), e.get("entered_at")
+    start = _price_of(p0)
+    out = [
+        (
+            _instant(entered),
+            f"<b>{_utc(entered)}</b>: entered the track record"
+            + (
+                f" at {_usd(start)}, the verdict price." if start else "; its verdict price was not recorded."
+            ),
         )
-    elif grade_code(t) == "incomplete":  # no group found, but not every holder could be traced
-        found = GRADES["incomplete"][2]
-    else:
-        found = "No two top holders lead back to the same private wallet."
-    if older_note(t):
-        head = f"{OLDER_TOKEN}. Trading since {established(t)}" + (f"; {reason}" if reason else "")
-        desc = f"{head}. {found} Not financial advice."
-        title = f"{name} | {OLDER_TOKEN} | Sift Insider Radar"
-    else:
-        label = grade_label(t)
-        if groups:
-            desc = f"{label}{f' ({reason})' if reason else ''}. {found} Not financial advice."
+    ]
+    for key, words, line in (
+        ("dd50", "half the verdict price (down 50% or more)", 50),
+        ("dd80", "a fifth of the verdict price (down 80% or more)", 80),
+    ):
+        d = e.get(key)
+        if not isinstance(d, dict):
+            continue
+        if _instant(d.get("at")):
+            first = f"first hourly price at or below {words}."
+            out.append((_instant(d["at"]), f"<b>{_utc(d['at'])}</b>{_after(d, entered)}: {first}"))
+        elif _instant(d.get("before")):
+            known = (
+                f"its hourly price had already been down {line}% or more from the verdict price when these "
+                "times were first recorded; the hour is not known."
+            )
+            out.append((_instant(d["before"]), f"<b>Before {_utc(d['before'])}</b>: {known}"))
+    for key, words in (("p24", "24 hours"), ("p7d", "7 days")):
+        p = e.get(key)
+        if isinstance(p, dict) and _instant(p.get("at")):
+            price = _against(p.get("price"), p0) or "not recorded"
+            out.append(
+                (
+                    _instant(p["at"]),
+                    f"<b>{_utc(p['at'])}</b>{_after(p, entered)}: price after {words} {price}.",
+                )
+            )
+    w5 = e.get("exit_warning_5m")
+    if isinstance(w5, dict) and _instant(w5.get("at")):
+        out.append(
+            (
+                _instant(w5["at"]),
+                f"<b>{_utc(w5['at'])}</b>{_after(w5, entered)}: exit warning on the 5-minute watch. "
+                "Among the accounts that were its 20 largest at the last hourly check, the linked wallets "
+                f"held {_pct(w5.get('held_pct'))} of supply, under half of the {_pct(w5.get('first_pct'))} "
+                f"read when the verdict was published. {_check_price(w5, p0)}",
+            )
+        )
+    w = e.get("exit_warning")
+    if isinstance(w, dict) and _instant(w.get("at")):
+        out.append(
+            (
+                _instant(w["at"]),
+                f"<b>{_utc(w['at'])}</b>{_after(w, entered)}: exit warning on the hourly check. Among its 20 "
+                f"largest accounts, the linked wallets held {_pct(w.get('held_pct'))} of supply, under half "
+                f"of the {_pct(w.get('first_pct'))} read when the verdict was published.{_left_top(w)} "
+                f"{_check_price(w, p0)}",
+            )
+        )
+    if e.get("vanished"):
+        scored = not (e.get("void") or e.get("out_of_scope"))
+        gone = "no price was quoted for it for its last 24 hours within the 7 days" + (
+            ", which counts as a collapse." if scored else "."
+        )
+        out.append((None, f"<b>Vanished</b>: {gone}"))
+    last = datetime.max.replace(tzinfo=UTC)
+    return [text for _, text in sorted(out, key=lambda item: (item[0] is None, item[0] or last))]
+
+
+def _short(a: str) -> str:
+    return f"{a[:4]}…{a[-4:]}"
+
+
+def _acct(a, wallets) -> str:
+    """A wallet in a page's text: shortened, linked to Solscan by its full address; WITHDRAWN, with no
+    link, when it is withdrawn; escaped text with no link when it is not an address."""
+    if _gone(a, wallets):
+        return WITHDRAWN
+    if not _address(a):
+        return _xml(a) if isinstance(a, str) and a else "unknown"
+    return f'<a class="addr" href="https://solscan.io/account/{a}">{_short(a)}</a>'
+
+
+def _mask(text: str, wallets) -> str:
+    for a in wallets:
+        text = text.replace(a, WITHDRAWN)
+    return text
+
+
+def _group_html(i: int, c: dict, wallets) -> str:
+    """One linked group as static text: its holders and their shares, every link with its proof
+    transaction, and the notes on busy and repeat wallets (as radar.html's groupHtml shows them)."""
+    holders = _num(c.get("holders")) or len(c.get("wallets") or [])
+    parts = [f"<h3>Group {i}: {int(holders)} holders, {_num(c.get('pct')):.1f}% of supply</h3>"]
+    shown = [w for w in c.get("wallets") or [] if isinstance(w, dict)]
+    if shown:
+        items = "".join(
+            f"<li>{_acct(w.get('address'), wallets)}"
+            + (
+                ""
+                if isinstance(w.get("pct"), bool) or not isinstance(w.get("pct"), int | float)
+                else f" {_pct(w['pct'])}"
+            )
+            + "</li>"
+            for w in shown
+        )
+        parts.append(f'<p class="sub">Holders</p><ul class="hold">{items}</ul>')
+    links = [k for k in c.get("links") or [] if isinstance(k, dict)]
+    items = []
+    for k in links:
+        a, b, tx = k.get("from"), k.get("to"), k.get("tx")
+        verb = (
+            "sent the first tokens to" if k.get("kind") == "tokens" else "paid for the first transaction of"
+        )
+        if _gone(a, wallets) or _gone(b, wallets):
+            proof = ""  # its transaction would name the withdrawn wallet
+        elif isinstance(tx, str) and _TX.match(tx):
+            proof = f' <a class="proof" href="https://solscan.io/tx/{tx}">proof</a>'
         else:
-            desc = f"{label}: {found[0].lower()}{found[1:]} Not financial advice."
-        title = f"{name}: {label} | Sift Insider Radar"
-    target, fragment = "../radar.html", f"#{mint}"
+            proof = " (no proof transaction saved)"
+        items.append(f"<li>{_acct(a, wallets)} {verb} {_acct(b, wallets)}{proof}</li>")
+    more = int(_num(c.get("links_total"))) - len(links)
+    if more > 0:
+        items.append(f"<li>and {more} more links</li>")
+    funders = [a for a in c.get("funders") or [] if isinstance(a, str)]
+    if not links and funders:
+        items.append(f"<li>Linked through {', '.join(_acct(a, wallets) for a in funders)}</li>")
+    if items:
+        parts.append(f'<p class="sub">How they are linked</p><ul class="ev">{"".join(items)}</ul>')
+    busy = [a for a in c.get("busy") or [] if isinstance(a, str)]
+    if busy:
+        via = ", ".join(_acct(a, wallets) for a in busy)
+        parts.append(
+            f'<p class="note">Linked through a high-volume wallet ({via}), possibly an exchange or a bot: '
+            "weaker evidence of a single owner.</p>"
+        )
+    known = [a for a in c.get("known") or [] if isinstance(a, str)]
+    if known:
+        via = ", ".join(_acct(a, wallets) for a in known)
+        parts.append(
+            f'<p class="note">Linked through a wallet seen behind top holders of several tokens ({via}): a '
+            "shared service, or one deployer behind several tokens.</p>"
+        )
+    return f'<div class="group">{"".join(parts)}</div>'
+
+
+def _review_html(review: dict, wallets) -> str:
+    """The token's hand review (a case of site/radar-review.json), as text."""
+    kinds = {"young": "Young token", "older": "Older token"}
+    found = []
+    if isinstance(review.get("links"), str) and review["links"]:
+        found.append(f"Links: {_xml(_mask(review['links'], wallets))}.")
+    finding = review.get("finding")
+    if isinstance(finding, str) and finding:
+        found.append(f"{_xml(kinds.get(finding, finding))}.")
+    note = review.get("note")
+    text = f"<p>{' '.join(found)}</p>" if found else ""
+    if isinstance(note, str) and note:
+        text += f"<p>{_xml(_mask(note, wallets))}</p>"
+    if not text:
+        return ""
+    return (
+        '<h2>Hand review</h2><p class="muted">Checked a second time by hand, apart from the tracer: every '
+        "link re-read on the chain, the token's age, and how active each linking wallet is.</p>" + text
+    )
+
+
+_ICON = (  # radar.html's own icon
+    '<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' '
+    "viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2313294b'/%3E%3Crect x='3' y='11' "
+    "width='10' height='2' fill='%23f2b632'/%3E%3C/svg%3E\">"
+)
+_STYLE = (  # the layout; ../sift.css, loaded after it, brings the site's fonts and colours
+    "<style>body{margin:0;font:16px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;"
+    "color:#17213a;background:#fff}a{color:#1f4e9c}.wrap{max-width:780px;margin:0 auto;padding:0 16px}"
+    ".bar .wrap{display:flex;align-items:center;gap:22px;height:56px}.brand{font-weight:700;font-size:22px;"
+    "text-decoration:none}.links{display:flex;gap:12px}.links a{text-decoration:none;font-size:15px}"
+    "main.wrap{padding-top:28px;padding-bottom:8px}h1{font-size:30px;line-height:1.2;margin:0 0 6px;"
+    "overflow-wrap:anywhere}h2{font-size:20px;margin:30px 0 8px}h3{font-size:16px;margin:0 0 8px}"
+    ".mint{font:13px/1.5 monospace;color:#4f5869;overflow-wrap:anywhere;margin:0 0 16px}"
+    ".verdict{display:inline-block;font-weight:600;padding:2px 9px;border-radius:4px;background:#eceef1;"
+    "color:#373c43}.group{border:1px solid #dfe2e7;border-radius:4px;padding:14px 16px;margin:12px 0}"
+    ".sub{font-size:13px;font-weight:600;color:#4f5869;margin:8px 0 2px}ul{padding-left:20px;margin:4px 0}"
+    "li{margin:3px 0;overflow-wrap:anywhere}.addr{font:13.5px monospace}.note{background:#fbf2dc;"
+    "color:#5f4510;border-radius:4px;padding:8px 10px}.muted{color:#4f5869;font-size:14.5px}"
+    "code{font:14px monospace;overflow-wrap:anywhere}footer .wrap{text-align:center}</style>"
+)
+_NAV = (
+    '<header class="bar"><div class="wrap"><a class="brand" href="../" aria-label="Sift home">'
+    '<span>sift</span></a><nav class="links"><a href="../">Screener</a><a href="../radar.html">Insider '
+    'Radar</a><a href="../research.html">Research</a></nav></div></header>'
+)
+_FOOT = (
+    '<footer><div class="wrap"><a href="../">Screener</a> | <a href="../radar.html">Insider Radar</a> | '
+    '<a href="../research.html">Research</a> | <a href="../privacy.html">Privacy</a> | '
+    '<a href="../terms.html">Terms</a></div></footer>'
+)
+
+
+def _page(mint: str, title: str, desc: str, body: str, *, index: bool, image=None) -> str:
+    """A whole page at t/<mint>.html: the link-preview tags (with the card t/<mint>.png?v=<image> when
+    `image` is a card version), noindex unless `index`, the visit counter (BEACON) and `body`."""
     url = f"{SITE}t/{mint}.html"
     card = ""
-    if image:
+    if image is not None:
         card = (
-            f'<meta property="og:image" content="{_xml(f"{SITE}t/{mint}.png?v={CARD_VERSION}")}">'
+            f'<meta property="og:image" content="{_xml(f"{SITE}t/{mint}.png?v={image}")}">'
             '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
         )
     return (
@@ -850,23 +1375,174 @@ def share_page(t: dict, image: bool = False) -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{_xml(title)}</title>"
         f'<meta name="description" content="{_xml(desc)}">'
-        f'<link rel="canonical" href="{_xml(url)}">'
+        + ("" if index else '<meta name="robots" content="noindex">')
+        + f'<link rel="canonical" href="{_xml(url)}">'
         '<meta property="og:type" content="website"><meta property="og:site_name" content="Sift">'
         f'<meta property="og:title" content="{_xml(title)}">'
         f'<meta property="og:description" content="{_xml(desc)}">'
         f'<meta property="og:url" content="{_xml(url)}">'
-        f'<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}">'
+        f'<meta name="twitter:card" content="{"summary" if image is None else "summary_large_image"}">'
         f'<meta name="twitter:title" content="{_xml(title)}">'
         f'<meta name="twitter:description" content="{_xml(desc)}">'
-        f"{card}{BEACON}"
-        f"<script>location.replace({_js(target)}+location.search+{_js(fragment)})</script>"
-        f'<noscript><meta http-equiv="refresh" content="0; url={_xml(target + fragment)}"></noscript>'
-        "<style>body{font:16px/1.6 -apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:50px auto;"
-        "max-width:640px;padding:0 20px;color:#1c1e21;background:#fff}a{color:#1f5bb8}</style>"
-        f"</head><body><p>{_xml(desc)}</p>"
-        f'<p><a href="{_xml(target + fragment)}">Open the evidence on Sift Insider Radar</a></p>'
-        "</body></html>"
+        f'{card}{_ICON}{_STYLE}<link rel="stylesheet" href="../sift.css">{BEACON}</head>'
+        f'<body>{_NAV}<main class="wrap">{body}</main>{_FOOT}</body></html>'
     )
+
+
+def withdrawn_page(mint: str, since) -> str:
+    """The page of a withdrawn token: only a dated notice, noindex, with no name and no evidence."""
+    day = _day_words(since)
+    notice = "This page was withdrawn after a correction request" + (f" on {day}." if day else ".")
+    body = f"<h1>Page withdrawn</h1><p>{notice}</p>"
+    return _page(str(mint), "Page withdrawn | Sift Insider Radar", notice, body, index=False)
+
+
+def token_page(entry, evidence, review, *, suppressed=None, row=None, image=None) -> str:
+    """The permanent page of one token, t/<mint>.html (money plan rank 1, BUILD 8), from its ledger entry
+    (None for a radar token without one yet), its evidence frozen at entry (memetrader.evidence; None when
+    it has none), its hand review (a case of site/radar-review.json, or None), the private suppression list
+    (suppression()) and its radar row now (`row`, read only when there is no evidence). `image` is the
+    version of its published card t/<mint>.png (True: CARD_VERSION), None when it has none.
+
+    It shows the factual label at entry (OLDER_TOKEN and no grade word instead, for a token over 30 days
+    old at the verdict with a linked group: older_note), when the trace was taken, the linked groups with
+    a Solscan link for every wallet and proof transaction, the ledger's milestones only (each exit warning
+    with its UTC time and its price against the verdict price), the hand review, the verify.py command,
+    NOT_A_CLAIM, the way to object or correct (OBJECTIONS, a reply within REPLY_DAYS days), NOT_ADVICE and
+    the visit counter (BEACON). No trade link and no price that moves: two ledger states that differ only
+    in what each hourly sample changes give the same page, byte for byte. Evidence without groups shows
+    its no_groups_reason instead; with no evidence, the token's radar row now when it is on the radar,
+    else EVIDENCE_NOT_SAVED. A withdrawn token's page is withdrawn_page(); a withdrawn wallet reads
+    WITHDRAWN, with no link and no proof link. Only a token_indexable() page leaves out noindex. Names are
+    safe_name()s and everything is escaped."""
+    e = entry if isinstance(entry, dict) else None
+    r = row if isinstance(row, dict) else None
+    mint = str((e or r or (evidence if isinstance(evidence, dict) else None) or {}).get("mint") or "")
+    if not mint:  # never a page with no address (a withdrawn token without an entry: withdrawn_page)
+        raise ValueError("a token page needs its mint: an entry, a row or evidence")
+    tokens = withdrawn_tokens(suppressed)
+    if mint in tokens:
+        return withdrawn_page(mint, tokens[mint])
+    wallets = withdrawn_wallets(suppressed)
+    ev = evidence if e is not None and isinstance(evidence, dict) and evidence.get("mint") == mint else None
+    name = safe_name((e or {}).get("name") or (ev or {}).get("name") or (r or {}).get("name"), mint)
+    g = grade_code(e if e is not None else (r or {}))
+    if ev is not None:  # what the verdict rested on, frozen at entry
+        groups = frozen_groups(ev)
+        reason = ev.get("no_groups_reason") if isinstance(ev.get("no_groups_reason"), str) else None
+        if groups is None and not reason:
+            reason = OLDER_METHOD if isinstance(ev.get("groups"), list) else "no group section was saved"
+        traced, numbers = ev.get("traced_at"), ev
+    elif r is not None:  # the token's trace on the radar now
+        groups = [c for c in r.get("clusters") or [] if isinstance(c, dict)]
+        reason, traced, numbers = None, r.get("traced_at"), r
+    else:
+        groups, reason, traced, numbers = None, None, None, {}
+    if e is not None:  # what the verdict knew: the live row would flip the page as it comes and goes
+        since = e.get("trading_since") or (ev or {}).get("trading_since")
+    else:
+        since = (r or {}).get("trading_since")
+    view = {
+        "grade": g,
+        "trading_since": since,
+        "entered_at": (e or {}).get("entered_at"),
+        "traced_at": traced if e is None else None,
+        "clusters": groups or [],
+    }
+    older = older_note(view)
+    weak = weak_link({"grade": g, "clusters": groups or []})
+    label = grade_label({"grade": g})
+    if groups:
+        total = numbers.get("clustered_pct")
+        total = _num(total) if isinstance(total, int | float) else sum(_num(c.get("pct")) for c in groups)
+        held = sum(int(_num(c.get("holders"))) for c in groups)
+        largest = max(_num(c.get("pct")) for c in groups)
+        found = (
+            f"Largest linked group {largest:.1f}% of supply, all linked groups {total:.1f}% ({held} top "
+            "holders linked). Wallets and proof transactions on the page."
+        )
+    elif groups is not None:
+        found = "No two top holders lead back to the same private wallet."
+        found = GRADES["incomplete"][2] if g == "incomplete" else found
+    else:
+        found = f"The linked groups are not shown: {reason}." if reason else EVIDENCE_NOT_SAVED
+    day = _day_words(since)
+    if older:
+        title = f"{name} | {OLDER_TOKEN} | Sift Insider Radar"
+        desc = f"{OLDER_TOKEN}. Trading since {day}{f'; {weak}' if weak else ''}. {found} {NOT_ADVICE}"
+    else:
+        title = f"{name}: {label} | Sift Insider Radar"
+        on = _day_words(e.get("entered_at") if e is not None else traced)
+        when = ("at the verdict" if e is not None else "as traced") + (f" on {on}" if on else "")
+        desc = f"{label} {when}{f' ({weak})' if weak else ''}. {found} {NOT_ADVICE}"
+    m = _xml(mint)
+    body = [
+        f"<h1>{_xml(name)}</h1>",
+        f'<p class="mint">{m} · <a href="https://solscan.io/token/{m}">Solscan</a></p>',
+        f'<p><span class="verdict">{_xml(OLDER_TOKEN if older else label)}</span></p>',  # it may wrap
+    ]
+    aged = f" Trading since {day}." if day and not older else ""
+    taken = _utc((ev or {}).get("traced_at"))
+    trace = f"; trace taken {taken}" if taken else "; the trace it rested on was not saved"
+    if e is not None:
+        entered = f"Entered the track record {_utc(e.get('entered_at'))}{trace}."
+        old = f"Trading since {day}, more than {ESTABLISHED_DAYS} days before the verdict. " if older else ""
+        body.append(f"<p>{old}{entered}{aged}</p>")
+    else:
+        old = f"Trading since {day}, more than {ESTABLISHED_DAYS} days before this trace. " if older else ""
+        body.append(f"<p>{old}Traced {_utc(traced)}. Not in the track record yet.{aged}</p>")
+    if not older:
+        body.append(f'<p class="muted">{_xml(GRADES[g][2])}</p>')
+    if weak:
+        body.append(f'<p class="muted">{_xml(weak[0].upper() + weak[1:])}.</p>')
+    if e is not None and e.get("out_of_scope"):
+        body.append(f'<p class="note">{OUT_OF_SCOPE}</p>')
+    if e is not None and e.get("void"):
+        body.append(f'<p class="note">{VOID_NOTE}</p>')
+    body.append("<h2>Linked groups</h2>")
+    if ev is not None and groups is not None and isinstance(numbers.get("clustered_pct"), int | float):
+        top = numbers.get("top_pct")
+        among = "among the holders that could be traced, " if g == "incomplete" else ""
+        body.append(
+            f"<p>As traced for the verdict, {among}linked groups held "
+            f"{_pct(numbers['clustered_pct'])} of supply"
+            + (
+                f"; the 20 largest accounts held {_pct(top)}.</p>"
+                if isinstance(top, int | float)
+                else ".</p>"
+            )
+        )
+    elif ev is None and e is not None and r is not None:
+        body.append(
+            f"<p>{EVIDENCE_NOT_SAVED} The groups below are from the latest trace, taken {_utc(traced)}.</p>"
+        )
+    if groups:
+        body += [_group_html(i, c, wallets) for i, c in enumerate(groups, 1)]
+    else:
+        body.append(f"<p>{_xml(found)}</p>")
+    if e is not None:
+        items = "".join(f"<li>{text}</li>" for text in _timeline(e))
+        body.append(
+            f'<h2>Track record</h2><ul class="tl">{items}</ul><p class="muted">Milestones only, added as '
+            "they happen. The latest hourly price and the lowest within 7 days are in "
+            '<a href="../radar-ledger.json">radar-ledger.json</a>; every hourly copy of it is in the <a '
+            f'href="{HISTORY_URL}">public history</a>.</p>'
+        )
+    if isinstance(review, dict) and review.get("mint") in (None, mint):
+        body.append(_review_html(review, wallets))
+    body.append(
+        "<h2>Check it yourself</h2><p>Each proof link opens its transaction on Solscan. To re-check the "
+        "links on the Solana chain, download "
+        '<a href="../verify.py">verify.py</a> (Python 3.11 or later, no key or packages) and run '
+        f"<code>python3 verify.py {m}</code>: it checks the links the radar publishes now, or, once the "
+        f'token has left the radar, those frozen at the verdict. <a href="../radar.html#{m}">Open it on '
+        "the Insider Radar</a>.</p>"
+        f"<p>{NOT_A_CLAIM}</p>"
+        f'<p>To object or correct: <a href="../{OBJECTIONS}">the privacy page says how</a>. Sift replies '
+        f"within {REPLY_DAYS} days.</p><p>{NOT_ADVICE}</p>"
+    )
+    version = CARD_VERSION if image is True else (None if image is None or image is False else image)
+    return _page(mint, title, desc, "".join(body), index=token_indexable(e, ev, suppressed), image=version)
 
 
 def audit_summary(audit: dict | None) -> dict | None:

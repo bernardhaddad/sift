@@ -5,7 +5,7 @@ token's 20 largest holders, it finds who paid for each holder's first transactio
 and who sent it its first tokens. Holders that lead to the same private wallet form a linked group.
 Exchanges, pools and programs link nobody. Every link carries the transaction that proves it.
 
-This is the same code the radar runs (copied from its source on 2026-11-13, revision `296fe76`).
+This is the same code the radar runs (copied from its source on 2026-11-15, revision `b3897411`).
 Python 3.11 or newer, standard library only.
 
 ## Run a trace

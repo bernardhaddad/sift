@@ -24,6 +24,18 @@ from memetrader import cluster, data, filters, lpburn, radar  # noqa: E402
 
 DEADLINE_S = 240.0
 SYMBOL_RE = re.compile(r"^[A-Za-z0-9 ._$-]{1,20}$")
+SUPPRESS = ROOT / "site" / "radar-suppress.json"  # the correction requests the hourly build applies
+
+
+def suppression():
+    """radar.suppression() of the private list, as the hourly build reads it: empty without a file,
+    None when there is one that cannot be applied (then nothing that could name a withdrawn token or
+    wallet is published, as the build withholds)."""
+    try:
+        doc = json.loads(SUPPRESS.read_text(encoding="utf-8")) if SUPPRESS.exists() else None
+        return radar.suppression(doc)
+    except Exception:  # noqa: BLE001 - unreadable for any reason: never applied as a shorter list
+        return None
 
 
 def token_name(mint: str) -> str | None:
@@ -124,6 +136,13 @@ def main(argv: list[str]) -> int:
             "The radar covers memecoins; the linked holders of these are usually the issuer's own wallets."
         )
         return 2
+    suppressed = suppression()
+    if suppressed is None:
+        out_md.write_text("The tracer cannot publish results right now. Please try again later.")
+        return 2
+    if mint in radar.withdrawn_tokens(suppressed):  # not traced again: its page was withdrawn
+        out_md.write_text(f"The page of `{mint}` was withdrawn after a correction request.")
+        return 2
     result = cluster.funding_cluster(rpc, mint, deadline_s=DEADLINE_S, known_public=known_public())
     if result is None:
         out_md.write_text(
@@ -140,6 +159,7 @@ def main(argv: list[str]) -> int:
     pool = lpburn.main_pool(data.Http(), mint) or {}  # how long it has traded; skipped if not answered
     if pool.get("first_pool_at"):
         e["trading_since"] = pool["first_pool_at"]
+    e = radar.withdraw_row(e, radar.withdrawn_wallets(suppressed))  # never a withdrawn wallet again
     rec["row"] = e  # the radar row, so the site can show the result before the next hourly build
     out_json.write_text(json.dumps(rec))
     report = radar.report_markdown(e)
