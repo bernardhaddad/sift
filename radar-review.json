@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-15T05:05:00+00:00",
+  "reviewed_at": "2026-11-17T05:10:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 46,
-    "links_checked": 811,
+    "verdicts": 47,
+    "links_checked": 824,
     "links_contradicted": 3,
-    "young_tokens": 31,
+    "young_tokens": 32,
     "older_tokens": 15
   },
   "cases": [
@@ -428,6 +428,15 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 30.7% of supply when traced, about 0.7% to 1.8% each. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8). That wallet holds about 528 SOL and made over 1,000 transactions in the 2 hours 20 minutes before this review, about seven a minute, so it may be a bot or a service; it was not marked as a high-volume wallet when the token was traced. At the verdict, about 90 minutes after the trace, the linked wallets held 20.5% of supply among the 20 largest accounts. Mint and freeze authority are renounced. Graded about two and a half hours after the first pool opened."
+    },
+    {
+      "mint": "BB843oCDKgqZyQXiGfF5RAHF1ZYsEBQx8oxGq5dPZqHq",
+      "name": "BB84",
+      "verdict_at": "2026-11-17T04:17:11+00:00",
+      "trading_since": "2026-11-07T15:59:16Z",
+      "links": "13 of 13 verified",
+      "finding": "young",
+      "note": "Two linked groups with 15.1% of supply when traced. In the larger one (12.5%, five holders), the same wallet paid for the first transaction of four holders and sent them their tokens, and also funded a fifth wallet that sent tokens to the last holder. That wallet made its first transaction on 7 November, the day the first pool opened, and had about 76 transactions and 10.7 SOL at this review. The smaller group (2.5%, two holders) links through a wallet on the list of known services, with over 1,000 transactions and about 66 SOL, so it says little on its own. At the verdict the linked wallets still held 15.1% among the 20 largest accounts. Mint and freeze authority are renounced; the pool's liquidity is neither burned nor locked. Graded about nine and a half days after the first pool opened."
     }
   ]
 }
