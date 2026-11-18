@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-17T21:10:00+00:00",
+  "reviewed_at": "2026-11-18T05:10:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 49,
-    "links_checked": 880,
+    "verdicts": 50,
+    "links_checked": 899,
     "links_contradicted": 3,
-    "young_tokens": 34,
+    "young_tokens": 35,
     "older_tokens": 15
   },
   "cases": [
@@ -455,6 +455,15 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 33.7% of supply when traced, about 0.9% to 2.1% each. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape as the WANTED case but from a different wallet. That wallet holds about 1,175 SOL and made over 1,000 transactions in the 2 hours 10 minutes before this review, about eight a minute, so it may be a bot or a service; it was not marked as a high-volume wallet when the token was traced. At the verdict, two minutes after the trace, the linked wallets held 28.4% of supply among the 20 largest accounts, with two of them no longer in the top 20. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 80 minutes after the first pool opened. Not the same token as the earlier Rex (H57bUBka)."
+    },
+    {
+      "mint": "6wiaCq8oQiupFfeDU4ouAuYnCKXCch581HAmpvrxpump",
+      "name": "GTAVI",
+      "verdict_at": "2026-11-18T01:32:21+00:00",
+      "trading_since": "2026-11-18T00:10:10Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 55.1% of supply when traced, about 0.9% to 3.7% each, ten of them at almost exactly 3.7%. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape as the WANTED and second Rex cases, again from a different wallet. That wallet holds about 583 SOL and made over 1,000 transactions in the 4 hours 15 minutes before this review, about four a minute, so it may be a bot or a service; it was not marked as a high-volume wallet when the token was traced. At the verdict the linked wallets held 55.0% of supply among the 20 largest accounts, and 50.4% about three hours later. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 80 minutes after the first pool opened."
     }
   ]
 }
