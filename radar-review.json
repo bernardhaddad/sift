@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-21T05:15:00+00:00",
+  "reviewed_at": "2026-11-21T09:10:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 55,
-    "links_checked": 975,
+    "verdicts": 56,
+    "links_checked": 994,
     "links_contradicted": 3,
-    "young_tokens": 39,
+    "young_tokens": 40,
     "older_tokens": 16
   },
   "cases": [
@@ -509,6 +509,15 @@
       "links": "19 of 19 verified",
       "finding": "young",
       "note": "19 top holders with 39.5% of supply when traced, about 0.9% to 2.4% each, fourteen of them between 2.1% and 2.4%. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape again from yet another wallet. That wallet holds about 2,317 SOL and made 1,000 transactions in about one minute at this review, so it is very likely a service or exchange wallet; it was not marked as a high-volume wallet when the token was traced. At the verdict, three minutes after the trace, the linked wallets held 33.6% of supply among the 20 largest accounts. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 30 minutes after the first pool opened."
+    },
+    {
+      "mint": "FJKt1LxbWBpTRt9BaDEB6Wr2qL5LZzjFF5sx8rXnpump",
+      "name": "MAYA",
+      "verdict_at": "2026-11-21T06:00:42+00:00",
+      "trading_since": "2026-11-21T05:07:34Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 45.7% of supply when traced, about 0.8% to 2.9% each, twelve of them between 2.85% and 2.89%. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape as five earlier cases, again from a different wallet. That wallet holds about 443 SOL and made over 1,000 transactions in the 3 hours 15 minutes before this review, about five a minute, so it may be a bot or a service; it was not marked as a high-volume wallet when the token was traced. At the verdict, a minute after the trace, the linked wallets held 45.6% of supply among the 20 largest accounts, and 43.0% about three hours later. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 55 minutes after the first pool opened."
     }
   ]
 }
