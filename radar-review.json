@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-20T09:10:00+00:00",
+  "reviewed_at": "2026-11-21T05:15:00+00:00",
   "scope": "Every High linked share verdict in the track record, reviewed as it appears.",
   "method": [
     "Every published link re-checked on the public Solana node with verify.py.",
@@ -8,10 +8,10 @@
     "Tokens trading for over 30 days at the verdict are marked older."
   ],
   "summary": {
-    "verdicts": 53,
-    "links_checked": 937,
+    "verdicts": 55,
+    "links_checked": 975,
     "links_contradicted": 3,
-    "young_tokens": 37,
+    "young_tokens": 39,
     "older_tokens": 16
   },
   "cases": [
@@ -491,6 +491,24 @@
       "links": "17 of 17 verified",
       "finding": "young",
       "note": "One ordinary wallet held 99.5% of supply when traced, so almost nothing trades outside it. That wallet was funded by a second holder (0.5%) and later sent it tokens; the second holder made over 1,000 transactions since 18 November. A second group of 14 holders with almost no tokens each was funded by one wallet, itself funded by another; it adds nothing to the share. The 20 largest accounts held the whole supply, and still did at the verdict, about a minute and a half after the trace. Mint and freeze authority are renounced. Graded about 31 hours after the first pool opened."
+    },
+    {
+      "mint": "7WCR1tjR5XHYn5xX7d6rXPh1B8RrBkLnJnPwN7bxpump",
+      "name": "SPONGEBOB",
+      "verdict_at": "2026-11-21T03:41:32+00:00",
+      "trading_since": "2026-11-21T02:17:37Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 45.5% of supply when traced, about 0.7% to 3.1% each. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape as the WANTED, second Rex and GTAVI cases, again from a different wallet. That wallet then made over 1,000 transactions in about 20 minutes and has since been closed, with no SOL left. By the verdict, about an hour after the trace, all 19 linked wallets had left the 20 largest accounts and together held almost nothing. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 85 minutes after the first pool opened."
+    },
+    {
+      "mint": "2S4e8Lv5kMqzXumeWrXMMwANUVtFLazeezUorfG9pump",
+      "name": "OnlyCats",
+      "verdict_at": "2026-11-21T04:51:34+00:00",
+      "trading_since": "2026-11-21T04:23:19Z",
+      "links": "19 of 19 verified",
+      "finding": "young",
+      "note": "19 top holders with 39.5% of supply when traced, about 0.9% to 2.4% each, fourteen of them between 2.1% and 2.4%. The same wallet paid for the first transaction of all 19, in just two transactions (one for 11 wallets, one for 8), the same shape again from yet another wallet. That wallet holds about 2,317 SOL and made 1,000 transactions in about one minute at this review, so it is very likely a service or exchange wallet; it was not marked as a high-volume wallet when the token was traced. At the verdict, three minutes after the trace, the linked wallets held 33.6% of supply among the 20 largest accounts. Mint and freeze authority are renounced and the pool's liquidity is burned. Graded about 30 minutes after the first pool opened."
     }
   ]
 }
