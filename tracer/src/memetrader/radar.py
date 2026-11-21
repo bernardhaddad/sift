@@ -1031,6 +1031,26 @@ def frozen_groups(ev) -> list | None:
     return None if outdated else [c for c in ev["groups"] if isinstance(c, dict)]
 
 
+BATCH_VERSION = 1  # the "Funded in one batch" label version a page shows (memetrader.batch.VERSION)
+BATCH_LABEL = "Funded in one batch"
+BATCH_NOTE = "This label started on 22 Nov 2026 and is being tested."
+
+
+def batch_line(ev) -> str | None:
+    """The page's sentence for the "Funded in one batch" label frozen in a token's evidence (its optional
+    batch field, memetrader.batch.assess), None unless that label is flagged by BATCH_VERSION. Evidence
+    without the field was frozen before the label: not assessed, and the page shows nothing. The label
+    never changes a grade or whether a page is indexed."""
+    b = ev.get("batch") if isinstance(ev, dict) else None
+    if not (isinstance(b, dict) and b.get("version") == BATCH_VERSION and b.get("flagged") is True):
+        return None
+    n, txs = b.get("holders"), b.get("txs")
+    if not all(isinstance(v, int) and not isinstance(v, bool) and v > 0 for v in (n, txs)):
+        return None
+    word = "transaction" if txs == 1 else "transactions"
+    return f"{BATCH_LABEL}: one new wallet paid the first transaction of {n} top holders in {txs} {word}."
+
+
 YOUNG_BANDS = ("under_1d", "1_7d", "7_30d")  # ledger.age_band's bands of 30 days or less
 
 
@@ -1405,7 +1425,9 @@ def token_page(entry, evidence, review, *, suppressed=None, row=None, image=None
     version of its published card t/<mint>.png (True: CARD_VERSION), None when it has none.
 
     It shows the factual label at entry (OLDER_TOKEN and no grade word instead, for a token over 30 days
-    old at the verdict with a linked group: older_note), when the trace was taken, the linked groups with
+    old at the verdict with a linked group: older_note), the "Funded in one batch" line and its note when
+    the evidence carries that label flagged (memetrader.batch; it changes no grade and no indexing), when
+    the trace was taken, the linked groups with
     a Solscan link for every wallet and proof transaction, the ledger's milestones only (each exit warning
     with its UTC time and its price against the verdict price), the hand review, the verify.py command,
     NOT_A_CLAIM, the way to object or correct (OBJECTIONS, a reply within REPLY_DAYS days), NOT_ADVICE and
@@ -1495,6 +1517,9 @@ def token_page(entry, evidence, review, *, suppressed=None, row=None, image=None
         body.append(f'<p class="muted">{_xml(GRADES[g][2])}</p>')
     if weak:
         body.append(f'<p class="muted">{_xml(weak[0].upper() + weak[1:])}.</p>')
+    funded_once = batch_line(ev) if ev is not None and groups else None  # frozen at entry; no field: none
+    if funded_once:
+        body.append(f'<p>{_xml(funded_once)}</p><p class="muted">{_xml(BATCH_NOTE)}</p>')
     if e is not None and e.get("out_of_scope"):
         body.append(f'<p class="note">{OUT_OF_SCOPE}</p>')
     if e is not None and e.get("void"):

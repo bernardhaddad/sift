@@ -133,15 +133,22 @@ def update(ledger: dict | None, tokens: list, prices: dict, now: datetime, answe
         r = held.get(mint)
         crossed = False
         if r and age <= DAYS_7:  # linked supply still held (radar.retained): passive, never scored
-            reading = {"at": stamp, "pct": r.get("held_pct"), "out_of_top": r.get("out_of_top"),
-                       "below_pct": r.get("below_pct")}
+            reading = {
+                "at": stamp,
+                "pct": r.get("held_pct"),
+                "out_of_top": r.get("out_of_top"),
+                "below_pct": r.get("below_pct"),
+            }
             prev = e.get("held_last") or {}
             e.setdefault("held_first", reading)
             e["held_last"] = reading
             first_pct = e["held_first"].get("pct")
             crossed = bool(  # exit warning: the drop under half is seen between two readings
-                e.get("grade") in ("high", "watch") and first_pct and reading["pct"] is not None
-                and prev.get("pct") is not None and prev["pct"] >= SOLD_SHARE * first_pct
+                e.get("grade") in ("high", "watch")
+                and first_pct
+                and reading["pct"] is not None
+                and prev.get("pct") is not None
+                and prev["pct"] >= SOLD_SHARE * first_pct
                 and reading["pct"] < SOLD_SHARE * first_pct
             )
         if "dd_since" not in e:  # entered before drawdown times were recorded
@@ -173,10 +180,16 @@ def update(ledger: dict | None, tokens: list, prices: dict, now: datetime, answe
         w = e.get("exit_warning")
         if crossed and w is None:
             last = e["held_last"]
-            e["exit_warning"] = {"at": stamp, "hours": _hours(age), "held_pct": last["pct"],
-                                 "first_pct": e["held_first"]["pct"], "out_of_top": last.get("out_of_top"),
-                                 "price": e.get("last_price"), "price_at": e.get("last_at"),
-                                 "low": e.get("last_price") if fresh else None}
+            e["exit_warning"] = {
+                "at": stamp,
+                "hours": _hours(age),
+                "held_pct": last["pct"],
+                "first_pct": e["held_first"]["pct"],
+                "out_of_top": last.get("out_of_top"),
+                "price": e.get("last_price"),
+                "price_at": e.get("last_at"),
+                "low": e.get("last_price") if fresh else None,
+            }
         elif w is not None and fresh and age <= DAYS_7:  # lowest price seen after the warning
             low = w.get("low")
             e["exit_warning"] = {**w, "low": e["last_price"] if low is None else min(low, e["last_price"])}
@@ -272,9 +285,14 @@ def comparisons(ledger: dict) -> dict:
     """The comparisons fixed in COMPARISONS, over closed, non-void High and Watch entries: for each
     side, how many closed entries it has, how many collapsed and the rate. A comparison is "ready"
     when both sides have at least min_each entries; entries without the reading are left out."""
-    es = [e for e in (ledger or {}).get("entries", {}).values()
-          if e.get("grade") in ("high", "watch") and e.get("closed") and not e.get("void")
-          and not e.get("out_of_scope")]
+    es = [
+        e
+        for e in (ledger or {}).get("entries", {}).values()
+        if e.get("grade") in ("high", "watch")
+        and e.get("closed")
+        and not e.get("void")
+        and not e.get("out_of_scope")
+    ]
 
     def side(group: list) -> dict:
         n, c = len(group), sum(1 for e in group if _collapsed(e))
@@ -294,8 +312,11 @@ def comparisons(ledger: dict) -> dict:
     for key, test, a, b in (("age", young, "young", "older"), ("exit", sold, "sold", "held")):
         tagged = [(test(e), e) for e in es]
         sides = {a: side([e for t, e in tagged if t is True]), b: side([e for t, e in tagged if t is False])}
-        out[key] = {**sides, "unknown": sum(1 for t, _ in tagged if t is None),
-                    "ready": all(v["closed"] >= MIN_CLOSED for v in sides.values())}
+        out[key] = {
+            **sides,
+            "unknown": sum(1 for t, _ in tagged if t is None),
+            "ready": all(v["closed"] >= MIN_CLOSED for v in sides.values()),
+        }
     return out
 
 
@@ -323,8 +344,11 @@ EXIT_WARNINGS = {  # fixed on 2026-11-07, before the first warning fired; publis
 def exit_warnings(ledger: dict | None) -> dict:
     """The exit warnings' own track record (EXIT_WARNINGS), plus every warning newest first for
     the page. Medians are of changes from the warning price; a vanished token counts as -100%."""
-    entries = [e for e in ((ledger or {}).get("entries") or {}).values()
-               if e.get("grade") in ("high", "watch") and not e.get("out_of_scope")]
+    entries = [
+        e
+        for e in ((ledger or {}).get("entries") or {}).values()
+        if e.get("grade") in ("high", "watch") and not e.get("out_of_scope")
+    ]
     since = (ledger or {}).get("exit_since")
     counted = [e for e in entries if since and str(e.get("entered_at") or "") >= since and not e.get("void")]
     warned = [e for e in counted if e.get("exit_warning")]
@@ -338,16 +362,24 @@ def exit_warnings(ledger: dict | None) -> dict:
         return p7["price"] / w["price"] - 1.0 if p7.get("price") else None
 
     ends = [r for r in (end(e) for e in closed) if r is not None]
-    lows = [e["exit_warning"]["low"] / e["exit_warning"]["price"] - 1.0
-            for e in closed if e["exit_warning"].get("low")]
+    lows = [
+        e["exit_warning"]["low"] / e["exit_warning"]["price"] - 1.0
+        for e in closed
+        if e["exit_warning"].get("low")
+    ]
     collapsed = [e for e in closed if _collapsed(e)]
-    first = [e for e in collapsed
-             if (e.get("dd80") or {}).get("at") and e["dd80"]["at"] > e["exit_warning"]["at"]]
+    first = [
+        e for e in collapsed if (e.get("dd80") or {}).get("at") and e["dd80"]["at"] > e["exit_warning"]["at"]
+    ]
     quiet = [e for e in counted if e.get("closed") and not e.get("exit_warning")]
     recent = sorted(
-        ({"mint": e.get("mint"), "name": e.get("name"), "grade": e.get("grade"), **e["exit_warning"]}
-         for e in entries if e.get("exit_warning")),
-        key=lambda r: r["at"], reverse=True,
+        (
+            {"mint": e.get("mint"), "name": e.get("name"), "grade": e.get("grade"), **e["exit_warning"]}
+            for e in entries
+            if e.get("exit_warning")
+        ),
+        key=lambda r: r["at"],
+        reverse=True,
     )
     return {
         "definitions": EXIT_WARNINGS,
@@ -385,8 +417,11 @@ def _minutes(a, b) -> float | None:
 def exit_warnings_5m(ledger: dict | None) -> dict:
     """The 5-minute warnings' own record (EXIT_WARNINGS_5M), with the comparison against the
     hourly clock on the same entries. Medians are of changes from the warning price."""
-    entries = [e for e in ((ledger or {}).get("entries") or {}).values()
-               if e.get("grade") in ("high", "watch") and not e.get("out_of_scope")]
+    entries = [
+        e
+        for e in ((ledger or {}).get("entries") or {}).values()
+        if e.get("grade") in ("high", "watch") and not e.get("out_of_scope")
+    ]
     since = (ledger or {}).get("exit5_since")
     counted = [e for e in entries if since and str(e.get("entered_at") or "") >= since and not e.get("void")]
     warned = [e for e in counted if e.get("exit_warning_5m")]
@@ -399,8 +434,11 @@ def exit_warnings_5m(ledger: dict | None) -> dict:
         return p7["price"] / e["exit_warning_5m"]["price"] - 1.0 if p7.get("price") else None
 
     ends = [r for r in (end(e) for e in closed) if r is not None]
-    lows = [e["exit_warning_5m"]["low"] / e["exit_warning_5m"]["price"] - 1.0
-            for e in closed if e["exit_warning_5m"].get("low")]
+    lows = [
+        e["exit_warning_5m"]["low"] / e["exit_warning_5m"]["price"] - 1.0
+        for e in closed
+        if e["exit_warning_5m"].get("low")
+    ]
     either = [e for e in counted if e.get("exit_warning_5m") or e.get("exit_warning")]
     first_5m = first_1h = 0
     leads = []
@@ -419,9 +457,13 @@ def exit_warnings_5m(ledger: dict | None) -> dict:
         return bool((e.get(key) or {}).get("at") and e[key]["at"] < e["dd80"]["at"])
 
     recent = sorted(
-        ({"mint": e.get("mint"), "name": e.get("name"), "grade": e.get("grade"), **e["exit_warning_5m"]}
-         for e in entries if e.get("exit_warning_5m")),
-        key=lambda r: r["at"], reverse=True,
+        (
+            {"mint": e.get("mint"), "name": e.get("name"), "grade": e.get("grade"), **e["exit_warning_5m"]}
+            for e in entries
+            if e.get("exit_warning_5m")
+        ),
+        key=lambda r: r["at"],
+        reverse=True,
     )
     return {
         "definitions": EXIT_WARNINGS_5M,
@@ -435,8 +477,10 @@ def exit_warnings_5m(ledger: dict | None) -> dict:
         "collapsed": sum(1 for e in closed if _collapsed(e)),
         "first": {"5m": first_5m, "1h": first_1h},
         "median_lead_min": round(statistics.median(leads), 1) if leads else None,
-        "only": {"5m": sum(1 for e in either if not e.get("exit_warning")),
-                 "1h": sum(1 for e in either if not e.get("exit_warning_5m"))},
+        "only": {
+            "5m": sum(1 for e in either if not e.get("exit_warning")),
+            "1h": sum(1 for e in either if not e.get("exit_warning_5m")),
+        },
         "collapses_warned_before": {
             "collapses": len(gone),
             "5m": sum(before(e, "exit_warning_5m") for e in gone),
@@ -449,8 +493,11 @@ def exit_warnings_5m(ledger: dict | None) -> dict:
 def open_mints(ledger: dict | None) -> list:
     """Open entries, the longest unanswered first: they are nearest the 6-hour void line, so a
     rate-limited hour must still reach them."""
-    open_ = [(e.get("asked_at") or "", m) for m, e in ((ledger or {}).get("entries") or {}).items()
-             if not e.get("closed")]
+    open_ = [
+        (e.get("asked_at") or "", m)
+        for m, e in ((ledger or {}).get("entries") or {}).items()
+        if not e.get("closed")
+    ]
     return [m for _, m in sorted(open_)]
 
 
@@ -516,3 +563,133 @@ def age_base_rates(book: dict | None) -> dict:
             cell["closed"] += 1
             cell["collapsed"] += hit
     return {"definition": AGE_BASE_RATES, "bands": bands, "by_grade": by_grade, "unknown": unknown}
+
+
+# Added 2026-11-22 (docs/method-review-2026-11-21.md, proposal 2), outside the rules above and changing
+# no score: young tokens' collapse and wipe rates by grade, by top_pct band and by the batch-funding
+# flag, so a grade's rate is never quoted without the token's age. Reporting only, no verdict.
+YOUNG_HOURS = timedelta(hours=24)
+WIPE = 0.01  # lowest price within 7 days <= 1% of entry
+TOP_PCT_BANDS = ("0_15", "15_30", "30_50", "50_up")  # top_pct under 15, 15 to under 30, 30 to under 50, 50+
+BATCH_SIDES = ("flagged", "not_flagged", "not_assessed")
+BATCH_VERSION = 1  # the only label version this block reads (memetrader.batch, VERSION 1)
+AGE_SCORECARD_FIXED = "2026-11-22"
+AGE_SCORECARD = (
+    "Fixed on 2026-11-22. Closed entries in the radar's scope that are not void, whose token had traded "
+    "for 24 hours or less when it entered. A collapse is a lowest price within 7 days at or below 20% "
+    "of the entry price or a token that vanished; a wipe is a lowest price within 7 days at or below 1% "
+    "of the entry price. The rows by grade and by the share of supply the 20 largest accounts held in "
+    "the evidence frozen at the verdict (under 15%, 15 to under 30%, 30 to under 50%, 50% or more, or "
+    "unknown) cover every such entry since the record began. Only the rows by the batch-funding flag "
+    "are limited: they appear once any evidence carries version 1 of the Funded in one batch label, "
+    "assessed from 22 November 2026, and an entry counts as flagged or not flagged only when version 1 "
+    "fully assessed it. Every other entry, including every entry from before that date, is not "
+    "assessed. A cell shows a rate once it has 10 entries."
+)
+
+
+def _num(x) -> bool:
+    return not isinstance(x, bool) and isinstance(x, (int, float)) and math.isfinite(x)
+
+
+def _wiped(e: dict) -> bool:
+    """A lowest price within 7 days at or below WIPE of the entry price. A vanished token with no
+    such low is not a wipe (it still counts as collapsed, by the scorecard's own test)."""
+    low, p0 = e.get("min_price"), e.get("p0")
+    return _num(low) and _num(p0) and p0 > 0 and low <= WIPE * p0
+
+
+def _top_band(top) -> str:
+    if isinstance(top, bool) or not isinstance(top, (int, float)) or not math.isfinite(top) or top < 0:
+        return "unknown"
+    if top < 15:
+        return "0_15"
+    if top < 30:
+        return "15_30"
+    return "30_50" if top < 50 else "50_up"
+
+
+def _batch_version(b) -> bool:
+    v = b.get("version") if isinstance(b, dict) else None
+    return type(v) is int and v == BATCH_VERSION
+
+
+def _batch_side(doc: dict) -> str:
+    """The evidence's batch field ({"version": 1, "assessed": bool, "flagged": bool, ...}) as
+    flagged / not_flagged, only for version 1 with assessed True; anything else, a missing field
+    included, is not_assessed (flagged False with assessed False means not assessed, not "not
+    flagged")."""
+    b = doc.get("batch")
+    if not _batch_version(b) or b.get("assessed") is not True or not isinstance(b.get("flagged"), bool):
+        return "not_assessed"
+    return "flagged" if b["flagged"] else "not_flagged"
+
+
+def age_scorecard(book: dict | None, evidence_lookup=None) -> dict:
+    """AGE_SCORECARD: per cell, how many entries closed, collapsed (the scorecard's own test) and
+    wiped, with rates once a cell has MIN_CLOSED entries. `evidence_lookup(mint)` returns the frozen
+    evidence (evidence.load) or None; without it, or when it fails, top_pct is unknown and the batch
+    flag not assessed. by_grade and by_top_pct cover every young entry since the record began; in
+    by_batch an entry is flagged / not_flagged only for a version 1 field with assessed True, every
+    other entry is not_assessed, and by_batch is None until some evidence carries a version 1 field.
+    Entries without a token age are left out and counted as age_unknown."""
+
+    def blank(keys) -> dict:
+        return {k: {"closed": 0, "collapsed": 0, "wiped": 0} for k in keys}
+
+    every, by_grade = blank(("all",)), blank(GRADES)
+    by_top, by_batch = blank((*TOP_PCT_BANDS, "unknown")), blank(BATCH_SIDES)
+    age_unknown, labelled = 0, False
+    for mint, e in ((book or {}).get("entries") or {}).items():
+        if not isinstance(e, dict) or e.get("grade") not in GRADES or e.get("out_of_scope"):
+            continue
+        if e.get("void") or not e.get("closed"):
+            continue
+        age = age_at_entry(e)
+        if age is None:
+            age_unknown += 1
+            continue
+        if age > YOUNG_HOURS:
+            continue
+        doc = None
+        if evidence_lookup is not None:
+            try:
+                doc = evidence_lookup(e.get("mint") or mint)
+            except Exception:  # a lookup that fails is no evidence, never a stopped build
+                doc = None
+        doc = doc if isinstance(doc, dict) else {}
+        side = _batch_side(doc)
+        labelled = labelled or _batch_version(doc.get("batch"))
+        c, w = int(_collapsed(e)), int(_wiped(e))
+        cells = (
+            every["all"],
+            by_grade[e["grade"]],
+            by_top[_top_band(doc.get("top_pct"))],
+            by_batch[side],
+        )
+        for cell in cells:
+            cell["closed"] += 1
+            cell["collapsed"] += c
+            cell["wiped"] += w
+
+    def rated(cells: dict) -> dict:
+        out = {}
+        for k, v in cells.items():
+            ready = v["closed"] >= MIN_CLOSED
+            out[k] = {
+                **v,
+                "ready": ready,
+                "collapse_rate": round(v["collapsed"] / v["closed"], 4) if ready else None,
+                "wipe_rate": round(v["wiped"] / v["closed"], 4) if ready else None,
+            }
+        return out
+
+    return {
+        "definition": AGE_SCORECARD,
+        "fixed_at": AGE_SCORECARD_FIXED,
+        "all": rated(every)["all"],
+        "by_grade": rated(by_grade),
+        "by_top_pct": rated(by_top),
+        "by_batch": rated(by_batch) if labelled else None,
+        "age_unknown": age_unknown,
+    }
